@@ -22,5 +22,7 @@ class Main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SelfDriving")
 
-    parser.add_argument("--steps",type=int,default=50000000,help="Steps for train")
-    parser.add_argument("--steps",type=int,default=50000000,help="Steps for train")
+    parser.add_argument("-steps",type=int,default=50000000,help="Steps for train")
+    parser.add_argument("-data" ,type=str,default="./data",help="Data for train/test")
+    parser.add_argument("-nets" ,type=str,default="./nets",help="Path of model train")
+    arg,remaining = parser.parse_known_args()
