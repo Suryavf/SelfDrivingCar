@@ -1,9 +1,18 @@
 from keras.preprocessing import image
 from keras.preprocessing.image import ImageDataGenerator
+
 import numpy as np
 import keras.backend as K
 import os
 import cv2
+
+def transform_matrix_offset_center(matrix, x, y):
+    o_x = float(x) / 2 + 0.5
+    o_y = float(y) / 2 + 0.5
+    offset_matrix = np.array([[1, 0, o_x], [0, 1, o_y], [0, 0, 1]])
+    reset_matrix = np.array([[1, 0, -o_x], [0, 1, -o_y], [0, 0, 1]])
+    transform_matrix = np.dot(np.dot(offset_matrix, matrix), reset_matrix)
+    return transform_matrix
 
 class DriveDataGenerator(image.ImageDataGenerator):
     def __init__(self,
@@ -71,8 +80,8 @@ class DriveDataGenerator(image.ImageDataGenerator):
             A tuple. 0 -> randomly transformed version of the input (same shape). 1 -> true if image was horizontally flipped, false otherwise
         """
         # x is a single image, so it doesn't have image number at index 0
-        img_row_axis = self.row_axis
-        img_col_axis = self.col_axis
+        img_row_axis     = self.row_axis
+        img_col_axis     = self.col_axis
         img_channel_axis = self.channel_axis
 
         is_image_horizontally_flipped = False
@@ -130,31 +139,34 @@ class DriveDataGenerator(image.ImageDataGenerator):
             transform_matrix = zoom_matrix if transform_matrix is None else np.dot(transform_matrix, zoom_matrix)
         
         if transform_matrix is not None:
-            img_gen = ImageDataGenerator()
+            img_gen = ImageDataGenerator(fill_mode=self.fill_mode, cval=self.cval)
             
             h, w = x.shape[img_row_axis], x.shape[img_col_axis]
-            transform_matrix = img_gen.transform_matrix_offset_center(transform_matrix, h, w)
-            x = img_gen.apply_transform(x, transform_matrix, img_channel_axis,
-                                fill_mode=self.fill_mode, cval=self.cval)
+            transform_matrix = transform_matrix_offset_center(transform_matrix, h, w)
+            
+            x = img_gen.apply_transform(x, transform_matrix)#, img_channel_axis) #---------------------------------------------------------------------------------
 
         if self.channel_shift_range != 0:
             x = image.random_channel_shift(x,
                                      self.channel_shift_range,
                                      img_channel_axis)
         if self.horizontal_flip:
+            img_gen = ImageDataGenerator()
+
             if np.random.random() < 0.5:
-                x = image.flip_axis(x, img_col_axis)
-                is_image_horizontally_flipped = True
+                x = image.image.flip_axis(x, img_col_axis)
+                is_image_horizontally_flipped = True 
 
         if self.vertical_flip:
             if np.random.random() < 0.5:
-                x = image.flip_axis(x, img_row_axis)
+                x = image.image.flip_axis(x, img_row_axis)
                 
         if self.brighten_range != 0:
             random_bright = np.random.uniform(low = 1.0-self.brighten_range, high=1.0+self.brighten_range)
             
             #TODO: Write this as an apply to push operations into C for performance
-            img = cv2.cvtColor(x, cv2.COLOR_RGB2HSV)
+
+            img = cv2.cvtColor(x, cv2.COLOR_RGB2HSV) 
             img[:, :, 2] = np.clip(img[:, :, 2] * random_bright, 0, 255)
             x = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
 
