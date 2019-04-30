@@ -8,7 +8,7 @@ from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, Early
 import keras.backend as K
 from keras.preprocessing import image
 
-from keras_tqdm import TQDMNotebookCallback
+#from keras_tqdm import TQDMNotebookCallback
 
 import json
 import os
@@ -33,33 +33,40 @@ MODEL_OUTPUT_DIR = 'model'
 
 
 
-train_dataset = h5py.File(os.path.join(COOKED_DATA_DIR, 'train.h5'), 'r')
-eval_dataset  = h5py.File(os.path.join(COOKED_DATA_DIR, 'eval.h5'), 'r')
-test_dataset  = h5py.File(os.path.join(COOKED_DATA_DIR, 'test.h5'), 'r')
+#train_dataset = h5py.File(os.path.join(COOKED_DATA_DIR, 'train.h5'), 'r')
+#eval_dataset  = h5py.File(os.path.join(COOKED_DATA_DIR, 'eval.h5'), 'r')
+#test_dataset  = h5py.File(os.path.join(COOKED_DATA_DIR, 'test.h5'), 'r')
+
+train_dataset = h5py.File('/media/victor/Datos/Tesis/SelfDrivingCar/EndToEnd/dataAirSim/train.h5','r')
+eval_dataset  = h5py.File('/media/victor/Datos/Tesis/SelfDrivingCar/EndToEnd/dataAirSim/eval.h5' ,'r')
+test_dataset  = h5py.File('/media/victor/Datos/Tesis/SelfDrivingCar/EndToEnd/dataAirSim/test.h5' ,'r')
 
 num_train_examples = train_dataset['image'].shape[0]
-num_eval_examples = eval_dataset['image'].shape[0]
-num_test_examples = test_dataset['image'].shape[0]
+num_eval_examples  =  eval_dataset['image'].shape[0]
+num_test_examples  =  test_dataset['image'].shape[0]
+
+print("num_train_examples:",num_train_examples)
+print("num_eval_examples:" ,num_eval_examples )
+print("num_test_examples:" ,num_test_examples )
+
 
 batch_size=32
 
 
-
-
 # Getting data
+data_generator  = DriveDataGenerator(rescale=1./255., horizontal_flip=True, brighten_range=0.4, channel_shift_range=0)
+train_generator = data_generator.flow(train_dataset['image'], train_dataset['previous_state'], train_dataset['label'], batch_size=batch_size, zero_drop_percentage=0.95, roi=[76,135,0,255])
+eval_generator  = data_generator.flow( eval_dataset['image'],  eval_dataset['previous_state'],  eval_dataset['label'], batch_size=batch_size, zero_drop_percentage=0.95, roi=[76,135,0,255])
 
-data_generator = DriveDataGenerator(rescale=1./255., horizontal_flip=True, brighten_range=0.4)
-train_generator = data_generator.flow\
-    (train_dataset['image'], train_dataset['previous_state'], train_dataset['label'], batch_size=batch_size, zero_drop_percentage=0.95, roi=[76,135,0,255])
-eval_generator = data_generator.flow\
-    (eval_dataset['image'], eval_dataset['previous_state'], eval_dataset['label'], batch_size=batch_size, zero_drop_percentage=0.95, roi=[76,135,0,255])
-
-
+#print("data_generator" , data_generator.channel_shift_range)
+#print("train_generator",train_generator.channel_shift_range)
+#print("eval_generator" , eval_generator.channel_shift_range)
 
 """
 Drawing
 ===========================================
 """
+
 def draw_image_with_label(img, label, prediction=None):
     theta = label * 0.69 #Steering range for the car is +- 40 degrees -> 0.69 radians
     line_length = 50
@@ -85,15 +92,17 @@ def draw_image_with_label(img, label, prediction=None):
     plt.imshow(draw_image)
     plt.show()
 
-[sample_batch_train_data, sample_batch_test_data] = next(train_generator)
-for i in range(0, 3, 1):
-    draw_image_with_label(sample_batch_train_data[0][i], sample_batch_test_data[i])
 
+[sample_batch_train_data, sample_batch_test_data] = train_generator.next()#next(train_generator)
+
+#for i in range(0, 3, 1):
+#    draw_image_with_label(sample_batch_train_data[0][i], sample_batch_test_data[i])
 
 """
 Network architecture
 ================================================================
 """
+
 image_input_shape = sample_batch_train_data[0].shape[1:]
 state_input_shape = sample_batch_train_data[1].shape[1:]
 activation = 'relu'
@@ -127,6 +136,8 @@ model.compile(optimizer=adam, loss='mse')
 
 model.summary()
 
+
+
 # ReduceLrOnPlateau 
 # -----------------
 # If the model is near a minimum and the learning rate is too high, then the model will circle around that minimum without ever reaching it. 
@@ -154,10 +165,13 @@ csv_callback = CSVLogger(os.path.join(MODEL_OUTPUT_DIR, 'training_log.csv'))
 # validation loss stops improving, and will stop the training process when that occurs.
 #
 early_stopping_callback = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
-callbacks = [plateau_callback, csv_callback, checkpoint_callback, early_stopping_callback, TQDMNotebookCallback()]
+callbacks = [plateau_callback, csv_callback, checkpoint_callback, early_stopping_callback]#, TQDMNotebookCallback()]
 
-history = model.fit_generator(train_generator, steps_per_epoch=num_train_examples//batch_size, epochs=500, callbacks=callbacks,\
-                              validation_data=eval_generator, validation_steps=num_eval_examples//batch_size, verbose=2)
+
+
+
+
+history = model.fit_generator(train_generator, steps_per_epoch=num_train_examples//batch_size, epochs=500, callbacks=callbacks, validation_data=eval_generator, validation_steps=num_eval_examples//batch_size, verbose=2)
 
 
 # Visualization
@@ -165,3 +179,4 @@ history = model.fit_generator(train_generator, steps_per_epoch=num_train_example
 predictions = model.predict([sample_batch_train_data[0], sample_batch_train_data[1]])
 for i in range(0, 3, 1):
     draw_image_with_label(sample_batch_train_data[0][i], sample_batch_test_data[i], predictions[i])
+

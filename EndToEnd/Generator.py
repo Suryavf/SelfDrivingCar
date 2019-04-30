@@ -146,10 +146,34 @@ class DriveDataGenerator(image.ImageDataGenerator):
             
             x = img_gen.apply_transform(x, transform_matrix)#, img_channel_axis) #---------------------------------------------------------------------------------
 
+        """
+        print("\n\n")
+        print("rescale:"            ,self.rescale)
+        print("horizontal_flip:"    ,self.horizontal_flip)
+        print("brighten_range:"     ,self.brighten_range)
+        print("channel_shift_range:",self.channel_shift_range)
+        print("\n\n")
+        """
+
+        self.rescale             = 1./255.
+        self.horizontal_flip     = True
+        self.brighten_range      =  0.4
+        self.channel_shift_range =  0
+
+
+        """
         if self.channel_shift_range != 0:
-            x = image.random_channel_shift(x,
-                                     self.channel_shift_range,
-                                     img_channel_axis)
+            
+            print("\n\n")
+            print("random_transform_with_states")
+            print("----------------------------")
+            print("x:",x)
+            print("self.channel_shift_range:",self.channel_shift_range)
+            print("img_channel_axis:",img_channel_axis)
+            print("\n\n")
+
+            x = image.random_channel_shift(x,self.channel_shift_range,img_channel_axis)
+        """
         if self.horizontal_flip:
             img_gen = ImageDataGenerator()
 
@@ -254,6 +278,7 @@ class DriveIterator(image.Iterator):
         # The transformation of images is not under thread lock
         # so it can be done in parallel
 
+        print("index_array:",index_array)
         return self.__get_indexes(index_array)
 
     def __get_indexes(self, index_array):
