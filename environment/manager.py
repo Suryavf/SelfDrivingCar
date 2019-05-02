@@ -1,5 +1,5 @@
-import airsim
 import time
+import airsim
 import numpy as np
 
 """
