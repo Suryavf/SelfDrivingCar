@@ -1,16 +1,25 @@
 ''' Config  ''' 
 
 class Config(object):
+    # Folders
     dir_data   = "./data"
     dir_model  = "./output"
     dir_cooked = "./cooked"
-    
-    train_eval_test_split = [0.7, 0.2, 0.1]
 
+    # Boolean
+    precompute =  True
+    testmode   = False
+    
     # Train
     batch_size =  32
     n_epochs   = 500
 
+    train_eval_test_split = [0.7, 0.2, 0.1]
+
+    # Size
+    n_train = None
+    n_test  = None
+    n_eval  = None
 
     # Optimizer
     adam_lr      = 0.0001

@@ -1,14 +1,16 @@
 import os
 import numpy as np 
 import tensorflow as tf
+import cv2
 
-from keras.preprocessing.image import ImageDataGenerator
+
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.optimizers import Adam, SGD, Adamax, Nadam
 from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, EarlyStopping
+
 
 class AirNet():
 
@@ -17,6 +19,7 @@ class AirNet():
         self.net   = None
 
         self.config = config
+
 
     def SetupCallback(self):
         # ReduceLrOnPlateau 
@@ -97,21 +100,25 @@ class AirNet():
 
         
 
-    def train(self,trainData,evalData):
+    def train(self,trainDataGenerator,evalDataGenerator):
         # Setup Callback
         callbacks = self.SetupCallback()
 
-        n_train    = trainData.shape
-        n_eval     = evalData.shape
+        n_train    = self.config.n_train
+        n_eval     = self.config.n_eval
         n_epochs   = self.config.n_epochs
         batch_size = self.config.batch_size
-        history    = self.net.fit_generator(trainData, 
-                                            steps_per_epoch=n_train//batch_size, 
-                                            epochs=n_epochs, 
-                                            callbacks=callbacks, 
-                                            validation_data =n_eval, 
-                                            validation_steps=n_eval//batch_size, 
-                                            verbose=2)
+        history    = self.net.fit_generator(trainDataGenerator, 
+                                            steps_per_epoch  = n_train//batch_size, 
+                                            epochs           = n_epochs, 
+                                            callbacks        = callbacks, 
+                                            validation_data  = evalDataGenerator, 
+                                            validation_steps = n_eval//batch_size, 
+                                            verbose          = 2)
+
         return history
+
+    def predict(self,value):
+        return self.net.predict(value)
 
 
