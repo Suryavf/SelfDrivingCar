@@ -383,7 +383,6 @@ class AirSimModel(BaseModel):
         self.model.build()
 
 
-
     def load(self):
         pass
 
