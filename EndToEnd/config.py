@@ -1,13 +1,15 @@
 ''' Config  ''' 
 
 class Config(object):
+    dir_data   = "./data"
+    dir_model  = "./output"
+    dir_cooked = "./cooked"
+    
+    train_eval_test_split = [0.7, 0.2, 0.1]
 
     # Train
-    batch_size=32
-
-    # Net
-    
-
+    batch_size =  32
+    n_epochs   = 500
 
 
     # Optimizer
