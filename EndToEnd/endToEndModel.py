@@ -335,13 +335,12 @@ class DriveIterator(image.Iterator):
         
     def _get_batches_of_transformed_samples(self, index_array):
         return self.__get_indexes(index_array)
-        
 
-class AirSimModel(BaseModel):
+class EndToEndModel(BaseModel):
 
     def __init__(self,config):
-        super(AirSimModel,self).__init__(config)
-        self.config = config
+        super(EndToEndModel,self).__init__(config)
+        self.config = config()
 
         self.model = AirNet(config)
         
