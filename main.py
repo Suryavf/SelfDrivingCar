@@ -3,6 +3,7 @@ import argparse
 from utils import Setting
 
 from EndToEnd.endToEndModel import EndToEndModel
+from EndToEnd.CILmodel      import CILmodel
 from ReinforcementLearning.dqnAgent import DQNAgent
 
 class Main():
@@ -14,6 +15,9 @@ class Main():
         if s.model == "endToEnd":
             from EndToEnd.config import Config
             self.model = EndToEndModel(Config())
+        # CIL
+        elif s.model == "cil":
+            self.model = CILmodel(s.city)
 
         # Basic DQN
         elif s.model == "dqn":
