@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # Main program
     main = Main(s)
-
+    """
     if   args.mode == "train":
         main.train()
     elif args.mode == "test":
@@ -71,3 +71,5 @@ if __name__ == "__main__":
         main.play()
     else:
         print("Valid execution modes: train,test,play")
+
+    """

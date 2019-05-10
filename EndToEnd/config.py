@@ -26,5 +26,3 @@ class Config(object):
     adam_beta1   = 0.9
     adam_beta2   = 0.999
     adam_epsilon = 1e-08
-
-
