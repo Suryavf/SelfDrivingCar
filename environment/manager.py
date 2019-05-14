@@ -1,21 +1,31 @@
-import time
-import airsim
-import numpy as np
+import glob
+import os
+import sys
 
+try:
+    sys.path.append(glob.glob('~/carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
+import carla
+import numpy as np
+ 
 """
-AirSim environment
-==================
+Carla environment
+=================
 Ref:
     https://buildmedia.readthedocs.org/media/pdf/airsim-fork/docs/airsim-fork.pdf
 """
-class AirSimCar:
-    
-    def __init__(self):
+class CarlaSim:
+    def __init__(self,host,port):
         self.controls =  None
         self.client   =  None
         
         self.isPrinted = False
-
+ 
 
     """
     Connect to the AirSim simulator
@@ -23,7 +33,7 @@ class AirSimCar:
     """
     def connect(self):
         # Connection
-        self.client = airsim.CarClient()
+        self.client = carla.Client('localhost', 2000)
         self.client.confirmConnection()
         self.client.enableApiControl(True)
         
