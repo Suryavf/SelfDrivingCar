@@ -99,13 +99,14 @@ plt.axis('off')
 # Network
 # -------
 #
+import tensorflow as tf
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.optimizers import Adam, SGD, Adamax, Nadam
 from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, EarlyStopping
-
+from tensorflow.keras import backend as K
 
 class Config(object):
     
@@ -128,11 +129,13 @@ class Codevilla18Net(object):
     def __init__(self, config):
         # Configure
         self._config = config
-        self._branch_config = [["Steer", "Gas", "Brake"], 
-                               ["Steer", "Gas", "Brake"],
-                               ["Steer", "Gas", "Brake"], 
-                               ["Steer", "Gas", "Brake"], 
-                               ["Speed"]]
+        self._branchConfig = [["Steer", "Gas", "Brake"], 
+                              ["Steer", "Gas", "Brake"],
+                              ["Steer", "Gas", "Brake"], 
+                              ["Steer", "Gas", "Brake"], 
+                              ["Speed"]]
+        
+        self.model = None
         
         # Counts
         self._countConv       = 0
@@ -193,34 +196,79 @@ class Codevilla18Net(object):
         x = self._fully(x,128)
         x = self._fully(x,128)
         return x
-        
     
     def _controlNet(self,x):
         x = self._fully(x,256)
         x = self._fully(x,256)
         return x
     
+    def _predSpeedNet(self,x):
+        x = self._fully(x,256)
+        x = self._fully(x,256)
+        
+        self._countFully += 1
+        x = Dense(1, activation = self._config.activation,
+                     name       = 'fully{}'.format(self._countFully))(x)
+        return x
+    
+    def _commandNet(self,x):
+        x = self._fully(x,256)
+        x = self._fully(x,256)
+        
+        self._countFully += 1
+        x = Dense(3, activation = self._config.activation,
+                     name       = 'fully{}'.format(self._countFully))(x)
+        return x
+    
+    def _straightNet(self,x):
+        return self._commandNet(x)
+    
+    def _turnLeftNet(self,x):
+        return self._commandNet(x)
+    
+    def _turnRightNet(self,x):
+        return self._commandNet(x)
+    
+    def _followNet(self,x):
+        return self._commandNet(x)
     
     def build(self):
-        x = Input(frame, name='frame')
-        v = Input(speed, name='speed')
+        im = Input( shape = self._config.imageShape, name =  'frame')
+        vm = Input( shape = (None,1), name =  'speed')
+        cm = Input( shape = (None,1), name ='command')
         
-        x = self._observationNet(x)
-        v = self._measurementNet(v)
+        im = self._observationNet(im)
+        vm = self._measurementNet(vm)
         
-        j = concatenate([x, v], 1)
+        m = concatenate([im, vm], 1)
+        m = self._fully(m,512)
         
+        # Outputs
+        speed  = self._predSpeedNet(im)                     # Speed  prediction
+        action = K.switch( K.equal( cm, 5),                 # Action prediction
+                           self._straightNet(m), 
+                           K.switch( K.equal(cm,3),
+                                     self._turnLeftNet(m),
+                                     K.switch( K.equal(cm,4),
+                                               self._turnRightNet(m),
+                                               self.   _followNet(m)
+                                              )
+                                    ) 
+                          )
+        # int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight)
+        inputs  = [im,  vm,  cm]
+        outputs = [speed,action]
+        
+        self.model = Model(inputs=inputs, outputs=outputs)
         pass
         
-        
+    
+    
     
 # --------------------------------------------------------------------------------------------    
 class transformation(object):
     
-    def __init__(self):
-        self.image = None
-        
-    def __init__(self,image):
+    def __init__(self,image = None):
         self.image = image
     
     #
