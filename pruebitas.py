@@ -88,10 +88,10 @@ initLearningRate: 0.0002
 # Visualization
 # -------------
 #
-frame = 1
-rgb = data[frame,:,:,:]
-plt.imshow(rgb)
-plt.axis('off')
+#frame = 1
+#rgb = data[frame,:,:,:]
+#plt.imshow(rgb)
+#plt.axis('off')
 
 
 
@@ -110,11 +110,14 @@ from tensorflow.keras import backend as K
 
 class Config(object):
     
-    imageShape   = (88,200)
+    imageShape   = (88,200,3)
     activation   = 'relu'
     padding      = 'same'
     convDropout  = 0.2
     fullyDropout = 0.5
+
+    # Compile
+    
 
 
 
@@ -135,7 +138,7 @@ class Codevilla18Net(object):
                               ["Steer", "Gas", "Brake"], 
                               ["Speed"]]
         
-        self.model = None
+        self.models = {}
         
         # Counts
         self._countConv       = 0
@@ -149,7 +152,8 @@ class Codevilla18Net(object):
         self._countBatchNorm += 1
         self._countDropout   += 1
         
-        x = Conv2D( filters, kernelSize, stride,
+        x = Conv2D( filters, kernelSize, 
+                    strides    = stride,
                     activation = self._config.activation, 
                     padding    = self._config.   padding, 
                     name       = 'conv{}'.format(self._countConv))(x)
@@ -232,38 +236,77 @@ class Codevilla18Net(object):
     def _followNet(self,x):
         return self._commandNet(x)
     
+    
+#
+# Build
+# .....
+# 
+#              -----------------   im  -----------------
+# in_image -> | Observation Net |-----| Pred. Speed Net |--> speed
+#              -----------------   |  -----------------
+#                                  |            ---
+#                                  |    ---    | S |----| Straight  Net |--> action
+#                                  |   | F |   | W |     
+#                                   ---| U |   | I |----| TurnLeft  Net |--> action
+#              -----------------       | L |---| T |  
+# in_speed -> | Measurement Net |------| L | m | C |----| TurnRight Net |--> action
+#              -----------------   vm  | Y |   | H |
+#                                       ---    |   |----| Follow    Net |--> action
+#                                               ---
+#                                                A
+#                                                |
+#                                           in_command
     def build(self):
-        im = Input( shape = self._config.imageShape, name =  'frame')
-        vm = Input( shape = (None,1), name =  'speed')
-        cm = Input( shape = (None,1), name ='command')
+        in_image   = Input( shape = self._config.imageShape, name =  'frame')
+        in_speed   = Input( shape = (1,), name =  'speed')
+        in_command = Input( shape = (1,), name ='command')
         
-        im = self._observationNet(im)
-        vm = self._measurementNet(vm)
+        im = self._observationNet(in_image)
+        vm = self._measurementNet(in_speed)
         
         m = concatenate([im, vm], 1)
         m = self._fully(m,512)
+       
+        # Speed  prediction        
+        out_speed  = self._predSpeedNet(im)                    
         
-        # Outputs
-        speed  = self._predSpeedNet(im)                     # Speed  prediction
-        action = K.switch( K.equal( cm, 5),                 # Action prediction
-                           self._straightNet(m), 
-                           K.switch( K.equal(cm,3),
-                                     self._turnLeftNet(m),
-                                     K.switch( K.equal(cm,4),
-                                               self._turnRightNet(m),
-                                               self.   _followNet(m)
-                                              )
-                                    ) 
-                          )
-        # int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight)
-        inputs  = [im,  vm,  cm]
-        outputs = [speed,action]
+        # Action prediction
+        # -----------------
+        #   - 2: Follow lane    - 4: Right
+        #   - 3: Left           - 5: Straight
+        #
+        #_cond1 = K.equal( in_command, 5 )
+        #_then1 = self._straightNet(m)
+        #
+        #_cond2 = K.equal( in_command, 3 )
+        #_then2 = self._turnLeftNet(m)
+        #
+        #_cond3 = K.equal( in_command, 4 )
+        #_then3 = self._turnRightNet(m)
+        #_else3 = self._followNet(m)
+        #
+        #_else2     = K.switch( _cond3, _then3, _else3 )
+        #_else1     = K.switch( _cond2, _then2, _else2 )
+        #out_action = K.switch( _cond1, _then1, _else1 )
+        #
+        follow    = self._followNet   (m)
+        straight  = self._straightNet (m)
+        turnLeft  = self._turnLeftNet (m)
+        turnRight = self._turnRightNet(m)
         
-        self.model = Model(inputs=inputs, outputs=outputs)
+        inputs  = [in_image,  in_speed,  in_command]
+        
+        self.models['follow']    = Model(inputs=inputs, outputs=[out_speed,   follow])
+        self.models['straight']  = Model(inputs=inputs, outputs=[out_speed, straight])
+        self.models['turnLeft']  = Model(inputs=inputs, outputs=[out_speed, turnLeft])
+        self.models['turnRight'] = Model(inputs=inputs, outputs=[out_speed,turnRight])
+        
+        
+    def train(self,image,speed,command):
         pass
-        
     
-    
+    def prediction(self):
+        pass
     
 # --------------------------------------------------------------------------------------------    
 class transformation(object):
@@ -398,4 +441,8 @@ imgStack = MaxPooling2D(pool_size=(2, 2))(imgStack)
 imgStack = Flatten(   )(imgStack)
 imgStack = Dropout(0.2)(imgStack)
 """
+
+conf = Config()
+net = Codevilla18Net(conf)
+net.build()
 
