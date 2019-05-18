@@ -13,49 +13,117 @@ raw = h5py.File(path + "data_03685.h5", 'r')
 
 data   = raw[  'rgb'  ].value
 target = raw['targets'].value
+
+
 """
- 0. Steer, float
- 1. Gas, float
- 2. Brake, float
- 3. Hand Brake, boolean
- 4. Reverse Gear, boolean
+File H5py
+---------
+
+ 0. Steer,                float               15. Sidewalk Intersect,   float
+ 1. Gas,                  float               16. Acceleration X,       float
+ 2. Brake,                float               17. Acceleration Y,       float
+ 3. Hand Brake,           boolean             18. Acceleration Z,       float
+ 4. Reverse Gear,         boolean             19. Platform time,        float
  
- 5. Steer Noise, float
- 6. Gas Noise, float
- 7. Brake Noise, float
- 8. Position X, float
- 9. Position Y, float
+ 5. Steer Noise,          float               20. Game Time,            float
+ 6. Gas Noise,            float               21. Orientation X,        float
+ 7. Brake Noise,          float               22. Orientation Y,        float
+ 8. Position X,           float               23. Orientation Z,        float
+ 9. Position Y,           float               24. High level command    int
 
-10. Speed, float
-11. Collision Other, float
-12. Collision Pedestrian, float
-13. Collision Car, float
-14. Opposite Lane Inter, float
+10. Speed,                float               25. Noise,                boolean
+11. Collision Other,      float               26. Camera 
+12. Collision Pedestrian, float                   (Which camera was used)
+13. Collision Car,        float               27. Angle 
+14. Opposite Lane Inter,  float                  (The yaw angle for this camera)
 
-15. Sidewalk Intersect, float
-16. Acceleration X,float
-17. Acceleration Y, float
-18. Acceleration Z, float
-19. Platform time, float
-
-20. Game Time, float
-21. Orientation X, float
-22. Orientation Y, float
-23. Orientation Z, float
-24. High level command, int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight)
-
-25. Noise, Boolean ( If the noise, perturbation, is activated, (Not Used) )
-26. Camera (Which camera was used)
-27. Angle (The yaw angle for this camera)
-
+High level command:  - 2: Follow lane      - 4: Right
+                     - 3: Left             - 5: Straight
+                     
+"""
+class fileH5py(object):
+    def __init__(self, filepath):
+        self._d = h5py.File(filepath, 'r')
+    
+    def _getTargetsValue(self,key,index=None):
+        if index is None:
+            return self._d['targets'].value[  :  ,key]
+        else:
+            return self._d['targets'].value[index,key]
+    
+    # Frame
+    # .....
+    def frame(self,index=None):
+        if index is None:
+            return self._d['rgb'].value
+        else:
+            return self._d['rgb'].value[index,:,:,:]
+    
+    # Steer
+    # .....
+    def steer(self,index=None):
+        return self._getTargetsValue(0,index=index)
+    
+    # Gas
+    # ...
+    def gas(self,index=None):
+        return self._getTargetsValue(1,index=index)
+    
+    # Brake
+    # .....
+    def brake(self,index=None):
+        return self._getTargetsValue(2,index=index)
+    
+    # Hand Brake
+    # ..........
+    def handBrake(self,index=None):
+        return self._getTargetsValue(3,index=index)
+    
+    # Reverse Gear
+    # ............
+    def reverseGear(self,index=None):
+        return self._getTargetsValue(4,index=index)
+    
+    # Speed
+    # .....
+    def speed(self,index=None):
+        return self._getTargetsValue(10,index=index)
+    
+    # Command
+    # .......
+    def command(self,index=None):
+        return self._getTargetsValue(24,index=index)
+    
+    # Collision Other
+    # ...............
+    def collisionOther(self,index=None):
+        return self._getTargetsValue(11,index=index)
+    
+    # Collision Pedestrian
+    # ....................
+    def collisionPedestrian(self,index=None):
+        return self._getTargetsValue(12,index=index)
+    
+    # Collision Car
+    # .............
+    def collisionCar(self,index=None):
+        return self._getTargetsValue(13,index=index)
+    
+    # Opposite Lane Intersection
+    # ..........................
+    def oppositeLaneIntersection(self,index=None):
+        return self._getTargetsValue(14,index=index)
+    
+    # Sidewalk Intersection
+    # .....................
+    def sidewalkIntersection(self,index=None):
+        return self._getTargetsValue(15,index=index)
+    
+"""
 user_maestria
-
 laurita1!
 
-
 ssh 192.168.0.41 -l user_maestria
-
-
 
 conv1: 32x(5x5) + 2
 conv2: 32x(3x3)
@@ -132,13 +200,7 @@ class Codevilla18Net(object):
     def __init__(self, config):
         # Configure
         self._config = config
-        self._branchConfig = [["Steer", "Gas", "Brake"], 
-                              ["Steer", "Gas", "Brake"],
-                              ["Steer", "Gas", "Brake"], 
-                              ["Steer", "Gas", "Brake"], 
-                              ["Speed"]]
-        
-        self.models = {}
+        self. models = {}
         
         # Counts
         self._countConv       = 0
@@ -257,9 +319,9 @@ class Codevilla18Net(object):
 #                                                |
 #                                           in_command
     def build(self):
-        in_image   = Input( shape = self._config.imageShape, name =  'frame')
-        in_speed   = Input( shape = (1,), name =  'speed')
-        in_command = Input( shape = (1,), name ='command')
+        shape = self._config.imageShape
+        in_image = Input( shape = shape, name = 'frame')
+        in_speed = Input( shape =  (1,), name = 'speed')
         
         im = self._observationNet(in_image)
         vm = self._measurementNet(in_speed)
@@ -267,34 +329,23 @@ class Codevilla18Net(object):
         m = concatenate([im, vm], 1)
         m = self._fully(m,512)
        
-        # Speed  prediction        
+        #
+        # Speed  prediction
+        # -----------------
         out_speed  = self._predSpeedNet(im)                    
         
+        # 
         # Action prediction
         # -----------------
         #   - 2: Follow lane    - 4: Right
         #   - 3: Left           - 5: Straight
-        #
-        #_cond1 = K.equal( in_command, 5 )
-        #_then1 = self._straightNet(m)
-        #
-        #_cond2 = K.equal( in_command, 3 )
-        #_then2 = self._turnLeftNet(m)
-        #
-        #_cond3 = K.equal( in_command, 4 )
-        #_then3 = self._turnRightNet(m)
-        #_else3 = self._followNet(m)
-        #
-        #_else2     = K.switch( _cond3, _then3, _else3 )
-        #_else1     = K.switch( _cond2, _then2, _else2 )
-        #out_action = K.switch( _cond1, _then1, _else1 )
         #
         follow    = self._followNet   (m)
         straight  = self._straightNet (m)
         turnLeft  = self._turnLeftNet (m)
         turnRight = self._turnRightNet(m)
         
-        inputs  = [in_image,  in_speed,  in_command]
+        inputs  = [in_image,  in_speed]
         
         self.models['follow']    = Model(inputs=inputs, outputs=[out_speed,   follow])
         self.models['straight']  = Model(inputs=inputs, outputs=[out_speed, straight])
@@ -303,6 +354,7 @@ class Codevilla18Net(object):
         
         
     def train(self,image,speed,command):
+        
         pass
     
     def prediction(self):
