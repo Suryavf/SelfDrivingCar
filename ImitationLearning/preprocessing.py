@@ -1,8 +1,11 @@
 import matplotlib
-import numpy as np
+import numpy  as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import h5py
 import cv2 as cv
+from os      import listdir
+from os.path import isfile, join
 
 """
 File H5py
@@ -30,9 +33,21 @@ File H5py
         - 3: Left             - 5: Straight
 """
 class fileH5py(object):
-    def __init__(self, filepath):
-        self._d = h5py.File(filepath, 'r')
-    
+    def __init__(self, filepath = None):
+        self._d = None
+
+        self._CommandList  = ["Follow lane","Left","Right","Straight"]        
+        self._Measurements = ["Steer","Gas","Brake","Speed", 
+                              "Collision Other", 
+                              "Collision Pedestrian",
+                              "Collision Car",
+                              "Opposite Lane Intersection",
+                              "Sidewalk Intersection"]
+        self._columns = [0,1,2,10,11,12,13,14,15]
+
+        if filepath is not None:
+            self.load(filepath)
+
     def _getTargetsValue(self,key,index=None):
         if index is None:
             return self._d['targets'].value[  :  ,key]
@@ -44,6 +59,31 @@ class fileH5py(object):
             return self._d['rgb'].value
         else:
             return self._d['rgb'].value[index,:,:,:]
+
+    # Load
+    # ....
+    def load(self, filepath):
+        if filepath is not None:
+            self._d.close()
+        self._d = h5py.File(filepath, 'r')
+
+    # Close
+    # .....
+    def close(self):
+        self._d.close()
+
+    #def availableCommands(self):
+    def getDataFrames(self):
+        numCommandList = list(np.unique(self._d['targets'].value[:,24]))
+        DataFrames = {}
+
+        for n in numCommandList:
+            rows = (self._d['targets'].value[:,24] == n)
+            data =  self._d['targets'].value[rows,self._columns]
+            
+            DataFrames[ self._Measurements[n] ] = pd.DataFrame(np.array(data=data,
+                                                                        columns=self._Measurements))
+        return DataFrames
 
     # Frame
     # .....
@@ -112,13 +152,15 @@ class fileH5py(object):
 
 
 
-from os      import listdir
-from os.path import isfile, join
 
-def dataGenerator(object):
+class dataGenerator(object):
     def __init__(self, trainpath, testpath):
-        self._trainpath = trainpath
-        self. _testpath =  testpath
-
+        # Paths
         self._trainFileList = [trainpath + "/" + f for f in listdir(trainpath) if isfile(join(trainpath, f))]
         self. _testFileList = [ testpath + "/" + f for f in listdir( testpath) if isfile(join( testpath, f))]
+
+        self._n_train = 0
+        self._n_test  = 0
+        
+        
+
