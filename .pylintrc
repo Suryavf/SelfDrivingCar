@@ -299,6 +299,8 @@ disable   = C0326,
             missing-docstring,
             trailing-whitespace,
             unnecessary-semicolon,
+            invalid-name,
+            multiple-statements,
             invalid-name
 # https://stackoverflow.com/questions/42198054/pylint-bad-whitespace-configuration
 
