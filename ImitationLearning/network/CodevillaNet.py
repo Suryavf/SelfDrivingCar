@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate
@@ -30,6 +31,33 @@ class Codevilla19Net(object):
         self._countDropout    = 0
         self._countFully      = 0
         
+
+
+    def _SetupCallback(self):
+        # CsvLogger 
+        # ---------
+        # This lets us log the output of the model after each epoch, which will allow 
+        # us to track the progress without needing to use the console.
+        csv_callback = CSVLogger(os.path.join(self._config.modelPath, 
+                                              'training_log.csv'))
+        
+        # ModelCheckpoint
+        # --------------- 
+        # Generally, we will want to use the model that has the lowest loss on the 
+        # validation set. This callback will save the model each time the validation 
+        # loss improves.
+        checkpoint_filepath = os.path.join(self._config.modelPath, 
+                                           'models', 
+                                           '{0}_{1}-{2}.h5'.format('model', '{epoch:03d}', '{val_loss:.7f}'))
+        checkpoint_callback = ModelCheckpoint(checkpoint_filepath, save_best_only=True, verbose=1)
+
+        # Create
+        callbacks = [csv_callback, checkpoint_callback]
+
+        return callbacks
+
+
+
     def _conv(self, x, filters, kernelSize, stride):
         self._countConv      += 1
         self._countBatchNorm += 1
@@ -172,11 +200,36 @@ class Codevilla19Net(object):
         self.models['straight']  = Model(inputs=inputs, outputs=[out_speed, straight])
         self.models['turnLeft']  = Model(inputs=inputs, outputs=[out_speed, turnLeft])
         self.models['turnRight'] = Model(inputs=inputs, outputs=[out_speed,turnRight])
+
+        #
+        # Optimizer
+        # ---------
+        optimizer = Adam(lrate = 0.0002, beta_1= 0.7, beta_2 = 0.85)
         
-        
-    def train(self,image,speed,command):
-        
-        pass
+        self.models[  'follow' ].compile(optimizer)
+        self.models[ 'straight'].compile(optimizer)
+        self.models[ 'turnLeft'].compile(optimizer)
+        self.models['turnRight'].compile(optimizer)
+
+
+    #
+    # Fit model
+    # .........
+    def fit(self,inTrain,outTrain,
+                 inValid,outValid,
+                 command):
+
+        # Setup Callback
+        callbacks = self._SetupCallback()
+
+        self.models[command].fit(inTrain, outTrain,
+                                 validation_data = (inValid,outValid),
+                                 batch_size      = self._config.batch_size,
+                                 callbacks       = callbacks )
     
-    def prediction(self):
-        pass
+
+    #
+    # Prediction
+    # ..........
+    def prediction(self,inTest,command):
+        self.models[command].predict(inTest)

@@ -156,7 +156,10 @@ class fileH5py(object):
 
 
 
-
+"""
+Data Generator
+--------------
+"""
 class dataGenerator(object):
     def __init__(self, trainPath, valPath):
         # Paths
