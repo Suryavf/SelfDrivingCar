@@ -10,6 +10,9 @@ from tensorflow.keras import backend as K
 
 from ImitationLearning.config import Config
 
+def loss(yTrue,yPred):
+    K.mean(yTrue - yPred)
+
 
 """
 Codevilla 2019 Network

@@ -8,12 +8,53 @@ import cv2 as cv
 
 # Read Data
 # ['rgb', 'targets']
-path = "/media/victor/Datos/CORL2017ImitationLearningData/AgentHuman/SeqTrain/"
-raw = h5py.File(path + "data_03685.h5", 'r')
+path = "/media/victor/Datos/CORL2017ImitationLearningData/AgentHuman/SeqVal/"
+#raw = h5py.File(path + "data_06210.h5", 'r')
 
-data   = raw[  'rgb'  ].value
-target = raw['targets'].value
+#data   = raw[  'rgb'  ].value
+#target = raw['targets'].value
 
+#
+# Visualization
+# -------------
+#
+"""
+for frame in range(200):
+    rgb = data[frame,:,:,:]
+    plt.imshow(rgb)
+    plt.axis('off')
+    plt.pause(0.030)
+"""
+
+from os      import listdir
+from os.path import isfile, join
+fileList = [path + f for f in listdir(path) if isfile(join(path, f))]
+
+
+steer = np.ndarray(0,)
+gas   = np.ndarray(0,)
+brake = np.ndarray(0,)
+
+steerNoise = np.ndarray(0,)
+gasNoise   = np.ndarray(0,)
+brakeNoise = np.ndarray(0,)
+
+speed = np.ndarray(0,)
+
+for path in fileList:
+    raw = h5py.File(path, 'r')
+    target = raw['targets'].value
+    
+    steer = np.concatenate((steer, target[:,0]), axis=0)
+    gas   = np.concatenate((gas  , target[:,1]), axis=0)
+    brake = np.concatenate((brake, target[:,2]), axis=0)
+    
+    steerNoise = np.concatenate((steerNoise, target[:,5]), axis=0)
+    gasNoise   = np.concatenate((  gasNoise, target[:,6]), axis=0)
+    brakeNoise = np.concatenate((brakeNoise, target[:,7]), axis=0)
+    
+    speed = np.concatenate((speed, target[:,10]), axis=0)
+    
 
 """
 File H5py
@@ -40,6 +81,35 @@ File H5py
 High level command:  - 2: Follow lane      - 4: Right
                      - 3: Left             - 5: Straight
                      
+     Gas   = Gas   Noise
+     Brake = Brake Noise
+
+    
+---------------------------------------------------------------
+Train
+===============================================================
+ 0. Steer,       (-1.0845270156860352, 1.1989188194274902)
+ 1. Gas,         (0.0, 1.0)
+ 2. Brake,       (0.0, 1.0)
+ 5. Steer Noise, (-1.0845270156860352, 1.0100972652435303)
+ 6. Gas Noise,   (0.0, 1.0)
+ 7. Brake Noise, (0.0, 1.0)
+10. Speed,       (-18.73902702331543, 82.63579559326172)
+
+
+---------------------------------------------------------------
+Test
+===============================================================
+ 0. Steer,       (-1.0, 1.1992229223251343)
+ 1. Gas,         (0.0, 1.0)
+ 2. Brake,       (0.0, 1.0)
+ 5. Steer Noise,  (-1.0, 1.0)
+ 6. Gas Noise,   (0.0, 1.0)
+ 7. Brake Noise, (0.0, 1.0)
+10. Speed,       (-15.157238960266113, 82.66552734375)
+
+
+     
 """
 class fileH5py(object):
     def __init__(self, filepath):
@@ -152,16 +222,8 @@ initLearningRate: 0.0002
 
 """
 
-#
-# Visualization
-# -------------
-#
-#frame = 1
-#rgb = data[frame,:,:,:]
-#plt.imshow(rgb)
-#plt.axis('off')
 
-
+"""
 
 #
 # Network
@@ -186,7 +248,7 @@ class Config(object):
 
     # Compile
     
-
+"""
 
 
 """
@@ -194,6 +256,7 @@ Codevilla 2018 Network
 ----------------------
 Ref: 
     https://arxiv.org/pdf/1710.02410.pdf
+"""
 """
 class Codevilla18Net(object):
     
@@ -359,7 +422,7 @@ class Codevilla18Net(object):
     
     def prediction(self):
         pass
-    
+"""
 # --------------------------------------------------------------------------------------------    
 class transformation(object):
     
@@ -494,7 +557,7 @@ imgStack = Flatten(   )(imgStack)
 imgStack = Dropout(0.2)(imgStack)
 """
 
-conf = Config()
-net = Codevilla18Net(conf)
-net.build()
+#conf = Config()
+#net = Codevilla18Net(conf)
+#net.build()
 
