@@ -1,14 +1,17 @@
 import os
 import tensorflow as tf
+import math
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate, Multiply, Add
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.optimizers import Adam, SGD, Adamax, Nadam
 from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, EarlyStopping
+from keras.callbacks import TensorBoard, LearningRateScheduler
 from tensorflow.keras import backend as K
 
 from ImitationLearning.config import Config
+
 
 def loss(yTrue,yPred):
     K.mean(yTrue - yPred)
@@ -35,8 +38,38 @@ class Codevilla19Net(object):
         self._countFully      = 0
         
 
+    def _step_decay(self,epoch):
+        initial_lrate = self._config.learning_rate_initial
+        drop          = self._config.learning_rate_decay_factor
+        epochs_drop   = self._config.learning_rate_decay_steps
+        lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
+        return lrate
+    
+    def _loss(self,yTrue,yPred):
+        l1 = self._config.lambda_steer * K.mean( K.abs( yTrue[0] - yPred[0] ) )
+        l2 = self._config.lambda_gas   * K.mean( K.abs( yTrue[1] - yPred[1] ) )
+        l3 = self._config.lambda_gas   * K.mean( K.abs( yTrue[2] - yPred[2] ) )
+        l4 = self._config.lambda_gas   * K.mean( K.abs( yTrue[3] - yPred[3] ) )
+
+        return l1 + l2 + l3 + l4
 
     def _SetupCallback(self):
+
+        # Learning Rate Schedules 
+        # -----------------------
+        # Ref: https://machinelearningmastery.com/using-learning-rate-schedules-deep-learning-models-python-keras/
+        lrate = LearningRateScheduler(self._step_decay)
+
+        # Loss function
+        # ------------------------
+
+
+        # TensorBoard 
+        # -----------
+        tbCallBack = TensorBoard(log_dir = self._config.graphPath, 
+                                 histogram_freq = 0, 
+                                 write_graph=True, write_images=True)
+        
         # CsvLogger 
         # ---------
         # This lets us log the output of the model after each epoch, which will allow 
@@ -50,12 +83,11 @@ class Codevilla19Net(object):
         # validation set. This callback will save the model each time the validation 
         # loss improves.
         checkpoint_filepath = os.path.join(self._config.modelPath, 
-                                           'models', 
-                                           '{0}_{1}-{2}.h5'.format('model', '{epoch:03d}', '{val_loss:.7f}'))
+                                           'models','{0}_{1}-{2}.h5'.format('model', '{epoch:03d}', '{val_loss:.7f}'))
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, save_best_only=True, verbose=1)
 
         # Create
-        callbacks = [csv_callback, checkpoint_callback]
+        callbacks = [lrate, csv_callback, checkpoint_callback, tbCallBack]
 
         return callbacks
 
@@ -222,27 +254,26 @@ class Codevilla19Net(object):
         # Optimizer
         # ---------
         optimizer = Adam(lrate = 0.0002, beta_1= 0.7, beta_2 = 0.85)
-        self.model.compile(optimizer,loss='mean_squared_error')
+        self.model.compile(optimizer,loss=self._loss)
 
 
     #
     # Fit model
     # .........
     def fit(self,inTrain,outTrain,
-                 inValid,outValid,
-                 command):
+                 inValid,outValid):
 
         # Setup Callback
         callbacks = self._SetupCallback()
-
-        self.models[command].fit(inTrain, outTrain,
-                                 validation_data = (inValid,outValid),
-                                 batch_size      = self._config.batch_size,
-                                 callbacks       = callbacks )
-    
+        
+        self.model.fit( x = inTrain,  y = outTrain,
+                        validation_data = (inValid,outValid),
+                        batch_size      = self._config.batch_size,
+                        epochs          = self._config.epochs,
+                        callbacks       = callbacks )
 
     #
     # Prediction
     # ..........
-    def prediction(self,inTest,command):
-        self.models[command].predict(inTest)
+    def prediction(self,inTest):
+        self.model.predict(inTest)
