@@ -43,6 +43,19 @@ class CodevillaModel(object):
         # Nets
         self.net = Codevilla19Net(self._config)
 
+    def _commandCode(self,command):
+        followLane = np.array([False,False,False])
+        left       = np.array([False,False,False])
+        right      = np.array([False,False,False])
+        straight   = np.array([False,False,False])
+        chosenOne  = np.array([ True, True, True])
+
+        if  (command == 2): followLane = chosenOne
+        elif(command == 3): left       = chosenOne
+        elif(command == 4): right      = chosenOne
+        elif(command == 5): straight   = chosenOne
+
+        return (followLane, left, right, straight)
 
     def _batch_generator(self,file_names, batch_size = 6, masks = None):  
 
@@ -59,6 +72,12 @@ class CodevillaModel(object):
 
                 for mask in masks:
                     if data['targets'][sample_idx][24] == mask:
+                        img = self._seq.augment_image(data['rgb'][sample_idx])
+                        
+                        (followLane, left, right, straight) = self._commandCode(data['targets'][sample_idx][24])
+                        
+                        data = []
+
                         batch_x.append(self._seq.augment_image(data['rgb'][sample_idx]))
                         batch_y.append(data['targets'][sample_idx][:3])
                         batch_s.append(data['targets'][sample_idx][10]) # speed
