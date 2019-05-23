@@ -251,14 +251,14 @@ class Codevilla19Net(object):
     #
     # Fit model
     # .........
-    def fit(self,inTrain,outTrain,
-                 inValid,outValid):
+    def fit(self,trainBatchGenerator,
+                 validBatchGenerator):
 
         # Setup Callback
         callbacks = self._SetupCallback()
         
-        self.model.fit( x = inTrain,  y = outTrain,
-                        validation_data = (inValid,outValid),
+        self.model.fit( trainBatchGenerator,
+                        validation_data = validBatchGenerator,
                         batch_size      = self._config.batch_size,
                         epochs          = self._config.epochs,
                         callbacks       = callbacks )

@@ -6,7 +6,7 @@ class Config(object):
     graphPath = "/media/victor/Datos/Tesis/SelfDrivingCar/ImitationLearning/network/Graph"
     n_filesPerGroup = 187
 
-    batch_size = 8
+    batch_size = 6
     epochs     = 120
 
     # Net settings
