@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 from keras.models import Sequential, Model
-from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate
+from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate, Multiply, Add
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.optimizers import Adam, SGD, Adamax, Nadam
@@ -25,7 +25,7 @@ class Codevilla19Net(object):
     def __init__(self, config):
         # Configure
         self._config = config
-        self. models = {}
+        self. model = None
         
         # Counts
         self._countConv       = 0
@@ -172,9 +172,17 @@ class Codevilla19Net(object):
     #                                           in_command
     def build(self):
         shape = self._config.imageShape
+        
+        # Data inputs
         in_image = Input( shape = shape, name = 'frame')
         in_speed = Input( shape =  (1,), name = 'speed')
-        
+
+        # Conditional inputs
+        in_Follow    = Input(shape = (3,), name = 'cmdFollow'   )
+        in_Straight  = Input(shape = (3,), name = 'cmdStraight' )
+        in_TurnLeft  = Input(shape = (3,), name = 'cmdTurnLeft' )
+        in_TurnRight = Input(shape = (3,), name = 'cmdTurnRight')
+
         im = self._observationNet(in_image)
         vm = self._measurementNet(in_speed)
         
@@ -189,30 +197,32 @@ class Codevilla19Net(object):
         # 
         # Action prediction
         # -----------------
-        #   - 2: Follow lane    - 4: Right
-        #   - 3: Left           - 5: Straight
-        #
         follow    = self._followNet   (m)
         straight  = self._straightNet (m)
         turnLeft  = self._turnLeftNet (m)
         turnRight = self._turnRightNet(m)
-        
-        inputs  = [in_image,  in_speed]
-        
-        self.models['follow']    = Model(inputs=inputs, outputs=[out_speed,   follow])
-        self.models['straight']  = Model(inputs=inputs, outputs=[out_speed, straight])
-        self.models['turnLeft']  = Model(inputs=inputs, outputs=[out_speed, turnLeft])
-        self.models['turnRight'] = Model(inputs=inputs, outputs=[out_speed,turnRight])
 
+        follow    = Multiply()([follow   ,in_Follow   ]) 
+        straight  = Multiply()([straight ,in_Straight ]) 
+        turnLeft  = Multiply()([turnLeft ,in_TurnLeft ]) 
+        turnRight = Multiply()([turnRight,in_TurnRight]) 
+        
+        out_action = Add()([follow,straight,turnLeft,turnRight])
+
+        # Input/Output
+        inputs  = [in_image,in_speed,
+                   in_Follow,in_Straight,
+                   in_TurnLeft,in_TurnRight]
+        outputs = concatenate([out_action, out_speed], 1)
+        
+        # Model
+        self.model = Model(inputs=inputs, outputs=outputs)
+        
         #
         # Optimizer
         # ---------
         optimizer = Adam(lrate = 0.0002, beta_1= 0.7, beta_2 = 0.85)
-        
-        self.models[  'follow' ].compile(optimizer)
-        self.models[ 'straight'].compile(optimizer)
-        self.models[ 'turnLeft'].compile(optimizer)
-        self.models['turnRight'].compile(optimizer)
+        self.model.compile(optimizer,loss='mean_squared_error')
 
 
     #
