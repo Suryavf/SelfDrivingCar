@@ -12,11 +12,6 @@ from tensorflow.keras import backend as K
 
 from ImitationLearning.config import Config
 
-
-def loss(yTrue,yPred):
-    K.mean(yTrue - yPred)
-
-
 """
 Codevilla 2019 Network
 ----------------------
@@ -42,14 +37,14 @@ class Codevilla19Net(object):
         initial_lrate = self._config.learning_rate_initial
         drop          = self._config.learning_rate_decay_factor
         epochs_drop   = self._config.learning_rate_decay_steps
-        lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
-        return lrate
+        
+        return initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
     
     def _loss(self,yTrue,yPred):
         l1 = self._config.lambda_steer * K.mean( K.abs( yTrue[0] - yPred[0] ) )
         l2 = self._config.lambda_gas   * K.mean( K.abs( yTrue[1] - yPred[1] ) )
-        l3 = self._config.lambda_gas   * K.mean( K.abs( yTrue[2] - yPred[2] ) )
-        l4 = self._config.lambda_gas   * K.mean( K.abs( yTrue[3] - yPred[3] ) )
+        l3 = self._config.lambda_brake * K.mean( K.abs( yTrue[2] - yPred[2] ) )
+        l4 = self._config.lambda_speed * K.mean( K.abs( yTrue[3] - yPred[3] ) )
 
         return l1 + l2 + l3 + l4
 
@@ -59,10 +54,6 @@ class Codevilla19Net(object):
         # -----------------------
         # Ref: https://machinelearningmastery.com/using-learning-rate-schedules-deep-learning-models-python-keras/
         lrate = LearningRateScheduler(self._step_decay)
-
-        # Loss function
-        # ------------------------
-
 
         # TensorBoard 
         # -----------
