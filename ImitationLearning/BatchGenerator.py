@@ -65,7 +65,7 @@ def CoRL2017(path):
                     selectBranch = commandCode(info["Command"])
                     frame        = seq.augment_image(frame)
 
-                    yield ({'input_1': frame, 
+                    yield ({'input_1': frame.astype(float)/255, 
                             'input_2': info["Speed"], 
                             'input_3': selectBranch[0], 
                             'input_4': selectBranch[1], 
