@@ -58,6 +58,9 @@ class Codevilla19Net(object):
     def _mseBrake(self,y_true,y_pred):
         return math.sqrt( K.mean(K.pow( y_true[2]-y_pred[2] ,2)) )
 
+    def _mseSpeed(self,y_true,y_pred):
+        return math.sqrt( K.mean(K.pow( y_true[3]-y_pred[3] ,2)) )
+
     def _SetupCallback(self):
 
         # Learning Rate Schedules 
@@ -289,3 +292,4 @@ class Codevilla19Net(object):
     # ..........
     def prediction(self,inTest):
         self.model.predict(inTest)
+    
