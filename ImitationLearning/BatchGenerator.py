@@ -71,9 +71,9 @@ def CoRL2017(path):
                             'input_4': selectBranch[1], 
                             'input_5': selectBranch[2], 
                             'input_6': selectBranch[3]}, 
-                           {'output' : np.array( [info["Steer"],
-                                                  info["Gas"],
+                           {'output' : np.array( [info["Steer"]/1.2,
+                                                  info["Gas"  ],
                                                   info["Brake"],
-                                                  info["Speed"]] )})
+                                                  info["Speed"]/85] )})
                 file.close()
                 

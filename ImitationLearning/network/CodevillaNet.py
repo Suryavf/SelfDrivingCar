@@ -279,6 +279,12 @@ class Codevilla19Net(object):
                                     callbacks       = callbacks )
 
     #
+    # Load model
+    # ..........
+    def load(self,modelPath):
+        self.model.load_weights(modelPath)
+
+    #
     # Prediction
     # ..........
     def prediction(self,inTest):
