@@ -40,13 +40,13 @@ class fileH5py(object):
         self._d = None
 
         self._CommandList  = ["Follow lane","Left","Right","Straight"]        
-        self._Measurements = ["Steer","Gas","Brake","Speed", 
-                              "Collision Other", 
-                              "Collision Pedestrian",
-                              "Collision Car",
-                              "Opposite Lane Intersection",
-                              "Sidewalk Intersection"]
-        self._columns = [0,1,2,10,11,12,13,14,15]
+        self._Measurements = ["Steer","Gas","Brake","Speed","Command"]#, 
+                              #"Collision Other", 
+                              #"Collision Pedestrian",
+                              #"Collision Car",
+                              #"Opposite Lane Intersection",
+                              #"Sidewalk Intersection"]
+        self._columns = [0,1,2,10,24]#,11,12,13,14,15]
 
         if filepath is not None:
             self.load(filepath)
@@ -66,7 +66,7 @@ class fileH5py(object):
     # Load
     # ....
     def load(self, filepath):
-        if filepath is not None:
+        if self._d is not None:
             self._d.close()
         self._d = h5py.File(filepath, 'r')
 
@@ -194,11 +194,11 @@ class dataGenerator(object):
 
     def next(self):
         # Extremes
-        infTrain =  self._groupTrain     *self._config.n_filesPerGroup
-        supTrain = (self._groupTrain + 1)*self._config.n_filesPerGroup
+        infTrain =  self._groupTrain     *self._config.filesPerGroup
+        supTrain = (self._groupTrain + 1)*self._config.filesPerGroup
 
-        infValid =  self._groupValid     *self._config.n_filesPerGroup
-        supValid = (self._groupValid + 1)*self._config.n_filesPerGroup
+        infValid =  self._groupValid     *self._config.filesPerGroup
+        supValid = (self._groupValid + 1)*self._config.filesPerGroup
 
         # Update
         self._groupTrain = self._groupTrain + 1

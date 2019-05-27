@@ -76,7 +76,6 @@ class CodevillaModel(object):
                         
                         (followLane, left, right, straight) = self._commandCode(data['targets'][sample_idx][24])
                         
-                        data = []
 
                         batch_x.append(self._seq.augment_image(data['rgb'][sample_idx]))
                         batch_y.append(data['targets'][sample_idx][:3])
