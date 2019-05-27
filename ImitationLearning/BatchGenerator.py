@@ -1,6 +1,5 @@
 
 import random
-import imgaug as ia
 import numpy as np
 from imgaug import augmenters as iaa
 from os      import listdir
@@ -57,6 +56,7 @@ def CoRL2017(path):
                 file = fileH5py(p)
                 frames = file.frame()
                 meta   = file.getDataFrames()
+                print("Read:",p,"\n")
 
                 z = list(zip(frames,meta))
                 random.shuffle(z)
