@@ -38,7 +38,7 @@ def CoRL2017(path):
     oc = lambda aug: iaa.Sometimes(0.30, aug)
     rl = lambda aug: iaa.Sometimes(0.09, aug)
 
-    seq = iaa.Sequential([rl(iaa.GaussianBlur((0, 1.5))),                                               # blur images with a sigma between 0 and 1.5
+    seq = iaa.Sequential([rl(iaa.GaussianBlur((0, 1.5))),                                                  # blur images with a sigma between 0 and 1.5
                              rl(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05), per_channel=0.5)),     # add gaussian noise to images
                              oc(iaa.Dropout((0.0, 0.10), per_channel=0.5)),                                # randomly remove up to X% of the pixels
                              oc(iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2),per_channel=0.5)), # randomly remove up to X% of the pixels
@@ -76,3 +76,4 @@ def CoRL2017(path):
                                                   info["Brake"],
                                                   info["Speed"]] )})
                 file.close()
+                

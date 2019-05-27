@@ -89,5 +89,6 @@ class CodevillaModel(object):
         self.net.build()
 
     def train(self):
-        self.net.fit( self._batch_generator(self._trainFile,self._config.batch_size),
-                      self._batch_generator(self._validFile,self._config.batch_size)  )
+        self.net.fit( self._config.trainPath,
+                      self._config.validPath )
+    
