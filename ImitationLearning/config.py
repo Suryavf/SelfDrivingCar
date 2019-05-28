@@ -37,4 +37,4 @@ class Config(object):
     lambda_gas   = 0.45*0.95
     lambda_brake = 0.05*0.95
     lambda_speed = 0.05
-
+    

@@ -89,6 +89,51 @@ class fileH5py(object):
                                                                          columns=self._Measurements))
         return DataFrames
 
+    # Get Data Frames
+    # ...............
+    def getActionSpeed(self):
+        indices = [0,1,2,10]
+        actionSpeed = self._d['targets'].value[:,indices]
+
+        # Steer
+        actionSpeed[:,0] = actionSpeed[:,0]/1.2
+
+        # Speed
+        actionSpeed[:,3] = actionSpeed[:,3]/85
+
+        return actionSpeed
+
+    # Follow (2)
+    # ..........
+    def getFollow(self):
+        template = np.array([ True, True, True])
+        return template*( self.command() == 2)
+
+    # Turn Left (3)
+    # .............
+    def getTurnLeft(self):
+        template = np.array([ True, True, True])
+        return template*( self.command() == 3)
+
+    # Turn Right(4)
+    # .............
+    def getTurnRight(self):
+        template = np.array([ True, True, True])
+        return template*( self.command() == 4)
+
+    # Straight (5)
+    # ............
+    def getStraight(self):
+        template = np.array([ True, True, True])
+        return template*( self.command() == 5)
+
+
+    """
+        - 2: Follow lane      - 4: Right
+        - 3: Left             - 5: Straight
+    """
+
+
     # Frame
     # .....
     def frame(self,index=None):
@@ -97,7 +142,7 @@ class fileH5py(object):
     # Steer
     # .....
     def steer(self,index=None):
-        return self._getTargetsValue(0,index=index)
+        return self._getTargetsValue(0,index=index)/1.2
     
     # Gas
     # ...
@@ -122,7 +167,7 @@ class fileH5py(object):
     # Speed
     # .....
     def speed(self,index=None):
-        return self._getTargetsValue(10,index=index)
+        return self._getTargetsValue(10,index=index)/85
     
     # Command
     # .......

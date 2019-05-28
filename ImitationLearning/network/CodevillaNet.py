@@ -271,15 +271,20 @@ class Codevilla19Net(object):
     # Fit model
     # .........
     def fit(self,trainPath,validPath):
-
         # Setup Callback
         callbacks = self._SetupCallback()
         
-        self.model.fit_generator(   BatchGenerator(trainPath),
-                                    validation_data = BatchGenerator(validPath),
-                                    steps_per_epoch = self._config.steps_per_epoch,
-                                    epochs          = self._config.epochs,
-                                    callbacks       = callbacks )
+        # Generators
+        TrainGenerator = BatchGenerator(trainPath)
+        ValidGenerator = BatchGenerator(validPath)
+
+        self.model.fit_generator(   generator           = TrainGenerator,
+                                    validation_data     = ValidGenerator,
+                                    steps_per_epoch     = self._config.steps_per_epoch,
+                                    epochs              = self._config.epochs,
+                                    use_multiprocessing = True,
+                                    workers             = 6,
+                                    callbacks           = callbacks )
 
     #
     # Load model
