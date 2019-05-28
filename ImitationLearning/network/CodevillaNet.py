@@ -50,16 +50,16 @@ class Codevilla19Net(object):
         return l1 + l2 + l3 + l4
 
     def _mseSteer(self,y_true,y_pred):
-        return math.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
+        return K.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
 
     def _mseGas(self,y_true,y_pred):
-        return math.sqrt( K.mean(K.pow( y_true[1]-y_pred[1] ,2)) )
+        return K.sqrt( K.mean(K.pow( y_true[1]-y_pred[1] ,2)) )
 
     def _mseBrake(self,y_true,y_pred):
-        return math.sqrt( K.mean(K.pow( y_true[2]-y_pred[2] ,2)) )
+        return K.sqrt( K.mean(K.pow( y_true[2]-y_pred[2] ,2)) )
 
     def _mseSpeed(self,y_true,y_pred):
-        return math.sqrt( K.mean(K.pow( y_true[3]-y_pred[3] ,2)) )
+        return K.sqrt( K.mean(K.pow( y_true[3]-y_pred[3] ,2)) )
 
     def _SetupCallback(self):
 
@@ -257,7 +257,7 @@ class Codevilla19Net(object):
         #
         # Optimizer
         # ---------
-        optimizer = Adam(lrate  = self._config.adam_lrate, 
+        optimizer = Adam(lr     = self._config.adam_lrate, 
                          beta_1 = self._config.adam_beta_1, 
                          beta_2 = self._config.adam_beta_2)
         self.model.compile( optimizer,
