@@ -37,7 +37,7 @@ class CoRL2017(keras.utils.Sequence):
         'Initialization'
         self._batch_size      = self._config.batch_size
         self._fileList        = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
-        self._n_filesGroup    = len(self._fileList)
+        self._n_filesGroup    = 5#len(self._fileList)
         self._n_groups        = np.floor(self._n_filesGroup/self._config.filesPerGroup) - 1
         self._steps_per_epoch = self._config.steps_per_epoch
 
@@ -100,6 +100,14 @@ class CoRL2017(keras.utils.Sequence):
             Outputs  .append( file.getActionSpeed() )
 
             file.close()
+
+        print("Frames:"   , len(Frames)   )
+        print("Speed:"    , len(Speed)    )
+        print("Follow:"   , len(Follow)   )
+        print("Straight:" , len(Straight) )
+        print("TurnLeft:" , len(TurnLeft) )
+        print("TurnRight:", len(TurnRight))
+        print("Outputs:"  , len(Outputs)  )
 
         # List to np.array
         Frames    = np.concatenate(Frames   )
