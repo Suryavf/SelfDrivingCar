@@ -122,4 +122,4 @@ class CoRL2017(keras.utils.Sequence):
         Outputs   = Outputs  [index]
 
         return [Frames,Speed,Follow,Straight,TurnLeft,TurnRight], Outputs
-
+        

@@ -283,7 +283,7 @@ class Codevilla19Net(object):
                                     steps_per_epoch     = self._config.steps_per_epoch,
                                     epochs              = self._config.epochs,
                                     use_multiprocessing = True,
-                                    workers             = 6,
+                                    workers             = 1,
                                     callbacks           = callbacks )
 
     #
