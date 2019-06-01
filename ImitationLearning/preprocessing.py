@@ -37,8 +37,9 @@ File H5py
 """
 class fileH5py(object):
     def __init__(self, filepath = None):
-        self._d = None
-
+        self._d        = None
+        self._n_frames = 0
+        
         self._CommandList  = ["Follow lane","Left","Right","Straight"]        
         self._Measurements = ["Steer","Gas","Brake","Speed","Command"]#, 
                               #"Collision Other", 
@@ -68,8 +69,9 @@ class fileH5py(object):
     def load(self, filepath):
         if self._d is not None:
             self._d.close()
-        self._d = h5py.File(filepath, 'r')
-
+        self._d        = h5py.File(filepath, 'r')
+        self._n_frames = self._d['targets'].value.shape[0]
+        
     # Close
     # .....
     def close(self):
@@ -106,26 +108,30 @@ class fileH5py(object):
     # Follow (2)
     # ..........
     def getFollow(self):
-        template = np.array([ True, True, True])
-        return template*( self.command() == 2)
+        template = np.array([[ True, True, True]])
+        isfollow = (self.command() == 2).reshape(self._n_frames,1)
+        return isfollow*template
 
     # Turn Left (3)
     # .............
     def getTurnLeft(self):
         template = np.array([ True, True, True])
-        return template*( self.command() == 3)
+        isTurnLeft = (self.command() == 2).reshape(self._n_frames,1)
+        return isTurnLeft*template
 
     # Turn Right(4)
     # .............
     def getTurnRight(self):
         template = np.array([ True, True, True])
-        return template*( self.command() == 4)
+        isTurnRight = (self.command() == 2).reshape(self._n_frames,1)
+        return isTurnRight*template
 
     # Straight (5)
     # ............
     def getStraight(self):
         template = np.array([ True, True, True])
-        return template*( self.command() == 5)
+        isStraight = (self.command() == 2).reshape(self._n_frames,1)
+        return isStraight*template
 
 
     """
@@ -200,98 +206,6 @@ class fileH5py(object):
         return self._getTargetsValue(15,index=index)
 
 
-
-"""
-Data Generator
---------------
-"""
-class dataGenerator(object):
-    def __init__(self, trainPath, valPath):
-        # Paths
-        self._trainFileList = [trainPath + "/" + f for f in listdir(trainPath) if isfile(join(trainPath, f))]
-        self._validFileList = [  valPath + "/" + f for f in listdir(  valPath) if isfile(join(  valPath, f))]
-
-        random.shuffle(self._trainFileList)
-        random.shuffle(self._validFileList)
-
-        # Number of files
-        self._n_train = len(self._trainFileList)
-        self._n_valid = len(self._validFileList)
-        
-        self._groupTrain = 0
-        self._groupValid = 0
-
-        self._isCompleteTrain = False
-        self._isCompleteValid = False
-
-        self._config = Config()
-    
-
-    def reset(self):
-        random.shuffle(self._trainFileList)
-        random.shuffle(self._validFileList)
-        self._groupTrain = 0
-        self._groupValid = 0
-
-    def isEnd(self):
-        return  self._isCompleteTrain and self._isCompleteValid
-
-
-    def next(self):
-        # Extremes
-        infTrain =  self._groupTrain     *self._config.filesPerGroup
-        supTrain = (self._groupTrain + 1)*self._config.filesPerGroup
-
-        infValid =  self._groupValid     *self._config.filesPerGroup
-        supValid = (self._groupValid + 1)*self._config.filesPerGroup
-
-        # Update
-        self._groupTrain = self._groupTrain + 1
-        self._groupValid = self._groupValid + 1
-
-        # Is the end
-        if infTrain >= self._n_train and infValid>= self._n_valid:
-            return None
-
-        # Upper-end correction
-        if supTrain > self._n_train: supTrain = self._n_train
-        if supValid > self._n_valid: supValid = self._n_valid
-        
-        # Getting train data
-        train = {}
-        for path in self._trainFileList[infTrain:supTrain]:
-            file = fileH5py(path)
-            data = file.getDataFrames()
-            for command in data.keys():
-                if command in train:
-                    train[command].append( data[command] )
-                else:
-                    train[command] = data[command]
-            file.close()
-
-        # Getting validation data
-        valid = {}
-        for path in self._validFileList[infValid:supValid]:
-            file = fileH5py(path)
-            data = file.getDataFrames()
-            for command in data.keys():
-                if command in valid:
-                    valid[command].append( data[command] )
-                else:
-                    valid[command] = data[command]
-            file.close()
-
-        # Rewind
-        if infTrain >= self._n_train: 
-            self._groupTrain = 0
-            self._isCompleteTrain = True
-            random.shuffle(self._trainFileList)
-        if infValid >= self._n_valid: 
-            self._groupValid = 0
-            self._isCompleteValid = True
-            random.shuffle(self._validFileList)
-
-        return train,valid
 
 
 class transformation(object):
