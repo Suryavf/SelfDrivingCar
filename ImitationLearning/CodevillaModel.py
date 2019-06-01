@@ -5,7 +5,6 @@ import imgaug as ia
 from imgaug import augmenters as iaa
 
 from ImitationLearning.network.CodevillaNet import Codevilla19Net
-from ImitationLearning.preprocessing        import dataGenerator
 from ImitationLearning.config               import Config
 
 """
