@@ -56,6 +56,9 @@ class CoRL2017(keras.utils.Sequence):
                                   ],random_order=True)
         self.on_epoch_end()
 
+        print("self._fileList",self._fileList)
+
+
     def __len__(self):
         'Denotes the number of batches per epoch'
         return self._steps_per_epoch
@@ -64,7 +67,8 @@ class CoRL2017(keras.utils.Sequence):
         'Generate one batch of data'
         # Generate indexes of the batch
         fileBatch = self._fileList[index*self._config.filesPerGroup:(index+1)*self._config.filesPerGroup]
-        
+        print("fileBatch:",fileBatch)
+
         # Generate data
         inputs, output = self.__data_generation(fileBatch)
 
@@ -83,6 +87,8 @@ class CoRL2017(keras.utils.Sequence):
         TurnRight = list()  # [3]     boolean
 
         Outputs   = list()  # [4]     float
+
+        print("fileBatch:",fileBatch)
 
         for p in fileBatch:
             # Data
