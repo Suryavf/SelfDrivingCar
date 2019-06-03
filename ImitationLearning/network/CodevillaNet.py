@@ -381,7 +381,7 @@ class Codevilla19Net(object):
                          beta_1 = self._config.adam_beta_1, 
                          beta_2 = self._config.adam_beta_2)
         self.model.compile( optimizer,
-                            loss    = 'mean_squared_error')#,# self._loss,
+                            loss    =  self._loss)#'mean_squared_error')#,# self._loss,
                             #metrics = 'mean_squared_error')#['mean_squared_error',
                                        #self._mseSteer,
                                        #self._mseGas,
