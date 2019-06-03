@@ -101,7 +101,7 @@ def BatchGenerator(path):
             np.random.shuffle(index)
 
             for i in index:
-                frame = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
+                frame = seq.augment_image(Frames[i])#.reshape( (-1,88,200,3) ) 
                 print(frame.shape)
 
                 yield [frame ,Speed[i],
@@ -305,14 +305,14 @@ class Codevilla19Net(object):
         #shape = (88,200,3)#self._config.imageShape
         
         # Data inputs
-        in_image = Input( shape = (88,200,3,), name = 'frame')
-        in_speed = Input( shape =  (1,), name = 'speed')
+        in_image = Input( shape = (88,200,3), name = 'frame')
+        in_speed = Input( shape =  (1), name = 'speed')
 
         # Conditional inputs
-        in_Follow    = Input(shape = (3,), name = 'cmdFollow'   )
-        in_Straight  = Input(shape = (3,), name = 'cmdStraight' )
-        in_TurnLeft  = Input(shape = (3,), name = 'cmdTurnLeft' )
-        in_TurnRight = Input(shape = (3,), name = 'cmdTurnRight')
+        in_Follow    = Input(shape = (3), name = 'cmdFollow'   )
+        in_Straight  = Input(shape = (3), name = 'cmdStraight' )
+        in_TurnLeft  = Input(shape = (3), name = 'cmdTurnLeft' )
+        in_TurnRight = Input(shape = (3), name = 'cmdTurnRight')
 
         im = self._observationNet(in_image)
         vm = self._measurementNet(in_speed)
