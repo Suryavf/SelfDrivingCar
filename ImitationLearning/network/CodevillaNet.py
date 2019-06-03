@@ -66,12 +66,13 @@ def BatchGenerator(path):
             TurnRight = list()  # [3]     boolean
 
             Outputs   = list()  # [4]     float
+            print("Read",n,"group")
 
             # Files in group
             for p in fileBatch:
                # Data
                 file = fileH5py(p)
-                print("Read:",file)
+                #print("Read:",p)
 
                 # Inputs
                 Frames   .append( file.       frame() )
