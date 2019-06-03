@@ -105,7 +105,7 @@ def BatchGenerator(path):
 
             for i in index:
                 frame = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
-                s = np.array(Speed[i])
+                s = np.array(Speed[i]).reshape( (-1,1) )
                 #print("\n--------")
                 #print(frame.shape)
                 #print("Speed:"    ,    Speed[i])
