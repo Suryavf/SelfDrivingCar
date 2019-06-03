@@ -106,14 +106,14 @@ def BatchGenerator(path):
             for i in index:
                 frame = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
                 s = np.array(Speed[i])
-                print("\n--------")
-                print(frame.shape)
-                print("Speed:"    ,    Speed[i])
-                print("Follow:"   ,   Follow[i])#.shape)
-                print("Straight:" , Straight[i])#.shape)
-                print("TurnLeft:" , TurnLeft[i])#.shape)
-                print("TurnRight:",TurnRight[i])#.shape)
-                print("Outputs:"  ,  Outputs[i])#.shape)
+                #print("\n--------")
+                #print(frame.shape)
+                #print("Speed:"    ,    Speed[i])
+                #print("Follow:"   ,   Follow[i])#.shape)
+                #print("Straight:" , Straight[i])#.shape)
+                #print("TurnLeft:" , TurnLeft[i])#.shape)
+                #print("TurnRight:",TurnRight[i])#.shape)
+                #print("Outputs:"  ,  Outputs[i])#.shape)
 
                 yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
