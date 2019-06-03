@@ -96,8 +96,8 @@ def BatchGenerator(path):
             TurnRight = np.concatenate(TurnRight)
             Outputs   = np.concatenate(Outputs  )
 
-            print(Speed)
-            os.system("pause")
+            #print(Speed)
+            #os.system("pause")
 
             # Random index
             index = np.array(range( Frames.shape[0] ))
@@ -105,16 +105,17 @@ def BatchGenerator(path):
 
             for i in index:
                 frame = seq.augment_image(Frames[i])#.reshape( (-1,88,200,3) ) 
-                print("\n--------")
-                print(frame.shape)
-                print("Speed:"    ,    Speed[i].shape)
-                print("Follow:"   ,   Follow[i].shape)
-                print("Straight:" , Straight[i].shape)
-                print("TurnLeft:" , TurnLeft[i].shape)
-                print("TurnRight:",TurnRight[i].shape)
-                print("Outputs:"  ,  Outputs[i].shape)
+                s = np.array(Speed[i])
+                #print("\n--------")
+                #print(frame.shape)
+                #print("Speed:"    ,    Speed[i].shape)
+                #print("Follow:"   ,   Follow[i].shape)
+                #print("Straight:" , Straight[i].shape)
+                #print("TurnLeft:" , TurnLeft[i].shape)
+                #print("TurnRight:",TurnRight[i].shape)
+                #print("Outputs:"  ,  Outputs[i].shape)
 
-                yield [frame ,Speed[i],Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
+                yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
 """
