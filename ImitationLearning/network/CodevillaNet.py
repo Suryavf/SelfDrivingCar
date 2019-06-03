@@ -101,7 +101,7 @@ def BatchGenerator(path):
             np.random.shuffle(index)
 
             for i in index:
-                yield [seq.augment_image(Frames[i]),Speed[i],
+                yield [seq.augment_image(Frames[i]).reshape( (88,200,3,1) ) ,Speed[i],
                        Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
@@ -299,7 +299,7 @@ class Codevilla19Net(object):
     #                                                |
     #                                           in_command
     def build(self):
-        shape = self._config.imageShape
+        shape = (88,200,3,1)#self._config.imageShape
         
         # Data inputs
         in_image = Input( shape = shape, name = 'frame')
