@@ -373,6 +373,7 @@ class Codevilla19Net(object):
 
         self.model.fit_generator(   generator           = TrainGenerator,
                                     validation_data     = ValidGenerator,
+                                    validation_steps    = 100, 
                                     steps_per_epoch     = self._config.steps_per_epoch,
                                     epochs              = self._config.epochs,
                                     use_multiprocessing = True,
