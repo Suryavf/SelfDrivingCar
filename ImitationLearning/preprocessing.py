@@ -116,21 +116,21 @@ class fileH5py(object):
     # .............
     def getTurnLeft(self):
         template = np.array([ True, True, True])
-        isTurnLeft = (self.command() == 2).reshape(self._n_frames,1)
+        isTurnLeft = (self.command() == 3).reshape(self._n_frames,1)
         return isTurnLeft*template
 
     # Turn Right(4)
     # .............
     def getTurnRight(self):
         template = np.array([ True, True, True])
-        isTurnRight = (self.command() == 2).reshape(self._n_frames,1)
+        isTurnRight = (self.command() == 4).reshape(self._n_frames,1)
         return isTurnRight*template
 
     # Straight (5)
     # ............
     def getStraight(self):
         template = np.array([ True, True, True])
-        isStraight = (self.command() == 2).reshape(self._n_frames,1)
+        isStraight = (self.command() == 5).reshape(self._n_frames,1)
         return isStraight*template
 
 
