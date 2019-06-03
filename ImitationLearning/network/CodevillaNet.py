@@ -106,11 +106,11 @@ def BatchGenerator(path):
             for i in index:
                 frame  = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
                 speed  = np.array(Speed[i]).reshape( (-1,1) )
-                follow    = Follow[i].reshape((-1,3))
-                straight  = Straight[i].reshape((-1,3))
-                turnLeft  = TurnLeft[i].reshape((-1,3))
+                follow    = Follow   [i].reshape((-1,3))
+                straight  = Straight [i].reshape((-1,3))
+                turnLeft  = TurnLeft [i].reshape((-1,3))
                 turnRight = TurnRight[i].reshape((-1,3))
-                output    = Outputs[i].reshape((-1,4))
+                output    = Outputs  [i].reshape((-1,4))
 
                 #print("\n--------")
                 #print(frame.shape)
@@ -373,8 +373,8 @@ class Codevilla19Net(object):
                          beta_1 = self._config.adam_beta_1, 
                          beta_2 = self._config.adam_beta_2)
         self.model.compile( optimizer,
-                            loss    = self._loss,
-                            metrics = ['mse',
+                            loss    = 'mean_squared_error',# self._loss,
+                            metrics = ['mean_squared_error',
                                        self._mseSteer,
                                        self._mseGas,
                                        self._mseBrake])
