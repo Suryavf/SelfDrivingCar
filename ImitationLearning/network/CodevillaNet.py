@@ -108,12 +108,12 @@ def BatchGenerator(path):
                 s = np.array(Speed[i])
                 print("\n--------")
                 print(frame.shape)
-                print("Speed:"    ,    s)
-                print("Follow:"   ,   Follow[i].shape)
-                print("Straight:" , Straight[i].shape)
-                print("TurnLeft:" , TurnLeft[i].shape)
-                print("TurnRight:",TurnRight[i].shape)
-                print("Outputs:"  ,  Outputs[i].shape)
+                print("Speed:"    ,    Speed[i])
+                print("Follow:"   ,   Follow[i])#.shape)
+                print("Straight:" , Straight[i])#.shape)
+                print("TurnLeft:" , TurnLeft[i])#.shape)
+                print("TurnRight:",TurnRight[i])#.shape)
+                print("Outputs:"  ,  Outputs[i])#.shape)
 
                 yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
