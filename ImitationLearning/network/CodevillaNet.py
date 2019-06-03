@@ -110,7 +110,7 @@ def BatchGenerator(path):
                 straight  = Straight[i].reshape((-1,3))
                 turnLeft  = TurnLeft[i].reshape((-1,3))
                 turnRight = TurnRight[i].reshape((-1,3))
-                #output    = Outputs[i].reshape((-1,3))
+                output    = Outputs[i].reshape((-1,4))
 
                 #print("\n--------")
                 #print(frame.shape)
@@ -121,7 +121,7 @@ def BatchGenerator(path):
                 #print("TurnRight:",TurnRight[i])#.shape)
                 #print("Outputs:"  ,  Outputs[i])#.shape)
                 
-                yield [frame,speed,follow,straight,turnLeft,turnRight] , Outputs[i]
+                yield [frame,speed,follow,straight,turnLeft,turnRight] , output
                 #yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
