@@ -319,10 +319,10 @@ class Codevilla19Net(object):
         in_speed = Input( shape =  (1,1), name = 'speed')
 
         # Conditional inputs
-        in_Follow    = Input(shape = (1,3), name = 'cmdFollow'   )
-        in_Straight  = Input(shape = (1,3), name = 'cmdStraight' )
-        in_TurnLeft  = Input(shape = (1,3), name = 'cmdTurnLeft' )
-        in_TurnRight = Input(shape = (1,3), name = 'cmdTurnRight')
+        in_Follow    = Input(shape = (3,1), name = 'cmdFollow'   )
+        in_Straight  = Input(shape = (3,1), name = 'cmdStraight' )
+        in_TurnLeft  = Input(shape = (3,1), name = 'cmdTurnLeft' )
+        in_TurnRight = Input(shape = (3,1), name = 'cmdTurnRight')
 
         im = self._observationNet(in_image)
         vm = self._measurementNet(in_speed)
