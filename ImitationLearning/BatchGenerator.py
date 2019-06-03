@@ -37,8 +37,8 @@ class CoRL2017(keras.utils.Sequence):
         'Initialization'
         self._batch_size      = self._config.batch_size
         self._fileList        = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
-        self._n_filesGroup    = 5#len(self._fileList)
-        self._n_groups        = np.floor(self._n_filesGroup/self._config.filesPerGroup) - 1
+        self._n_files         = len(self._fileList)
+        self._n_groups        = np.floor(self._n_files/self._config.filesPerGroup) - 1
         self._steps_per_epoch = self._config.steps_per_epoch
 
         'Image augmentation'

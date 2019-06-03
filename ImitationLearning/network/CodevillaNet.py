@@ -10,8 +10,101 @@ from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, Earl
 from keras.callbacks import TensorBoard, LearningRateScheduler
 from tensorflow.keras import backend as K
 
-from ImitationLearning.BatchGenerator import CoRL2017 as BatchGenerator
+import random
+import numpy as np
+import keras
+from imgaug import augmenters as iaa
+from os      import listdir
+from os.path import isfile, join
+from ImitationLearning.preprocessing import fileH5py
+
+from ImitationLearning.BatchGenerator import CoRL2017 #as BatchGenerator
 from ImitationLearning.config         import Config
+
+
+
+
+
+
+def BatchGenerator(path):
+    # Paths
+    fileList = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
+    random.shuffle(fileList)
+
+    config = Config()
+
+    n_filesGroup = len(fileList)
+    n_groups     = np.floor(n_filesGroup/config.filesPerGroup) - 1
+
+    # Data Augmentation
+    st = lambda aug: iaa.Sometimes(0.40, aug)
+    oc = lambda aug: iaa.Sometimes(0.30, aug)
+    rl = lambda aug: iaa.Sometimes(0.09, aug)
+
+    seq = iaa.Sequential([  rl(iaa.GaussianBlur((0, 1.5))),                                               # blur images with a sigma between 0 and 1.5
+                            rl(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05), per_channel=0.5)),     # add gaussian noise to images
+                            oc(iaa.Dropout((0.0, 0.10), per_channel=0.5)),                                # randomly remove up to X% of the pixels
+                            oc(iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2),per_channel=0.5)), # randomly remove up to X% of the pixels
+                            oc(iaa.Add((-40, 40), per_channel=0.5)),                                      # adjust brightness of images (-X to Y% of original value)
+                            st(iaa.Multiply((0.10, 2.5), per_channel=0.2)),                               # adjust brightness of images (X -Y % of original value)
+                            rl(iaa.ContrastNormalization((0.5, 1.5), per_channel=0.5)),                   # adjust the contrast
+                            ],random_order=True)
+
+    while True:
+
+        # Groups
+        for n in range(n_groups):
+            # Generate indexes of the batch
+            fileBatch = fileList[n*config.filesPerGroup:(n+1)*config.filesPerGroup]
+            print("fileBatch:",fileBatch)
+
+            'Initialize'
+            Frames    = list()  # [H,W,C] float
+            Speed     = list()  # [1]     float
+            Follow    = list()  # [3]     boolean
+            Straight  = list()  # [3]     boolean
+            TurnLeft  = list()  # [3]     boolean
+            TurnRight = list()  # [3]     boolean
+
+            Outputs   = list()  # [4]     float
+
+            print("fileBatch:",fileBatch)
+
+            # Files in group
+            for p in fileList[n*config.filesPerGroup:(n+1)*config.filesPerGroup]:
+               # Data
+                file   = fileH5py(p)
+
+                # Inputs
+                Frames   .append( file.       frame() )
+                Speed    .append( file.       speed() )
+                Follow   .append( file.   getFollow() )
+                Straight .append( file. getStraight() )
+                TurnLeft .append( file. getTurnLeft() )
+                TurnRight.append( file.getTurnRight() )
+
+                # Outputs
+                Outputs  .append( file.getActionSpeed() )
+
+                file.close()
+
+            # List to np.array
+            Frames    = np.concatenate(Frames   )
+            Speed     = np.concatenate(Speed    )
+            Follow    = np.concatenate(Follow   )
+            Straight  = np.concatenate(Straight )
+            TurnLeft  = np.concatenate(TurnLeft )
+            TurnRight = np.concatenate(TurnRight)
+            Outputs   = np.concatenate(Outputs  )
+
+            # Random index
+            index = np.array(range( Frames.shape[0] ))
+            np.random.shuffle(index)
+
+            for i in index:
+                yield [seq.augment_image(Frames[i]),Speed[i],
+                       Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
+
 
 """
 Codevilla 2019 Network
