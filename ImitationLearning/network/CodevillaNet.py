@@ -96,6 +96,9 @@ def BatchGenerator(path):
             TurnRight = np.concatenate(TurnRight)
             Outputs   = np.concatenate(Outputs  )
 
+            print(Speed)
+            os.system("pause")
+
             # Random index
             index = np.array(range( Frames.shape[0] ))
             np.random.shuffle(index)
