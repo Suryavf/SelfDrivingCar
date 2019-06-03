@@ -154,12 +154,20 @@ class Codevilla19Net(object):
         return initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
     
     def _loss(self,y_true,y_pred):
-        l1 = self._config.lambda_steer * K.mean( K.abs( y_true[0] - y_pred[0] ) )
-        l2 = self._config.lambda_gas   * K.mean( K.abs( y_true[1] - y_pred[1] ) )
-        l3 = self._config.lambda_brake * K.mean( K.abs( y_true[2] - y_pred[2] ) )
-        l4 = self._config.lambda_speed * K.mean( K.abs( y_true[3] - y_pred[3] ) )
 
-        return l1 + l2 + l3 + l4
+        norm1 = K.abs( y_true - y_pred )
+        lambd = K.constant([self._config.lambda_steer ,
+                            self._config.lambda_gas   ,
+                            self._config.lambda_brake ,
+                            self._config.lambda_speed ])
+
+
+        #l1 = self._config.lambda_steer * K.mean( K.abs( y_true[0] - y_pred[0] ) )
+        #l2 = self._config.lambda_gas   * K.mean( K.abs( y_true[1] - y_pred[1] ) )
+        #l3 = self._config.lambda_brake * K.mean( K.abs( y_true[2] - y_pred[2] ) )
+        #l4 = self._config.lambda_speed * K.mean( K.abs( y_true[3] - y_pred[3] ) )
+
+        return norm1*lambd#l1 + l2 + l3 + l4
 
     def _mseSteer(self,y_true,y_pred):
         return K.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
