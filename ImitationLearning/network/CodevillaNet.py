@@ -374,10 +374,10 @@ class Codevilla19Net(object):
                          beta_2 = self._config.adam_beta_2)
         self.model.compile( optimizer,
                             loss    = 'mean_squared_error',# self._loss,
-                            metrics = ['mean_squared_error',
-                                       self._mseSteer,
-                                       self._mseGas,
-                                       self._mseBrake])
+                            metrics = 'mean_squared_error')#['mean_squared_error',
+                                       #self._mseSteer,
+                                       #self._mseGas,
+                                       #self._mseBrake])
 
     #
     # Fit model
