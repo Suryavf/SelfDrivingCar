@@ -299,7 +299,7 @@ class Codevilla19Net(object):
     #                                                |
     #                                           in_command
     def build(self):
-        shape = (88,200,3,1)#self._config.imageShape
+        shape = (88,200,3)#self._config.imageShape
         
         # Data inputs
         in_image = Input( shape = shape, name = 'frame')
