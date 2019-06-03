@@ -167,7 +167,7 @@ class Codevilla19Net(object):
         #l3 = self._config.lambda_brake * K.mean( K.abs( y_true[2] - y_pred[2] ) )
         #l4 = self._config.lambda_speed * K.mean( K.abs( y_true[3] - y_pred[3] ) )
 
-        return norm1*lambd#l1 + l2 + l3 + l4
+        return K.sum(norm1*lambd)#l1 + l2 + l3 + l4
 
     def _mseSteer(self,y_true,y_pred):
         return K.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
