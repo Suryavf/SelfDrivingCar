@@ -101,7 +101,10 @@ def BatchGenerator(path):
             np.random.shuffle(index)
 
             for i in index:
-                yield [seq.augment_image(Frames[i]).reshape( (88,200,3,1) ) ,Speed[i],
+                frame = seq.augment_image(Frames[i]).reshape( (-1,200,3,1) ) 
+                print(frame.shape)
+
+                yield [frame ,Speed[i],
                        Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
