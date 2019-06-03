@@ -104,8 +104,14 @@ def BatchGenerator(path):
             np.random.shuffle(index)
 
             for i in index:
-                frame = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
-                s = np.array(Speed[i]).reshape( (-1,1) )
+                frame  = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
+                speed  = np.array(Speed[i]).reshape( (-1,1) )
+                follow    = Follow[i].reshape((-1,3))
+                straight  = Straight[i].reshape((-1,3))
+                turnLeft  = TurnLeft[i].reshape((-1,3))
+                turnRight = TurnRight[i].reshape((-1,3))
+                #output    = Outputs[i].reshape((-1,3))
+
                 #print("\n--------")
                 #print(frame.shape)
                 #print("Speed:"    ,    Speed[i])
@@ -114,8 +120,9 @@ def BatchGenerator(path):
                 #print("TurnLeft:" , TurnLeft[i])#.shape)
                 #print("TurnRight:",TurnRight[i])#.shape)
                 #print("Outputs:"  ,  Outputs[i])#.shape)
-
-                yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
+                
+                yield [frame,speed,follow,straight,turnLeft,turnRight] , Outputs[i]
+                #yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
 """
