@@ -56,8 +56,7 @@ def BatchGenerator(path):
         for n in range(n_groups):
             # Generate indexes of the batch
             fileBatch = fileList[n*config.filesPerGroup:(n+1)*config.filesPerGroup]
-            print("fileBatch:",fileBatch)
-
+            
             'Initialize'
             Frames    = list()  # [H,W,C] float
             Speed     = list()  # [1]     float
@@ -68,12 +67,11 @@ def BatchGenerator(path):
 
             Outputs   = list()  # [4]     float
 
-            print("fileBatch:",fileBatch)
-
             # Files in group
-            for p in fileList[n*config.filesPerGroup:(n+1)*config.filesPerGroup]:
+            for p in fileBatch:
                # Data
-                file   = fileH5py(p)
+                file = fileH5py(p)
+                print("Read:",file)
 
                 # Inputs
                 Frames   .append( file.       frame() )
