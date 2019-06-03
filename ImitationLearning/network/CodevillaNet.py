@@ -34,7 +34,7 @@ def BatchGenerator(path):
     config = Config()
 
     n_filesGroup = len(fileList)
-    n_groups     = np.floor(n_filesGroup/config.filesPerGroup) - 1
+    n_groups     = int(np.floor(n_filesGroup/config.filesPerGroup) - 1)
 
     # Data Augmentation
     st = lambda aug: iaa.Sometimes(0.40, aug)
