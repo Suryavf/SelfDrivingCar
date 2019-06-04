@@ -30,9 +30,10 @@ def BatchGenerator(path):
     # Paths
     fileList = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
     
-    for file in fileList:
-        print(file)
-    print("...")
+    #for file in fileList:
+    #    if len(file) >
+    #    print(file)
+    #print("...")
     random.shuffle(fileList)
 
     config = Config()
@@ -71,12 +72,12 @@ def BatchGenerator(path):
 
             Outputs   = list()  # [4]     float
             print("\nRead",n,"group")
-
+            print("--------------------------------------------")
             # Files in group
             for p in fileBatch:
                # Data
                 file = fileH5py(p)
-                print(p)
+                print("File:",p)
 
                 # Inputs
                 Frames   .append( file.       frame() )
