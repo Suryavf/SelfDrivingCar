@@ -42,9 +42,9 @@ def BatchGenerator(path):
     n_groups     = int(np.floor(n_filesGroup/config.filesPerGroup) - 1)
 
     # Data Augmentation
-    st = lambda aug: iaa.Sometimes(0.40, aug)
-    oc = lambda aug: iaa.Sometimes(0.30, aug)
-    rl = lambda aug: iaa.Sometimes(0.09, aug)
+    st = lambda aug: iaa.Sometimes(0.040, aug)
+    oc = lambda aug: iaa.Sometimes(0.030, aug)
+    rl = lambda aug: iaa.Sometimes(0.009, aug)
 
     seq = iaa.Sequential([  rl(iaa.GaussianBlur((0, 1.5))),                                               # blur images with a sigma between 0 and 1.5
                             rl(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05), per_channel=0.5)),     # add gaussian noise to images
