@@ -66,13 +66,13 @@ def BatchGenerator(path):
             TurnRight = list()  # [3]     boolean
 
             Outputs   = list()  # [4]     float
-            print("Read",n,"group")
+            print("\nRead",n,"group")
 
             # Files in group
             for p in fileBatch:
                # Data
                 file = fileH5py(p)
-                #print("Read:",p)
+                print(p)
 
                 # Inputs
                 Frames   .append( file.       frame() )
@@ -86,6 +86,7 @@ def BatchGenerator(path):
                 Outputs  .append( file.getActionSpeed() )
 
                 file.close()
+            print("\n")
 
             # List to np.array
             Frames    = np.concatenate(Frames   )
@@ -96,33 +97,20 @@ def BatchGenerator(path):
             TurnRight = np.concatenate(TurnRight)
             Outputs   = np.concatenate(Outputs  )
 
-            #print(Speed)
-            #os.system("pause")
-
             # Random index
             index = np.array(range( Frames.shape[0] ))
             np.random.shuffle(index)
 
             for i in index:
-                frame  = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
-                speed  = np.array(Speed[i]).reshape( (-1,1) )
+                frame     = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
+                speed     = Speed    [i].reshape((-1,1))
                 follow    = Follow   [i].reshape((-1,3))
                 straight  = Straight [i].reshape((-1,3))
                 turnLeft  = TurnLeft [i].reshape((-1,3))
                 turnRight = TurnRight[i].reshape((-1,3))
                 output    = Outputs  [i].reshape((-1,4))
 
-                #print("\n--------")
-                #print(frame.shape)
-                #print("Speed:"    ,    Speed[i])
-                #print("Follow:"   ,   Follow[i])#.shape)
-                #print("Straight:" , Straight[i])#.shape)
-                #print("TurnLeft:" , TurnLeft[i])#.shape)
-                #print("TurnRight:",TurnRight[i])#.shape)
-                #print("Outputs:"  ,  Outputs[i])#.shape)
-                
                 yield [frame,speed,follow,straight,turnLeft,turnRight] , output
-                #yield [frame ,s,Follow[i],Straight[i],TurnLeft[i],TurnRight[i]] , Outputs[i]
 
 
 """
@@ -161,13 +149,7 @@ class Codevilla19Net(object):
                             self._config.lambda_brake ,
                             self._config.lambda_speed ])
 
-
-        #l1 = self._config.lambda_steer * K.mean( K.abs( y_true[0] - y_pred[0] ) )
-        #l2 = self._config.lambda_gas   * K.mean( K.abs( y_true[1] - y_pred[1] ) )
-        #l3 = self._config.lambda_brake * K.mean( K.abs( y_true[2] - y_pred[2] ) )
-        #l4 = self._config.lambda_speed * K.mean( K.abs( y_true[3] - y_pred[3] ) )
-
-        return K.sum(norm1*lambd)#l1 + l2 + l3 + l4
+        return K.sum(norm1*lambd)
 
     def _mseSteer(self,y_true,y_pred):
         return K.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
