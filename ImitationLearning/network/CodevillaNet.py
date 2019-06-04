@@ -156,6 +156,8 @@ class Codevilla19Net(object):
 
         return K.sum(norm1*lambd)
 
+        
+
     def _mseSteer(self,y_true,y_pred):
         return K.sqrt( K.mean(K.pow( y_true[0]-y_pred[0] ,2)) )
 
@@ -391,7 +393,7 @@ class Codevilla19Net(object):
                                     steps_per_epoch     = self._config.steps_per_epoch,
                                     epochs              = self._config.epochs,
                                     use_multiprocessing = True,
-                                    workers             = 1,
+                                    workers             = 4,
                                     callbacks           = callbacks )
 
     #
