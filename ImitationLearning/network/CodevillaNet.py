@@ -8,6 +8,7 @@ from keras.layers.advanced_activations import ELU
 from keras.optimizers import Adam, SGD, Adamax, Nadam
 from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, EarlyStopping
 from keras.callbacks import TensorBoard, LearningRateScheduler
+import keras.initializers as init
 from tensorflow.keras import backend as K
 
 import random
@@ -215,6 +216,7 @@ class Codevilla19Net(object):
                     strides    = stride,
                     activation = self._config.activation, 
                     padding    = self._config.   padding, 
+                    kernel_initializer = 'glorot_uniform',
                     name       = 'conv{}'.format(self._countConv))(x)
         x = BatchNormalization(
                     name       = 'BatchNorm{}'.format(self._countBatchNorm))(x)
@@ -227,6 +229,7 @@ class Codevilla19Net(object):
         self._countDropout += 1
         
         x = Dense(units, activation = self._config.activation,
+                         kernel_initializer = 'glorot_uniform',
                          name       = 'fully{}'  .format(self._countFully  ))(x)
         x = Dropout(self._config.fullyDropout,
                          name       = 'Dropout{}'.format(self._countDropout))(x)
