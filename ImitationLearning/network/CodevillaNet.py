@@ -29,6 +29,10 @@ from ImitationLearning.config         import Config
 def BatchGenerator(path):
     # Paths
     fileList = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
+    
+    for file in fileList:
+        print(file)
+    print("...")
     random.shuffle(fileList)
 
     config = Config()
