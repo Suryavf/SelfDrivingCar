@@ -73,7 +73,6 @@ def BatchGenerator(path):
             for p in fileBatch:
                 # Data
                 file = fileH5py(p)
-
                 # Inputs
                 Frames   .append( file.       frame() )
                 Speed    .append( file.       speed() )
@@ -99,10 +98,10 @@ def BatchGenerator(path):
             # Random index
             index = np.array(range( Frames.shape[0] ))
             np.random.shuffle(index)
-            Frames = Frames.astype(float)/255
 
             for i in index:
                 frame     = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
+                frame     = frame.astype(float)/255
                 speed     = Speed    [i].reshape((-1,1))
                 follow    = Follow   [i].reshape((-1,3))
                 straight  = Straight [i].reshape((-1,3))
