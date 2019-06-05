@@ -30,11 +30,6 @@ from ImitationLearning.config         import Config
 def BatchGenerator(path):
     # Paths
     fileList = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
-    
-    #for file in fileList:
-    #    if len(file) >
-    #    print(file)
-    #print("...")
     random.shuffle(fileList)
 
     config = Config()
@@ -70,15 +65,14 @@ def BatchGenerator(path):
             Straight  = list()  # [3]     boolean
             TurnLeft  = list()  # [3]     boolean
             TurnRight = list()  # [3]     boolean
-
             Outputs   = list()  # [4]     float
-            print("\nRead",n,"group")
-            print("--------------------------------------------")
+
+            print("\nRead",n+1,"group")
+            
             # Files in group
             for p in fileBatch:
-               # Data
+                # Data
                 file = fileH5py(p)
-                print("File:",p)
 
                 # Inputs
                 Frames   .append( file.       frame() )
@@ -92,7 +86,6 @@ def BatchGenerator(path):
                 Outputs  .append( file.getActionSpeed() )
 
                 file.close()
-            print("\n")
 
             # List to np.array
             Frames    = np.concatenate(Frames   )
@@ -220,18 +213,18 @@ class Codevilla19Net(object):
                     name       = 'conv{}'.format(self._countConv))(x)
         x = BatchNormalization(
                     name       = 'BatchNorm{}'.format(self._countBatchNorm))(x)
-        x = Dropout(self._config.convDropout,
-                    name       = 'Dropout{}'  .format(self._countDropout  ))(x)
+        #x = Dropout(self._config.convDropout,
+        #            name       = 'Dropout{}'  .format(self._countDropout  ))(x)
         return x
     
-    def _fully(self, x, units):
+    def _fully(self, x, units,dropout):
         self._countFully   += 1
         self._countDropout += 1
         
         x = Dense(units, activation = self._config.activation,
                          kernel_initializer = 'glorot_uniform',
                          name       = 'fully{}'  .format(self._countFully  ))(x)
-        x = Dropout(self._config.fullyDropout,
+        x = Dropout(dropout,
                          name       = 'Dropout{}'.format(self._countDropout))(x)
         return x
     
@@ -253,24 +246,24 @@ class Codevilla19Net(object):
         x = Flatten()(x)
         
         # Fully stage
-        x = self._fully(x,512)
-        x = self._fully(x,512)
+        x = self._fully(x,512,0.2)
+        x = self._fully(x,512,0.2)
         
         return x
     
     def _measurementNet(self,x):
-        x = self._fully(x,128)
-        x = self._fully(x,128)
+        x = self._fully(x,128,0.5)
+        x = self._fully(x,128,0.5)
         return x
     
     def _controlNet(self,x):
-        x = self._fully(x,256)
-        x = self._fully(x,256)
+        x = self._fully(x,256,0.5)
+        x = self._fully(x,256,0.5)
         return x
     
     def _predSpeedNet(self,x):
-        x = self._fully(x,256)
-        x = self._fully(x,256)
+        x = self._fully(x,256,0.5)
+        x = self._fully(x,256,0.5)
         
         self._countFully += 1
         x = Dense(1, activation = self._config.activation,
@@ -278,8 +271,8 @@ class Codevilla19Net(object):
         return x
     
     def _commandNet(self,x):
-        x = self._fully(x,256)
-        x = self._fully(x,256)
+        x = self._fully(x,256,0.5)
+        x = self._fully(x,256,0.5)
         
         self._countFully += 1
         x = Dense(3, activation = self._config.activation,
@@ -335,7 +328,7 @@ class Codevilla19Net(object):
         vm = self._measurementNet(in_speed)
         
         m = concatenate([im, vm], 1)
-        m = self._fully(m,512)
+        m = self._fully(m,512,0.5)
        
         #
         # Speed  prediction
