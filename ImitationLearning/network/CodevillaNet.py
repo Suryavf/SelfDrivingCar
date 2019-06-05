@@ -99,6 +99,7 @@ def BatchGenerator(path):
             # Random index
             index = np.array(range( Frames.shape[0] ))
             np.random.shuffle(index)
+            Frames = Frames.astype(float)/255
 
             for i in index:
                 frame     = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
