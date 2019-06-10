@@ -97,7 +97,7 @@ def BatchGenerator(path):
 
             # Random index
             index = np.array(range( Frames.shape[0] ))
-            np.random.shuffle(index)
+            #np.random.shuffle(index)
 
             for i in index:
                 frame     = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
@@ -173,9 +173,9 @@ class Codevilla19Net(object):
 
         # TensorBoard 
         # -----------
-        tbCallBack = TensorBoard(log_dir = self._config.graphPath, 
-                                 histogram_freq = 0, 
-                                 write_graph=True, write_images=True)
+        #tbCallBack = TensorBoard(log_dir = self._config.graphPath, 
+        #                         histogram_freq = 0, 
+        #                         write_graph=True, write_images=True)
         
         # CsvLogger 
         # ---------
@@ -194,7 +194,7 @@ class Codevilla19Net(object):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, save_best_only=True, verbose=1, period=self._config.epoch_per_save)
 
         # Create
-        callbacks = [lrate, csv_callback, checkpoint_callback, tbCallBack]
+        callbacks = [lrate, csv_callback, checkpoint_callback]#, tbCallBack]
 
         return callbacks
 
@@ -389,7 +389,6 @@ class Codevilla19Net(object):
                                     steps_per_epoch     = self._config.steps_per_epoch,
                                     epochs              = self._config.epochs,
                                     use_multiprocessing = True,
-                                    workers             = 4,
                                     callbacks           = callbacks )
 
     #
