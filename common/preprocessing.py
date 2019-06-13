@@ -351,6 +351,10 @@ class cooking(object):
         n_valid = len(self._validFileList)
         n = 0
 
+        print("\n")
+        print("Validation files")
+        print("................")
+
         # Initialize
         frame   = list()
         speed   = list()
