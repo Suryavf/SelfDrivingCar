@@ -9,6 +9,8 @@ import os
 from os      import listdir
 from os.path import isfile, join
 
+from tqdm import tqdm
+
 from config import Config
 
 FRAMES_PER_FILE = 200
@@ -178,7 +180,8 @@ class fileH5py(object):
     # Frame
     # .....
     def frame(self,index=None):
-        return self._getRGBvalue(index=index)
+        img = self._getRGBvalue(index=index)
+        return img.astype(float)/255
     
     # Steer
     # .....
@@ -282,44 +285,121 @@ class cooking(object):
     #
     # Training files
     # ..............
-    def _training(self):
+    def _trainingFiles(self):
         n_train = len(self._trainFileList1)
-        i = 0
-        
-        while i < n_train:
+        n = 0
 
+        print("\n")
+        print("Training files")
+        print("..............")
+
+        # Initialize
+        frame   = list()
+        speed   = list()
+        output  = list()
+        command = list()
+
+        for i in tqdm(range(n_train)):
+            # Real control
             file1 = fileH5py(self._trainFileList1[i])
-            file1.frame()
-            file1.speed()
-            file1.commandOneHot()
-
-            file1.speed()
-
-
-            file2 = fileH5py(self._trainFileList1[i])
-
-            
-
-
+            frame  .append( file1.frame        () )
+            speed  .append( file1.speed        () )
+            output .append( file1.commandOneHot() )
+            command.append( file1.output       () )
             file1.close()
+
+            # Noise control
+            file2 = fileH5py(self._trainFileList2[i])
+            frame  .append( file2.frame        () )
+            speed  .append( file2.speed        () )
+            output .append( file2.commandOneHot() )
+            command.append( file2.output       () )
             file2.close()
 
-            # New file
-            if i%(FILES_PER_GROUP/2) == 0:
-                pass
+            # Save file
+            if i%(FILES_PER_GROUP/2) == 0 or i==(n_train-1):
+                # List to np.array
+                frame   = np.concatenate(   frame )
+                speed   = np.concatenate(   speed )
+                output  = np.concatenate(  output )
+                command = np.concatenate( command )
+                
+                # File name
+                filename  = "Train_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
+                
+                # To H5py
+                with h5py.File(filename, 'w') as hf:
+                    hf.create_dataset(  "frame", data=frame   )
+                    hf.create_dataset(  "speed", data=speed   )
+                    hf.create_dataset( "output", data=output  )
+                    hf.create_dataset("command", data=command )
+
+                # Initialize
+                frame   = list()
+                speed   = list()
+                command = list()
+                output  = list()
+
+                # Update n
+                n = n + 1
             
-            # Update i
-            i = i + 1
 
-    def _validation(self):
-        pass
+    #
+    # Validation files
+    # ................
+    def _validationFiles(self):
+        n_valid = len(self._validFileList)
+        n = 0
 
+        # Initialize
+        frame   = list()
+        speed   = list()
+        output  = list()
+        command = list()
+
+        for i in tqdm(range(n_valid)):
+            # Real control
+            file = fileH5py(self._validFileList[i])
+            frame  .append( file.frame        () )
+            speed  .append( file.speed        () )
+            output .append( file.commandOneHot() )
+            command.append( file.output       () )
+            file.close()
+
+            # Save file
+            if i%(FILES_PER_GROUP) == 0 or i==(n_valid-1):
+                # List to np.array
+                frame   = np.concatenate(   frame )
+                speed   = np.concatenate(   speed )
+                output  = np.concatenate(  output )
+                command = np.concatenate( command )
+                
+                # File name
+                filename  = "Valid_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
+                
+                # To H5py
+                with h5py.File(filename, 'w') as hf:
+                    hf.create_dataset(  "frame", data=frame   )
+                    hf.create_dataset(  "speed", data=speed   )
+                    hf.create_dataset( "output", data=output  )
+                    hf.create_dataset("command", data=command )
+
+                # Initialize
+                frame   = list()
+                speed   = list()
+                command = list()
+                output  = list()
+
+                # Update n
+                n = n + 1
+            
     def run(self):
         
+        # Read training files
+        self._trainingFiles()
 
-
-        pass
-
+        # Read validation files
+        self._validationFiles()
 
 
 """
