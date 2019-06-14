@@ -92,9 +92,9 @@ class fileH5py(object):
     
     def _getRGBvalue(self,index=None):
         if index is None:
-            return self._d['rgb'][index]
-        else:
             return self._d['rgb'][:]
+        else:
+            return self._d['rgb'][index]
 
     # Load
     # ....
@@ -325,7 +325,7 @@ class cooking(object):
                 command = np.concatenate( command )
                 
                 # File name
-                filename  = "Train_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
+                filename  = self._config.cookdPath + "/Train_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
                 
                 # To H5py
                 with h5py.File(filename, 'w') as hf:
@@ -379,7 +379,7 @@ class cooking(object):
                 command = np.concatenate( command )
                 
                 # File name
-                filename  = "Valid_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
+                filename  = self._config.cookdPath + "/Valid_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
                 
                 # To H5py
                 with h5py.File(filename, 'w') as hf:
