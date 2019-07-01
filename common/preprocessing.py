@@ -143,8 +143,13 @@ class fileH5py(object):
     #   2. Brake,                float 
     #  10. Speed,                float 
     def outputNoise(self):
-        indices = [5,1,2,10]
+        indices = [1,2,5,10]
         actionSpeed = self._d['targets'][:,indices]
+
+        # Reorder
+        indices = [2,0,1,3]
+        actionSpeed = actionSpeed[:,indices]
+
         actionSpeed[:,0] = actionSpeed[:,0]/1.2 # Steer
         actionSpeed[:,3] = actionSpeed[:,3]/ 85 # Speed
         return actionSpeed
@@ -213,7 +218,7 @@ class fileH5py(object):
     # Speed
     # .....
     def speed(self,index=None):
-        return self._getTargetsValue(10,index=index)/85
+        return (self._getTargetsValue(10,index=index)/85).reshape((200,1))
 
     # Command
     # .......
