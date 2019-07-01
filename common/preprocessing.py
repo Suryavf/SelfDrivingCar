@@ -281,7 +281,6 @@ class cooking(object):
         random.shuffle(self._trainFileList1)
         random.shuffle(self._trainFileList2)
 
-
     #
     # Training files
     # ..............
@@ -292,38 +291,42 @@ class cooking(object):
         print("\n")
         print("Training files")
         print("..............")
-
+        
         # Initialize
-        frame   = list()
-        speed   = list()
-        output  = list()
-        command = list()
+        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3])
+        speed   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    1   ])
+        output  = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+
+        maxFileInFullGroup = np.floor(n_train/FILES_PER_GROUP)*FILES_PER_GROUP
+        n = 0 # counter
 
         for i in tqdm(range(n_train)):
             # Real control
-            file1 = fileH5py(self._trainFileList1[i])
-            frame  .append( file1.frame        () )
-            speed  .append( file1.speed        () )
-            output .append( file1.commandOneHot() )
-            command.append( file1.output       () )
-            file1.close()
+            file = fileH5py(self._trainFileList1[i])
+            frame  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.frame        ()
+            speed  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.speed        ()
+            output [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.output       ()
+            command[n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.commandOneHot()
+            file.close()
+            n = n + 1
 
             # Noise control
-            file2 = fileH5py(self._trainFileList2[i])
-            frame  .append( file2.frame        () )
-            speed  .append( file2.speed        () )
-            output .append( file2.commandOneHot() )
-            command.append( file2.output       () )
-            file2.close()
+            file = fileH5py(self._trainFileList2[i])
+            frame  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.frame        ()
+            speed  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.speed        ()
+            output [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.outputNoise  ()
+            command[n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.commandOneHot()
+            file.close()
+            n = n + 1
+            
+            if i < maxFileInFullGroup:
+                n_files = FILES_PER_GROUP
+            else:
+                n_files = n_train%FILES_PER_GROUP
 
             # Save file
-            if i%(FILES_PER_GROUP/2) == 0 or i==(n_train-1):
-                # List to np.array
-                frame   = np.concatenate(   frame )
-                speed   = np.concatenate(   speed )
-                output  = np.concatenate(  output )
-                command = np.concatenate( command )
-                
+            if n >= n_files:
                 # File name
                 filename  = self._config.cookdPath + "/Train_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
                 
@@ -334,14 +337,14 @@ class cooking(object):
                     hf.create_dataset( "output", data=output  )
                     hf.create_dataset("command", data=command )
 
-                # Initialize
-                frame   = list()
-                speed   = list()
-                command = list()
-                output  = list()
+                # New buffer
+                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3])
+                speed   = np.zeros([FRAMES_PER_FILE*n_files,    1   ])
+                output  = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
+                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
 
-                # Update n
-                n = n + 1
+                # Reset
+                n = 0
             
 
     #
@@ -356,31 +359,34 @@ class cooking(object):
         print("................")
 
         # Initialize
-        frame   = list()
-        speed   = list()
-        output  = list()
-        command = list()
+        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3])
+        speed   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    1   ])
+        output  = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+
+        n = 0 # counter
+        maxFileInFullGroup = np.floor(n_valid/FILES_PER_GROUP)*FILES_PER_GROUP
 
         for i in tqdm(range(n_valid)):
             # Real control
             file = fileH5py(self._validFileList[i])
-            frame  .append( file.frame        () )
-            speed  .append( file.speed        () )
-            output .append( file.commandOneHot() )
-            command.append( file.output       () )
+            frame  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.frame        ()
+            speed  [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.speed        ()
+            output [n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.output       ()
+            command[n*FRAMES_PER_FILE:(n+1)*FRAMES_PER_FILE] = file.commandOneHot()
             file.close()
+            n = n + 1
+
+            if i < maxFileInFullGroup:
+                n_files = FILES_PER_GROUP
+            else:
+                n_files = n_valid%FILES_PER_GROUP
 
             # Save file
-            if i%(FILES_PER_GROUP) == 0 or i==(n_valid-1):
-                # List to np.array
-                frame   = np.concatenate(   frame )
-                speed   = np.concatenate(   speed )
-                output  = np.concatenate(  output )
-                command = np.concatenate( command )
-                
+            if n >= n_files:
                 # File name
                 filename  = self._config.cookdPath + "/Valid_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
-                
+
                 # To H5py
                 with h5py.File(filename, 'w') as hf:
                     hf.create_dataset(  "frame", data=frame   )
@@ -388,14 +394,12 @@ class cooking(object):
                     hf.create_dataset( "output", data=output  )
                     hf.create_dataset("command", data=command )
 
-                # Initialize
-                frame   = list()
-                speed   = list()
-                command = list()
-                output  = list()
+                # New buffer
+                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3])
+                speed   = np.zeros([FRAMES_PER_FILE*n_files,    1   ])
+                output  = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
+                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
 
-                # Update n
-                n = n + 1
             
     def run(self):
         
