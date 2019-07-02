@@ -1,7 +1,5 @@
-import matplotlib
 import numpy  as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import h5py
 import cv2 as cv
 import random
@@ -14,7 +12,7 @@ from tqdm import tqdm
 from config import Config
 
 FRAMES_PER_FILE = 200
-FILES_PER_GROUP = 100
+FILES_PER_GROUP = 500
 
 
 """
@@ -186,7 +184,7 @@ class fileH5py(object):
     # .....
     def frame(self,index=None):
         img = self._getRGBvalue(index=index)
-        return img.astype(float)/255
+        return img
     
     # Steer
     # .....
@@ -231,7 +229,7 @@ class fileH5py(object):
         commad = commad.astype(int)
         OneHot = np.zeros((FRAMES_PER_FILE,4))
         OneHot[ np.arange(FRAMES_PER_FILE),commad ] = 1
-        return OneHot
+        return OneHot.astype(bool)
     
     # Collision Other
     # ...............
@@ -298,13 +296,14 @@ class cooking(object):
         print("..............")
         
         # Initialize
-        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3])
+        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3],dtype='uint8')
         speed   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    1   ])
         output  = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
-        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ],dtype=bool)
 
         maxFileInFullGroup = np.floor(n_train/FILES_PER_GROUP)*FILES_PER_GROUP
-        n = 0 # counter
+        n = 0 # counter in file
+        m = 0 # counter of file
 
         for i in tqdm(range(n_train)):
             # Real control
@@ -333,24 +332,35 @@ class cooking(object):
             # Save file
             if n >= n_files:
                 # File name
-                filename  = self._config.cookdPath + "/Train_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
-                
+                filename  = self._config.cookdPath + "/Train_" + str(m) + "_" + str(frame.shape[0]) + ".h5"
+                m = m + 1
+
                 # To H5py
                 with h5py.File(filename, 'w') as hf:
-                    hf.create_dataset(  "frame", data=frame   )
+                    hf.create_dataset(  "frame", data=frame   ,dtype='uint8')
                     hf.create_dataset(  "speed", data=speed   )
                     hf.create_dataset( "output", data=output  )
-                    hf.create_dataset("command", data=command )
+                    hf.create_dataset("command", data=command ,dtype=bool)
+
+                    # Clean
+                    frame   = None
+                    speed   = None
+                    output  = None
+                    command = None
 
                 # New buffer
-                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3])
+                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3],dtype='uint8')
                 speed   = np.zeros([FRAMES_PER_FILE*n_files,    1   ])
                 output  = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
-                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
+                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ],dtype=bool)
 
                 # Reset
                 n = 0
-            
+
+        frame   = None
+        speed   = None
+        output  = None
+        command = None   
 
     #
     # Validation files
@@ -364,14 +374,15 @@ class cooking(object):
         print("................")
 
         # Initialize
-        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3])
+        frame   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,88,200,3],dtype='uint8')
         speed   = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    1   ])
         output  = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
-        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ])
+        command = np.zeros([FRAMES_PER_FILE*FILES_PER_GROUP,    4   ],dtype=bool)
 
-        n = 0 # counter
         maxFileInFullGroup = np.floor(n_valid/FILES_PER_GROUP)*FILES_PER_GROUP
-
+        n = 0 # counter in file
+        m = 0 # counter of file
+        
         for i in tqdm(range(n_valid)):
             # Real control
             file = fileH5py(self._validFileList[i])
@@ -390,21 +401,35 @@ class cooking(object):
             # Save file
             if n >= n_files:
                 # File name
-                filename  = self._config.cookdPath + "/Valid_" + str(n) + "_" + str(frame.shape[0]) + ".h5"
+                filename  = self._config.cookdPath + "/Valid_" + str(m) + "_" + str(frame.shape[0]) + ".h5"
+                m = m + 1
 
                 # To H5py
                 with h5py.File(filename, 'w') as hf:
-                    hf.create_dataset(  "frame", data=frame   )
+                    hf.create_dataset(  "frame", data=frame   ,dtype='uint8')
                     hf.create_dataset(  "speed", data=speed   )
                     hf.create_dataset( "output", data=output  )
-                    hf.create_dataset("command", data=command )
+                    hf.create_dataset("command", data=command ,dtype=bool)
+
+                    # Clean
+                    frame   = None
+                    speed   = None
+                    output  = None
+                    command = None
 
                 # New buffer
-                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3])
+                frame   = np.zeros([FRAMES_PER_FILE*n_files,88,200,3],dtype='uint8')
                 speed   = np.zeros([FRAMES_PER_FILE*n_files,    1   ])
                 output  = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
-                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ])
+                command = np.zeros([FRAMES_PER_FILE*n_files,    4   ],dtype=bool)
 
+                # Reset
+                n = 0
+
+        frame   = None
+        speed   = None
+        output  = None
+        command = None 
             
     def run(self):
         
