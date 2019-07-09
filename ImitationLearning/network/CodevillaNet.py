@@ -1,115 +1,41 @@
-import os
-import tensorflow as tf
-import math
-from keras.models import Sequential, Model
-from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, Lambda, Input, concatenate, Multiply, Add
-from keras.layers.normalization import BatchNormalization
-from keras.layers.advanced_activations import ELU
-from keras.optimizers import Adam, SGD, Adamax, Nadam
-from keras.callbacks  import ReduceLROnPlateau, ModelCheckpoint, CSVLogger, EarlyStopping
-from keras.callbacks import TensorBoard, LearningRateScheduler
-import keras.initializers as init
-from tensorflow.keras import backend as K
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from   torchvision import models, transforms, utils
+from   torch.utils.data import Dataset,DataLoader
+from   torch.autograd import Variable as V
 
-import random
-import numpy as np
-import keras
-from imgaug import augmenters as iaa
-from os      import listdir
-from os.path import isfile, join
-from ImitationLearning.preprocessing import fileH5py
+from ImitationLearning.network.ResNet import resnet34        as ResNet
+from common.data                      import CoRL2017Dataset as Dataset
+from config                           import Config
 
-from ImitationLearning.BatchGenerator import CoRL2017 #as BatchGenerator
-from ImitationLearning.config         import Config
+def weights_init(m):
+  if isinstance(m, nn.Linear):
+    size = m.weight.size()
+    fan_out = size[0] # number of rows
+    fan_in  = size[1] # number of columns
+    variance = np.sqrt(2.0/(fan_in + fan_out))
+    m.weight.data.normal_(0.0, variance)
 
-
-
-
-
-
-def BatchGenerator(path):
-    # Paths
-    fileList = [path + "/" + f for f in listdir(path) if isfile(join(path, f))]
-    random.shuffle(fileList)
-
-    config = Config()
-
-    n_filesGroup = len(fileList)
-    n_groups     = int(np.floor(n_filesGroup/config.filesPerGroup) - 1)
-
-    # Data Augmentation
-    st = lambda aug: iaa.Sometimes(0.040, aug)
-    oc = lambda aug: iaa.Sometimes(0.030, aug)
-    rl = lambda aug: iaa.Sometimes(0.009, aug)
-
-    seq = iaa.Sequential([  rl(iaa.GaussianBlur((0, 1.5))),                                               # blur images with a sigma between 0 and 1.5
-                            rl(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05), per_channel=0.5)),     # add gaussian noise to images
-                            oc(iaa.Dropout((0.0, 0.10), per_channel=0.5)),                                # randomly remove up to X% of the pixels
-                            oc(iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2),per_channel=0.5)), # randomly remove up to X% of the pixels
-                            oc(iaa.Add((-40, 40), per_channel=0.5)),                                      # adjust brightness of images (-X to Y% of original value)
-                            st(iaa.Multiply((0.10, 2.5), per_channel=0.2)),                               # adjust brightness of images (X -Y % of original value)
-                            rl(iaa.ContrastNormalization((0.5, 1.5), per_channel=0.5)),                   # adjust the contrast
-                            ],random_order=True)
-
-    while True:
-
-        # Groups
-        for n in range(n_groups):
-            # Generate indexes of the batch
-            fileBatch = fileList[n*config.filesPerGroup:(n+1)*config.filesPerGroup]
-            
-            'Initialize'
-            Frames    = list()  # [H,W,C] float
-            Speed     = list()  # [1]     float
-            Follow    = list()  # [3]     boolean
-            Straight  = list()  # [3]     boolean
-            TurnLeft  = list()  # [3]     boolean
-            TurnRight = list()  # [3]     boolean
-            Outputs   = list()  # [4]     float
-
-            print("\nRead",n+1,"group")
-            
-            # Files in group
-            for p in fileBatch:
-                # Data
-                file = fileH5py(p)
-                # Inputs
-                Frames   .append( file.       frame() )
-                Speed    .append( file.       speed() )
-                Follow   .append( file.   getFollow() )
-                Straight .append( file. getStraight() )
-                TurnLeft .append( file. getTurnLeft() )
-                TurnRight.append( file.getTurnRight() )
-
-                # Outputs
-                Outputs  .append( file.getActionSpeed() )
-
-                file.close()
-
-            # List to np.array
-            Frames    = np.concatenate(Frames   )
-            Speed     = np.concatenate(Speed    )
-            Follow    = np.concatenate(Follow   )
-            Straight  = np.concatenate(Straight )
-            TurnLeft  = np.concatenate(TurnLeft )
-            TurnRight = np.concatenate(TurnRight)
-            Outputs   = np.concatenate(Outputs  )
-
-            # Random index
-            index = np.array(range( Frames.shape[0] ))
-            #np.random.shuffle(index)
-
-            for i in index:
-                frame     = seq.augment_image(Frames[i]).reshape( (-1,88,200,3) ) 
-                frame     = frame.astype(float)/255
-                speed     = Speed    [i].reshape((-1,1))
-                follow    = Follow   [i].reshape((-1,3))
-                straight  = Straight [i].reshape((-1,3))
-                turnLeft  = TurnLeft [i].reshape((-1,3))
-                turnRight = TurnRight[i].reshape((-1,3))
-                output    = Outputs  [i].reshape((-1,4))
-
-                yield [frame,speed,follow,straight,turnLeft,turnRight] , output
+class ResNetReg(nn.Module):
+  def __init__(self):
+    super(ResNetReg, self).__init__()
+    
+    self._perception = ResNet()
+    self._fully      = nn.Linear(512,256)
+    self._out        = nn.Linear(256,  3)
+    
+  def forward(self,x):
+    percep =        self._perception(x)
+    percep = F.dropout(percep, p=0.5, training=self.training)
+    
+    hidden = F.relu(self._fully(percep))
+    hidden = F.dropout(hidden, p=0.5, training=self.training)
+    
+    y_pred = self._out  (hidden)
+    
+    return y_pred
 
 
 """
@@ -117,6 +43,7 @@ Codevilla 2019 Network
 ----------------------
 Ref: 
     https://arxiv.org/pdf/1710.02410.pdf
+"""
 """
 class Codevilla19Net(object):
     
@@ -402,4 +329,4 @@ class Codevilla19Net(object):
     # ..........
     def prediction(self,inTest):
         self.model.predict(inTest)
-    
+"""
