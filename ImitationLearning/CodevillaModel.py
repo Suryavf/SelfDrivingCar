@@ -10,7 +10,7 @@ from common.data                            import CoRL2017Dataset as Dataset
 from ImitationLearning.network.CodevillaNet import ResNetReg
 from config                                 import Config
 
-
+from random import shuffle
 import numpy as np
 import cv2 as cv
 import secrets
@@ -84,9 +84,9 @@ class ResNetRegressionModel(object):
     """ Building """
     def build(self):
         self.net = ResNetReg()
-        self.net = net.float()
-        self.net = net.apply(weights_init)
-        self.net = net.to(device)
+        self.net = self.net.float()
+        self.net = self.net.apply(weights_init)
+        self.net = self.net.to(device)
 
     """ Train """
     def train(self):
@@ -102,6 +102,7 @@ class ResNetRegressionModel(object):
         files = [os.path.join(path,f) for f in os.listdir(path) 
                                             if os.path.isfile(os.path.join(path,f)) 
                                                                     and mode in f]
+        shuffle(files)
         trainFiles = files
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
@@ -139,35 +140,3 @@ class ResNetRegressionModel(object):
                         print(i+1,":\tloss =",running_loss/stepView,"\t\t",timeExecution(ite))
                         running_loss = 0.0
  
-
-
-"""
-Codevilla 2019 Network
-----------------------
-Ref: 
-    https://arxiv.org/pdf/1710.02410.pdf
-"""
-"""
-class CodevillaModel(object):
-    def __init__(self):
-        # Configure
-        self._config = Config
-        self.    net = None
-        
-        # Paths
-        trainPath = self._config.trainPath
-        validPath = self._config.validPath
-
-        self._trainFile = glob.glob(trainPath + '*.h5')
-        self._validFile = glob.glob(validPath + '*.h5')
-
-        # Nets
-        self.net = Codevilla19Net(self._config)
-
-    def build(self):
-        self.net.build()
-
-    def train(self):
-        self.net.fit( self._config.trainPath,
-                      self._config.validPath )
-""" 
