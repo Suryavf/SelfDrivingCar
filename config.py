@@ -1,5 +1,10 @@
 import math
 
+class Global(object):
+    framePerSecond = 10
+    num_workers    =  8
+    stepView       = 50 # Print in Train
+
 class Config(object):
     # Path files
     validPath = "./data/h5file/SeqVal"
@@ -9,19 +14,11 @@ class Config(object):
     graphPath = "./data/Model/Graph"
     filesPerGroup = 100#187
 
-    srate           = 10
-    epochs          = 30*3600*srate  # 30 horas
-    batch_size      = 120
-    num_samples     = 1500*200
-    epoch_per_save  = 10*60*srate    # 10 minutos 
-    steps_per_epoch = math.ceil(num_samples/batch_size)
-    
-    # Net settings
-    imageShape   = (88,200,3)
-    activation   = 'relu'
-    padding      = 'same'
-    convDropout  = 0.2
-    fullyDropout = 0.5
+    # Model
+    model      = 'Basic' # Basic, Multimodal, Codevilla18, Codevilla19
+    n_epoch    = 150
+    batch_size = 120
+    time_demostration = 10*3600
 
     # Learning rate
     learning_rate_initial      = 0.0002
@@ -34,8 +31,9 @@ class Config(object):
     adam_beta_2 = 0.85
 
     # Loss
-    lambda_steer = 0.45*0.95
-    lambda_gas   = 0.45*0.95
-    lambda_brake = 0.05*0.95
-    lambda_speed = 0.05
+    lambda_steer = 0.45
+    lambda_gas   = 0.45
+    lambda_brake = 0.05
+    lambda_action = 0.95
+    lambda_speed  = 0.05
     
