@@ -8,7 +8,12 @@ from   torch.autograd import Variable as V
 
 from common.data                            import CoRL2017Dataset as Dataset
 from ImitationLearning.network.CodevillaNet import ResNetReg
-from config                                 import Config
+
+from config import Config
+from config import Global
+
+import common.pytorch as T
+from common.utils import iter2time
 
 from random import shuffle
 import numpy as np
@@ -18,53 +23,17 @@ import math
 import h5py
 import os
 
-# CUDA :D
+# CUDA
 device = torch.device('cuda:0')
+
+# Settings
+__global = Global()
+__config = Config()
 
 # Parameters
 batch_size     = 120
 n_epoch        = 150
 framePerSecond =  10
-
-
-def timeExecution(ite):
-    time = ite*batch_size/framePerSecond
-
-    # Hours
-    hour = np.floor(time/3600)
-    time = time - hour*3600
-
-    # Minutes
-    minute = np.floor(time/60)
-    time = time - minute*60
-
-    # Seconds
-    second = time
-
-    # Text
-    txt = ""
-    if(  hour>0): txt = txt + str( hour ) + "h\t"
-    else        : txt = txt + "\t"
-
-    if(minute>0): txt = txt + str(minute) + "m\t"
-    else        : txt = txt + "\t"
-
-    return txt + str(second) + "s"
- 
-
-def weights_init(m):
-    if isinstance(m, nn.Linear):
-        size = m.weight.size()
-        fan_out = size[0] # number of rows
-        fan_in  = size[1] # number of columns
-        variance = np.sqrt(2.0/(fan_in + fan_out))
-        m.weight.data.normal_(0.0, variance)
-
-def weightedLoss(input, target, w):
-    loss = torch.abs(input - target)
-    loss = torch.mean(loss,0)
-
-    return torch.sum(loss*w)
 
 class ResNetRegressionModel(object):
     """ Constructor """
@@ -81,21 +50,33 @@ class ResNetRegressionModel(object):
         # Nets
         self.net = None
 
+        # Weight Loss
+        self._weightLoss = torch.Tensor([__config.lambda_steer, 
+                                         __config.lambda_gas  , 
+                                         __config.lambda_brake]).float()
+
+        # Optimizator
+        self._optimizer = optim.Adam(   self.net.parameters(), 
+                                        lr    = __config.adam_lrate, 
+                                        betas =(__config.adam_beta_1, 
+                                                __config.adam_beta_2)   )
+
+
+
     """ Building """
     def build(self):
         self.net = ResNetReg()
         self.net = self.net.float()
-        self.net = self.net.apply(weights_init)
+        self.net = self.net.apply(T.xavierInit)
         self.net = self.net.to(device)
+
 
     """ Train """
     def train(self):
         ite        =  0
         stepView   = 50
-        weightLoss = torch.Tensor([0.45 , 0.45 , 0.05]).float().cuda(device) 
+        weightLoss = self._weightLoss.cuda(device) 
         
-        optimizer = optim.Adam(self.net.parameters(), lr=0.0002, betas=(0.7, 0.85))
-
         # List files
         path = self. _cookPath
         mode = 'Train'
@@ -106,18 +87,19 @@ class ResNetRegressionModel(object):
         trainFiles = files
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
-            running_loss = 0.0
+            
             print("Epoch",epoch+1,"-----------------------------------")
             
+            running_loss = 0.0
             for file in trainFiles:
                 print("Read:",file)
                 
                 # Files loop
                 for i, data in enumerate(DataLoader(Dataset(file),
-                                                    #shuffle     = True,
+                                                    shuffle     = True,
                                                     pin_memory  = True,
-                                                    batch_size  = batch_size,
-                                                    num_workers = 4), 0):
+                                                    batch_size  = __config.batch_size,
+                                                    num_workers = __global.num_workers), 0):
                     # get the inputs; data is a list of [frame, steer]
                     frame, steer = data
 
@@ -125,18 +107,18 @@ class ResNetRegressionModel(object):
                     steer = steer.to(device)
 
                     # zero the parameter gradients
-                    optimizer.zero_grad()
-
+                    self._optimizer.zero_grad()
                     outputs = self.net(frame)
-                    loss    = weightedLoss(outputs, steer, weightLoss)
-                    loss .backward()
-                    optimizer.step()
+                    
+                    loss = T.weightedLoss(outputs, steer, weightLoss)
+                    loss.backward()
+                    self._optimizer.step()
 
                     ite = ite + 1
 
                     # print statistics
                     running_loss += loss.item()
                     if i % stepView == (stepView-1):   # print every stepView mini-batches
-                        print(i+1,":\tloss =",running_loss/stepView,"\t\t",timeExecution(ite))
+                        print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(ite))
                         running_loss = 0.0
  
