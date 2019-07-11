@@ -1,4 +1,4 @@
 from ImitationLearning.CodevillaModel import ResNetRegressionModel
 test = ResNetRegressionModel()
 test.build()
-test.train()
+test.execute()

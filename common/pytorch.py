@@ -33,11 +33,11 @@ def xavierInit(model):
 Weighted loss
 """
 # Weight to weightedLoss()
-if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+if  __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
     weightLoss = torch.Tensor([ __config.lambda_steer, 
                                 __config.lambda_gas  , 
                                 __config.lambda_brake]).float().cuda(device) 
-if __config.model in ['Codevilla19']:
+elif __config.model in ['Codevilla19']:
     weightLoss = torch.Tensor([ __config.lambda_steer * __config.lambda_action, 
                                 __config.lambda_gas   * __config.lambda_action, 
                                 __config.lambda_brake * __config.lambda_action,
@@ -64,6 +64,7 @@ def train(model,optimizer,lossFunc,files):
     stepView = __global.stepView
     global_iter = 0
     local_iter  = 0
+    max_batch = __global.framePerSecond*__config.time_demostration/__config.batch_size
 
     # Acomulative loss
     running_loss = 0.0
@@ -101,11 +102,11 @@ def train(model,optimizer,lossFunc,files):
                 running_loss = 0.0
 
             # Bye loop 
-            if local_iter>=__config.time_demostration:
+            if local_iter>=max_batch:
                 break
         
         # Bye loop 
-        if local_iter>=__config.time_demostration:
+        if local_iter>=max_batch:
             break
         global_iter = local_iter  # Update global iterator
 
@@ -113,17 +114,19 @@ def train(model,optimizer,lossFunc,files):
 """
 Validation function
 """
-def validation(model,lossFunc,file,FigPath):
+def validation(model,lossFunc,file):
     # Acomulative loss
     running_loss = 0.0
     count        = 0
     
     regrAction = list()
+    
+    print("Execute validation")
 
     # Metrics
-    if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+    if   __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
         metrics = np.zeros((1,3))
-    if __config.model in ['Codevilla19']:
+    elif __config.model in ['Codevilla19']:
         metrics = np.zeros((1,4))
     else:
         metrics = np.zeros((1,1))

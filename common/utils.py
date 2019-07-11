@@ -8,8 +8,8 @@ import datetime
 import os
 
 # Settings
-__global = Global()
-__config = Config()
+_global = Global()
+_config = Config()
 
 
 """ Number of iterations to data train time
@@ -20,7 +20,7 @@ __config = Config()
     Return: time in text
 """
 def iter2time(ite):
-    time = ite*__config.batch_size/__global.framePerSecond
+    time = ite*_config.batch_size/_global.framePerSecond
 
     # Hours
     hour = np.floor(time/3600)
@@ -108,10 +108,10 @@ def nameDirectoryModel(mode):
 """ Check directory
     ---------------
     Args:
-        directory: directory by check
+        d: directory by check
 
 """
-def checkdirectory(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+def checkdirectory(d):
+    if not os.path.exists(d):
+        os.makedirs(d)
     
