@@ -14,7 +14,10 @@ from config import Global
 
 import common.pytorch as T
 from common.utils import iter2time
+from common.utils import saveHistogram
+from common.utils import checkdirectory
 from common.utils import cookedFilesList
+from common.utils import nameDirectoryModel
 
 import numpy as np
 import cv2 as cv
@@ -43,17 +46,20 @@ class ResNetRegressionModel(object):
         self.    net = None
         
         # Paths
-        self. _cookPath = self._config.cookdPath
-        self._modelPath = self._config.modelPath
-        self._graphPath = self._config.graphPath
+        savedPath = self._config.savedPath
+        modelDir  = savedPath + "/" + nameDirectoryModel(__config.model)
+        
+        self._figurePath = modelDir  +  "/Figure"
+        self. _modelPath = modelDir  +  "/Model"
+        self.  _cookPath = self._config.cookdPath
+        
+        checkdirectory(savedPath)
+        checkdirectory(modelDir)
+        checkdirectory(self._figurePath)
+        checkdirectory(self. _modelPath)
 
         # Nets
         self.net = None
-
-        # Weight Loss
-        self._weightLoss = torch.Tensor([__config.lambda_steer, 
-                                         __config.lambda_gas  , 
-                                         __config.lambda_brake]).float()
 
         # Optimizator
         self._optimizer = optim.Adam(   self.net.parameters(), 
@@ -76,12 +82,12 @@ class ResNetRegressionModel(object):
         # List files
         trainFiles = cookedFilesList(self. _cookPath,'Train')
         validFiles = cookedFilesList(self. _cookPath,'Valid')
-        
+        FigPath    = self._figurePath
+
         optimizer = self._optimizer
         model     = self.net
         lossFun   = T.weightedLoss
         
-
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
             print("Epoch",epoch+1,"-----------------------------------")
@@ -90,15 +96,16 @@ class ResNetRegressionModel(object):
             T.train(model,optimizer,lossFun,trainFiles)
             
             # Validation
-            loss,metr = T.validation(model,lossFun,validFiles)
-
-            path = "model" + str(epoch + 1) + ".pth"
+            loss,metr,out = T.validation(model,lossFun,validFiles,FigPath)
+            
+            path = self._modelPath + "model" + str(epoch + 1) + ".pth"
             state = {      'epoch':              epoch + 1,
                       'state_dict':     model.state_dict(),
                        'optimizer': optimizer.state_dict(),
                             'loss':                   loss
                     }
-
+            
+            # Save metrics
             if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
                 state['steerMSE'] = metr[0]
                 state[  'gasMSE'] = metr[1]
@@ -108,5 +115,17 @@ class ResNetRegressionModel(object):
                 state[  'gasMSE'] = metr[1]
                 state['brakeMSE'] = metr[2]
                 state['speedMSE'] = metr[3]
-            
             torch.save(state,path)
+
+            # Save Figures
+            if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+                saveHistogram(out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
+                saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
+                saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
+
+            if __config.model in ['Codevilla19']:
+                saveHistogram(out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
+                saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
+                saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
+                saveHistogram(out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
+            

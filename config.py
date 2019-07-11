@@ -10,8 +10,7 @@ class Config(object):
     validPath = "./data/h5file/SeqVal"
     trainPath = "./data/h5file/SeqTrain"
     cookdPath = "./data/Cooked"
-    modelPath = "./data/Model"
-    graphPath = "./data/Model/Graph"
+    savedPath = "./data/Saved"
     filesPerGroup = 100#187
 
     # Model

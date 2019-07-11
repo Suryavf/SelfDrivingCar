@@ -16,13 +16,6 @@ device = torch.device('cuda:0')
 __global = Global()
 __config = Config()
 
-import numpy as np
-import cv2 as cv
-import secrets
-import math
-import h5py
-import os
-
 
 """
 Xavier initialization
@@ -62,13 +55,6 @@ Metrics
 def MSE(input, target):
     loss = (input - target) ** 2
     return torch.mean(loss,0)
-
-
-"""
-Save checkpoint
-"""
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
 
 
 """
@@ -127,12 +113,12 @@ def train(model,optimizer,lossFunc,files):
 """
 Validation function
 """
-def validation(model,lossFunc,file):
+def validation(model,lossFunc,file,FigPath):
     # Acomulative loss
     running_loss = 0.0
     count        = 0
     
-    estimatedActions = list()
+    regrAction = list()
 
     # Metrics
     if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
@@ -168,16 +154,20 @@ def validation(model,lossFunc,file):
             err = err.data.cpu().numpy()
             metrics += err
 
-            estimatedActions.append( output.data.cpu().numpy() )
+            regrAction.append( output.data.cpu().numpy() )
 
             # Update count
             count = count + 1 
     
-    # Concatenate List
-    estimatedActions = np.concatenate(estimatedActions,0)
-    
+    # Loss/metrics
     metrics      =      metrics/count
     running_loss = running_loss/count
+    
+    # Concatenate List
+    regrAction = np.concatenate(regrAction,0)
+    
+    # Metrics histogram
+    
 
-    return running_loss,metrics
+    return running_loss,metrics,regrAction
     
