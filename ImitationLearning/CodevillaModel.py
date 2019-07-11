@@ -91,13 +91,22 @@ class ResNetRegressionModel(object):
             
             # Validation
             loss,metr = T.validation(model,lossFun,validFiles)
-            
+
             path = "model" + str(epoch + 1) + ".pth"
-            torch.save({     'epoch':              epoch + 1,
-                        'state_dict':     model.state_dict(),
-                         'optimizer': optimizer.state_dict(),
-                              'loss':                   loss,
-                          'steerMSE':                metr[0],
-                            'gasMSE':                metr[1],
-                          'brakeMSE':                metr[2]
-                        },path)
+            state = {      'epoch':              epoch + 1,
+                      'state_dict':     model.state_dict(),
+                       'optimizer': optimizer.state_dict(),
+                            'loss':                   loss
+                    }
+
+            if __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+                state['steerMSE'] = metr[0]
+                state[  'gasMSE'] = metr[1]
+                state['brakeMSE'] = metr[2]
+            if __config.model in ['Codevilla19']:
+                state['steerMSE'] = metr[0]
+                state[  'gasMSE'] = metr[1]
+                state['brakeMSE'] = metr[2]
+                state['speedMSE'] = metr[3]
+            
+            torch.save(state,path)
