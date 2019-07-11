@@ -14,8 +14,8 @@ from config import Global
 
 import common.pytorch as T
 from common.utils import iter2time
+from common.utils import cookedFilesList
 
-from random import shuffle
 import numpy as np
 import cv2 as cv
 import secrets
@@ -71,54 +71,33 @@ class ResNetRegressionModel(object):
         self.net = self.net.to(device)
 
 
-    """ Train """
-    def train(self):
-        ite        =  0
-        stepView   = 50
-        weightLoss = self._weightLoss.cuda(device) 
-        
+    """ Train/Test """
+    def execute(self):
         # List files
-        path = self. _cookPath
-        mode = 'Train'
-        files = [os.path.join(path,f) for f in os.listdir(path) 
-                                            if os.path.isfile(os.path.join(path,f)) 
-                                                                    and mode in f]
-        shuffle(files)
-        trainFiles = files
+        trainFiles = cookedFilesList(self. _cookPath,'Train')
+        validFiles = cookedFilesList(self. _cookPath,'Valid')
+        
+        optimizer = self._optimizer
+        model     = self.net
+        lossFun   = T.weightedLoss
+        
+
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
-            
             print("Epoch",epoch+1,"-----------------------------------")
             
-            running_loss = 0.0
-            for file in trainFiles:
-                print("Read:",file)
-                
-                # Files loop
-                for i, data in enumerate(DataLoader(Dataset(file),
-                                                    shuffle     = True,
-                                                    pin_memory  = True,
-                                                    batch_size  = __config.batch_size,
-                                                    num_workers = __global.num_workers), 0):
-                    # get the inputs; data is a list of [frame, steer]
-                    frame, steer = data
-
-                    frame = frame.to(device)
-                    steer = steer.to(device)
-
-                    # zero the parameter gradients
-                    self._optimizer.zero_grad()
-                    outputs = self.net(frame)
-                    
-                    loss = T.weightedLoss(outputs, steer, weightLoss)
-                    loss.backward()
-                    self._optimizer.step()
-
-                    ite = ite + 1
-
-                    # print statistics
-                    running_loss += loss.item()
-                    if i % stepView == (stepView-1):   # print every stepView mini-batches
-                        print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(ite))
-                        running_loss = 0.0
- 
+            # Train
+            T.train(model,optimizer,lossFun,trainFiles)
+            
+            # Validation
+            loss,metr = T.validation(model,lossFun,validFiles)
+            
+            path = "model" + str(epoch + 1) + ".pth"
+            torch.save({     'epoch':              epoch + 1,
+                        'state_dict':     model.state_dict(),
+                         'optimizer': optimizer.state_dict(),
+                              'loss':                   loss,
+                          'steerMSE':                metr[0],
+                            'gasMSE':                metr[1],
+                          'brakeMSE':                metr[2]
+                        },path)

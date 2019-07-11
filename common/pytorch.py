@@ -65,6 +65,13 @@ def MSE(input, target):
 
 
 """
+Save checkpoint
+"""
+def save_checkpoint(state, filename='checkpoint.pth.tar'):
+    torch.save(state, filename)
+
+
+"""
 Train function
 """
 def train(model,optimizer,lossFunc,files):
@@ -118,9 +125,9 @@ def train(model,optimizer,lossFunc,files):
 
 
 """
-Test function
+Validation function
 """
-def evaluation(model,lossFunc,file):
+def validation(model,lossFunc,file):
     # Acomulative loss
     running_loss = 0.0
     count        = 0

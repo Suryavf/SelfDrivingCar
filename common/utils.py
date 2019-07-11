@@ -1,6 +1,9 @@
 from config import Config
 from config import Global
+
+from random import shuffle
 import numpy as np
+import os
 
 # Settings
 __global = Global()
@@ -37,3 +40,15 @@ def iter2time(ite):
     else        : txt = txt + "\t"
 
     return txt + str(second) + "s"
+
+
+def cookedFilesList(path,mode):
+    files = [os.path.join(path,f) for f in os.listdir(path) 
+                                        if os.path.isfile(os.path.join(path,f)) 
+                                                                and mode in f]
+    if len(files)>1:    
+        shuffle(files)        
+    else:
+        files = files[0]
+
+    return files
