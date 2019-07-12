@@ -57,7 +57,7 @@ class ResNetRegressionModel(object):
 
         # Nets
         self.net = BasicNet()
-        self.net.saveSettings(savedPath + "/setting.json")
+        self.net.saveSettings(modelDir + "/setting.json")
 
         # Optimizator
         self._optimizer = optim.Adam(   self.net.parameters(), 
