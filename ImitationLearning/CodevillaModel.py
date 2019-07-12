@@ -22,6 +22,7 @@ from common.utils import nameDirectoryModel
 import numpy as np
 import cv2 as cv
 import secrets
+import json
 import math
 import h5py
 import os
@@ -56,6 +57,7 @@ class ResNetRegressionModel(object):
 
         # Nets
         self.net = ResNetReg()
+        self.net.saveSettings(savedPath + "/setting.json")
 
         # Optimizator
         self._optimizer = optim.Adam(   self.net.parameters(), 
@@ -66,7 +68,6 @@ class ResNetRegressionModel(object):
 
     """ Building """
     def build(self):
-        
         self.net = self.net.float()
         self.net = self.net.apply(T.xavierInit)
         self.net = self.net.to(device)
@@ -123,4 +124,6 @@ class ResNetRegressionModel(object):
                 saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
                 saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
                 saveHistogram(out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
+            
+    
             
