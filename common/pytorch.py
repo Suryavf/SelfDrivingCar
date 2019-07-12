@@ -119,7 +119,7 @@ def validation(model,lossFunc,file):
     running_loss = 0.0
     count        = 0
     
-    regrAction = list()
+    actionList = list()
     
     print("Execute validation")
 
@@ -157,7 +157,7 @@ def validation(model,lossFunc,file):
             err = err.data.cpu().numpy()
             metrics += err
 
-            regrAction.append( output.data.cpu().numpy() )
+            actionList.append( output.data.cpu().numpy() )
 
             # Update count
             count = count + 1 
@@ -167,10 +167,7 @@ def validation(model,lossFunc,file):
     running_loss = running_loss/count
     
     # Concatenate List
-    regrAction = np.concatenate(regrAction,0)
+    outAction = np.concatenate(actionList,0)
     
-    # Metrics histogram
-    
-
-    return running_loss,metrics,regrAction
+    return running_loss,metrics,outAction
     
