@@ -7,7 +7,7 @@ from   torch.utils.data import Dataset,DataLoader
 from   torch.autograd import Variable as V
 
 from common.data                            import CoRL2017Dataset as Dataset
-from ImitationLearning.network.CodevillaNet import ResNetReg
+from ImitationLearning.network.CodevillaNet import BasicNet
 
 from config import Config
 from config import Global
@@ -56,7 +56,7 @@ class ResNetRegressionModel(object):
         checkdirectory(self. _modelPath)
 
         # Nets
-        self.net = ResNetReg()
+        self.net = BasicNet()
         self.net.saveSettings(savedPath + "/setting.json")
 
         # Optimizator

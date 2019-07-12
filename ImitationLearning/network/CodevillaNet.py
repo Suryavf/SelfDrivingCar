@@ -28,9 +28,9 @@ def weights_init(m):
         variance = np.sqrt(2.0/(fan_in + fan_out))
         m.weight.data.normal_(0.0, variance)
 
-class ResNetReg(nn.Module):
+class BasicNet(nn.Module):
     def __init__(self):
-        super(ResNetReg, self).__init__()
+        super(BasicNet, self).__init__()
 
         self._perception = ResNet()
         self._fully      = nn.Linear(512,256)
@@ -40,8 +40,8 @@ class ResNetReg(nn.Module):
         percep =        self._perception(x)
         percep = F.dropout(percep, p=0.5, training=self.training)
 
-        hidden = F.relu(self._fully(percep))
-        hidden = F.dropout(hidden, p=0.5, training=self.training)
+        hidden = self._fully(percep)
+        #hidden = F.dropout(hidden, p=0.5, training=self.training)
 
         y_pred = self._out  (hidden)
 
