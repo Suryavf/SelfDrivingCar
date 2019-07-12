@@ -65,6 +65,10 @@ class ResNetRegressionModel(object):
                                         betas =(_config.adam_beta_1, 
                                                 _config.adam_beta_2)   )
 
+        # Scheduler
+        self._scheduler = optim.lr_scheduler.StepLR(self._optimizer,
+                                                    step_size = _config.learning_rate_decay_steps,
+                                                    gamma     = _config.learning_rate_decay_factor)
 
     """ Building """
     def build(self):
@@ -81,6 +85,7 @@ class ResNetRegressionModel(object):
         FigPath    = self._figurePath
 
         optimizer = self._optimizer
+        scheduler = self._scheduler
         model     = self.net
         lossFun   = T.weightedLoss
         
@@ -89,7 +94,7 @@ class ResNetRegressionModel(object):
             print("Epoch",epoch+1,"-----------------------------------")
             
             # Train
-            T.train(model,optimizer,lossFun,trainFiles)
+            T.train(model,optimizer,scheduler,lossFun,trainFiles)
             
             # Validation
             loss,metr,out = T.validation(model,lossFun,validFiles)
@@ -97,6 +102,7 @@ class ResNetRegressionModel(object):
             path = self._modelPath + "model" + str(epoch + 1) + ".pth"
             state = {      'epoch':              epoch + 1,
                       'state_dict':     model.state_dict(),
+                       'scheduler': scheduler.state_dict(),
                        'optimizer': optimizer.state_dict(),
                             'loss':                   loss
                     }

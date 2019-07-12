@@ -60,7 +60,7 @@ def MSE(input, target):
 """
 Train function
 """
-def train(model,optimizer,lossFunc,files):
+def train(model,optimizer,scheduler,lossFunc,files):
     stepView = __global.stepView
     global_iter = 0
     local_iter  = 0
@@ -79,6 +79,8 @@ def train(model,optimizer,lossFunc,files):
                                             pin_memory  = True,
                                             batch_size  = __config.batch_size,
                                             num_workers = __global.num_workers), 0):
+            scheduler.step()
+            
             # get the inputs; data is a list of [frame, steer]
             frame, action = data
 
