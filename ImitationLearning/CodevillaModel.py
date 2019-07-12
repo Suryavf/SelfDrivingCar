@@ -102,14 +102,14 @@ class ResNetRegressionModel(object):
             
             # Save metrics
             if   _config.model in ['Basic', 'Multimodal', 'Codevilla18']:
-                state['steerMSE'] = metr[0]
-                state[  'gasMSE'] = metr[1]
-                state['brakeMSE'] = metr[2]
+                state['steerMSE'] = metr[0,0]
+                state[  'gasMSE'] = metr[0,1]
+                state['brakeMSE'] = metr[0,2]
             elif _config.model in ['Codevilla19']:
-                state['steerMSE'] = metr[0]
-                state[  'gasMSE'] = metr[1]
-                state['brakeMSE'] = metr[2]
-                state['speedMSE'] = metr[3]
+                state['steerMSE'] = metr[0,0]
+                state[  'gasMSE'] = metr[0,1]
+                state['brakeMSE'] = metr[0,2]
+                state['speedMSE'] = metr[0,3]
             torch.save(state,path)
 
             # Save Figures

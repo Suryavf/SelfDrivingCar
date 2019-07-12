@@ -115,6 +115,8 @@ def train(model,optimizer,lossFunc,files):
 Validation function
 """
 def validation(model,lossFunc,file):
+    stepView = __global.stepView
+
     # Acomulative loss
     running_loss = 0.0
     count        = 0
@@ -161,6 +163,11 @@ def validation(model,lossFunc,file):
 
             # Update count
             count = count + 1 
+
+            if i % stepView == (stepView-1):   # print every stepView mini-batches
+                print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
+                running_loss = 0.0
+
     
     # Loss/metrics
     metrics      =      metrics/count
