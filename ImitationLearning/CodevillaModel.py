@@ -6,8 +6,8 @@ from   torchvision import models, transforms, utils
 from   torch.utils.data import Dataset,DataLoader
 from   torch.autograd import Variable as V
 
+import ImitationLearning.network.CodevillaNet as imL
 from common.data                            import CoRL2017Dataset as Dataset
-from ImitationLearning.network.CodevillaNet import BasicNet
 
 from config import Config
 from config import Global
@@ -56,7 +56,14 @@ class ImitationModel(object):
         checkdirectory(self. _modelPath)
 
         # Nets
-        self.net = BasicNet()
+        if   _config.model is 'Basic':
+            self.net = imL.BasicNet()
+        elif _config.model is 'Multimodal':
+            self.net = imL.MultimodalNet()
+        else:
+            print("ERROR: mode no found")
+        
+        # Save settings
         self.net.saveSettings(modelDir + "/setting.json")
 
         # Optimizator

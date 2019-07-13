@@ -47,7 +47,7 @@ class BasicNet(nn.Module):
         x = self._fully(x)
         x = F.dropout(x, p=0.5, training=self.training)
 
-        y_pred = self._out(x)
+        y_pred = F.tanh(self._out(x))
 
         return y_pred
 
@@ -78,7 +78,7 @@ class BasicNet(nn.Module):
         }
         
         with open(path, "w") as write_file:
-            json.dump(setting, write_file)
+            json.dump(setting, write_file, indent=4)
 
 
 """ Speed Module
@@ -145,7 +145,7 @@ class ControlModule(nn.Module):
         h2 = F.relu(self._fully2( h1))
         h2 = F.dropout(h2, p=0.5, training=self.training)
 
-        out = self._fully3( h2)
+        out = F.tanh(self._fully3(h2))
 
         return out
 
@@ -166,9 +166,9 @@ class ControlModule(nn.Module):
 
     Return: Name for directory model
 """
-class MultimodalPerceptionNet(nn.Module):
+class MultimodalNet(nn.Module):
     def __init__(self):
-        super(MultimodalPerceptionNet, self).__init__()
+        super(MultimodalNet, self).__init__()
 
         self._perception    =        ResNet()
         self._measuredSpeed =   SpeedModule()
@@ -222,5 +222,5 @@ class MultimodalPerceptionNet(nn.Module):
         }
         
         with open(path, "w") as write_file:
-            json.dump(setting, write_file)
+            json.dump(setting, write_file, indent=4)
 

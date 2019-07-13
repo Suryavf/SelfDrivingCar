@@ -17,8 +17,10 @@ __global = Global()
 __config = Config()
 
 
-"""
-Xavier initialization
+""" Xavier initialization
+    ---------------------
+    Args:
+        model: torch model
 """
 def xavierInit(model):
     if isinstance(model, nn.Linear):
@@ -29,8 +31,11 @@ def xavierInit(model):
         model.weight.data.normal_(0.0, variance)
 
 
-"""
-Weighted loss
+""" Weighted loss
+    -------------
+    Args:
+        input : Model prediction
+        target: Ground truth
 """
 # Weight to weightedLoss()
 if  __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
