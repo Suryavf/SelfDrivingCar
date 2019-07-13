@@ -39,7 +39,7 @@ batch_size     = 120
 n_epoch        = 150
 framePerSecond =  10
 
-class ResNetRegressionModel(object):
+class ImitationModel(object):
     """ Constructor """
     def __init__(self):
         # Paths
@@ -130,6 +130,4 @@ class ResNetRegressionModel(object):
                 saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
                 saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
                 saveHistogram(out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
-            
-    
             
