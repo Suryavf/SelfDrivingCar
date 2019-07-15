@@ -72,7 +72,7 @@ def cookedFilesList(path,mode):
 
     Return: files list
 """
-def saveHistogram(data,path):
+def savePlot(data,path):
     n, bins, patches = plt.hist(x=data, bins=60)#, color='#0504aa',
                                # alpha=0.7, rwidth=0.85)
     maxfreq = n.max()
