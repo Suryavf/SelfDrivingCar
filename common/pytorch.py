@@ -80,22 +80,34 @@ def train(model,optimizer,scheduler,lossFunc,files):
         print("Read:",file)
 
         # Files loop
-        for i, data in enumerate(DataLoader(Dataset(file),
+        for i, data in enumerate(DataLoader(Dataset(file,complete=True),
                                             pin_memory  = True,
                                             batch_size  = __config.batch_size,
                                             num_workers = __global.num_workers), 0):
             scheduler.step()
             
             # get the inputs; data is a list of [frame, steer]
-            frame, action = data
+            
 
-            frame  =  frame.to(device)
-            action = action.to(device)
+            if   __config.model in ['Basic']:
+                frame, action = data
 
+                frame  =  frame.to(device)
+                action = action.to(device)
+            elif __config.model in ['Multimodal', 'Codevilla18', 'Codevilla19']:
+                frame, speed, action = data
+
+                frame  =  frame.to(device)
+                speed  =  speed.to(device)
+                action = action.to(device)
+                
             # zero the parameter gradients
             optimizer.zero_grad()
-            outputs = model(frame)
-            
+            if   __config.model in ['Basic']:
+                outputs = model(frame)
+            elif __config.model in ['Multimodal', 'Codevilla18', 'Codevilla19']:
+                outputs = model(frame,speed)
+
             loss = lossFunc(outputs, action)
             loss.backward()
             optimizer.step()

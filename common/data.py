@@ -15,7 +15,7 @@ class CoRL2017Dataset(Dataset):
         
         if complete:
             self._speed   = self._d[  "speed"]
-            self._command = self._d["command"]
+            #self._command = self._d["command"]
     
     """ Get length by name """
     def _getLength(self,file):
@@ -50,13 +50,14 @@ class CoRL2017Dataset(Dataset):
             speed = self._speed  [idx]
             speed = torch.from_numpy(speed).float()
             
-            command = self._command[idx]
-            command = torch.from_numpy(command).float()
+            #command = self._command[idx]
+            #command = torch.from_numpy(command).float()
 
-            output = self._output[idx]
+            output = self._output[idx,0:3]
             output = torch.from_numpy(output).float()
 
-            return frame,speed,command,output
+            #return frame,speed,command,output
+            return frame,speed,output
 
         else:
             output = self._output[idx,0:3]
