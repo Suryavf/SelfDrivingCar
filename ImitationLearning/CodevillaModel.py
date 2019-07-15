@@ -77,6 +77,32 @@ class ImitationModel(object):
                                                     step_size = _config.learning_rate_decay_steps,
                                                     gamma     = _config.learning_rate_decay_factor)
 
+        # Training state
+        self._state = {}
+
+
+    """ Training state functions """
+    def _state_reset(self):
+        self._state = {}
+    def _state_add(self,name,attr):
+        self._state[name]=attr
+    def _state_addMetrics(self,metr):
+        self._state_add('steerMSE',metr[0,0])
+        self._state_add(  'gasMSE',metr[0,1])
+        self._state_add('brakeMSE',metr[0,2])
+        if _config.model in ['Codevilla19']:
+            self._state_add('speedMSE',metr[0,3])
+    def _state_save(self,epoch):
+        path = self._modelPath + "model" + str(epoch + 1) + ".pth"
+        torch.save(self._state,path)
+
+    """ Training state """
+    def _defTrainingState(self,epoch,lossTrain,lossValid,metr,out):
+        pass
+
+    def _saveFigures(self,epoch):
+        pass
+
     """ Building """
     def build(self):
         self.net = self.net.float()
@@ -84,7 +110,7 @@ class ImitationModel(object):
         self.net = self.net.to(device)
 
 
-    """ Train/Test """
+    """ Train/Evaluation """
     def execute(self):
         # List files
         trainFiles = cookedFilesList(self. _cookPath,'Train')
@@ -101,30 +127,22 @@ class ImitationModel(object):
             print("Epoch",epoch+1,"-----------------------------------")
             
             # Train
-            T.train(model,optimizer,scheduler,lossFun,trainFiles)
+            lossTrain = T.train(model,optimizer,scheduler,lossFun,trainFiles)
             
             # Validation
-            loss,metr,out = T.validation(model,lossFun,validFiles)
+            lossValid,metr,out = T.validation(model,lossFun,validFiles)
             
-            path = self._modelPath + "model" + str(epoch + 1) + ".pth"
-            state = {      'epoch':              epoch + 1,
-                      'state_dict':     model.state_dict(),
-                       'scheduler': scheduler.state_dict(),
-                       'optimizer': optimizer.state_dict(),
-                            'loss':                   loss
-                    }
             
-            # Save metrics
-            if   _config.model in ['Basic', 'Multimodal', 'Codevilla18']:
-                state['steerMSE'] = metr[0,0]
-                state[  'gasMSE'] = metr[0,1]
-                state['brakeMSE'] = metr[0,2]
-            elif _config.model in ['Codevilla19']:
-                state['steerMSE'] = metr[0,0]
-                state[  'gasMSE'] = metr[0,1]
-                state['brakeMSE'] = metr[0,2]
-                state['speedMSE'] = metr[0,3]
-            torch.save(state,path)
+            # Save checkpoint
+            self._state_add(     'epoch',           epoch + 1  )
+            self._state_add('state_dict',    model.state_dict())
+            self._state_add( 'scheduler',scheduler.state_dict())
+            self._state_add( 'optimizer',optimizer.state_dict())
+            self._state_add('loss_train',           lossTrain  )
+            self._state_add('loss_valid',           lossValid  )
+            self._state_addMetrics(metr)
+            self._state_save(epoch)
+
 
             # Save Figures
             if   _config.model in ['Basic', 'Multimodal', 'Codevilla18']:

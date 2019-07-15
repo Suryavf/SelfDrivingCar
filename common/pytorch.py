@@ -66,14 +66,16 @@ def MSE(input, target):
 Train function
 """
 def train(model,optimizer,scheduler,lossFunc,files):
+    # Parameters
+    max_batch = __global.framePerSecond*__config.time_demostration/__config.batch_size
     stepView = __global.stepView
     global_iter = 0
     local_iter  = 0
-    max_batch = __global.framePerSecond*__config.time_demostration/__config.batch_size
-
+    
     # Acomulative loss
     running_loss = 0.0
-    
+    total_loss   = 0.0
+
     # Train
     model.train()
     for file in files:
@@ -116,6 +118,7 @@ def train(model,optimizer,scheduler,lossFunc,files):
             
             # Print statistics
             running_loss += loss.item()
+            total_loss   += loss.item()
             if i % stepView == (stepView-1):   # print every stepView mini-batches
                 print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(local_iter))
                 running_loss = 0.0
@@ -129,6 +132,8 @@ def train(model,optimizer,scheduler,lossFunc,files):
             break
         global_iter = local_iter  # Update global iterator
 
+    # Return epoch loss 
+    return total_loss/max_batch
 
 """
 Validation function
@@ -162,12 +167,13 @@ def validation(model,lossFunc,file):
                                             batch_size  = __config.batch_size,
                                             num_workers = __global.num_workers), 0):
             # get the inputs; data is a list of [frame, steer]
-            frame, action = data
+            frame, action, speed = data
             frame  =  frame.to(device)
+            speed  =  speed.to(device)
             action = action.to(device)
 
             # Forward pass
-            output = model(frame)
+            output = model(frame,speed)
 
             # Calculate the loss
             loss = lossFunc(output, action)
