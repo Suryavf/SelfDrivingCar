@@ -77,8 +77,10 @@ class ImitationModel(object):
                                                     step_size = _config.learning_rate_decay_steps,
                                                     gamma     = _config.learning_rate_decay_factor)
 
-        # Training state
+        # Internal parameters
         self._state = {}
+        self._trainLoss = list()
+        self._validLoss = list()
 
 
     """ Training state functions """
@@ -96,12 +98,24 @@ class ImitationModel(object):
         path = self._modelPath + "model" + str(epoch + 1) + ".pth"
         torch.save(self._state,path)
 
-    """ Training state """
-    def _defTrainingState(self,epoch,lossTrain,lossValid,metr,out):
-        pass
 
-    def _saveFigures(self,epoch):
-        pass
+    """ Save figures """
+    def _saveLossFigures(self,epoch,trainLoss,validLoss):
+        self._trainLoss.append(trainLoss)
+        self._validLoss.append(validLoss)
+        if epoch > 4:
+            pass
+    def _saveMetricFigures(self,epoch,metrics):
+        if epoch > 4:
+            pass
+    def _saveHistograms(self,epoch,y_out):
+        FigPath    = self._figurePath
+        saveHistogram(y_out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
+        saveHistogram(y_out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
+        saveHistogram(y_out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
+        if _config.model in ['Codevilla19']:
+            saveHistogram(y_out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
+
 
     """ Building """
     def build(self):
@@ -115,7 +129,6 @@ class ImitationModel(object):
         # List files
         trainFiles = cookedFilesList(self. _cookPath,'Train')
         validFiles = cookedFilesList(self. _cookPath,'Valid')
-        FigPath    = self._figurePath
 
         optimizer = self._optimizer
         scheduler = self._scheduler
@@ -132,7 +145,6 @@ class ImitationModel(object):
             # Validation
             lossValid,metr,out = T.validation(model,lossFun,validFiles)
             
-            
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
             self._state_add('state_dict',    model.state_dict())
@@ -143,16 +155,6 @@ class ImitationModel(object):
             self._state_addMetrics(metr)
             self._state_save(epoch)
 
-
             # Save Figures
-            if   _config.model in ['Basic', 'Multimodal', 'Codevilla18']:
-                saveHistogram(out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
-                saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
-                saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
-
-            elif _config.model in ['Codevilla19']:
-                saveHistogram(out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
-                saveHistogram(out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
-                saveHistogram(out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
-                saveHistogram(out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
+            self._saveHistograms(epoch,out)
             
