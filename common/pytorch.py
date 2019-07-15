@@ -163,12 +163,12 @@ def validation(model,lossFunc,file):
     
     # Data Loader
     with torch.no_grad():
-        for i, data in enumerate(DataLoader(Dataset(file),
+        for i, data in enumerate(DataLoader(Dataset(file,complete=True),
                                             pin_memory  = True,
                                             batch_size  = __config.batch_size,
                                             num_workers = __global.num_workers), 0):
             # get the inputs; data is a list of [frame, steer]
-            frame, action, speed = data
+            frame, speed, action = data
             frame  =  frame.to(device)
             speed  =  speed.to(device)
             action = action.to(device)
