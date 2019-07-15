@@ -117,8 +117,9 @@ def train(model,optimizer,scheduler,lossFunc,files):
             local_iter = global_iter + i # Update local iterator
             
             # Print statistics
-            running_loss += loss.item()
-            total_loss   += loss.item()
+            runtime_loss = loss.item()
+            running_loss += runtime_loss
+            total_loss   += runtime_loss
             if i % stepView == (stepView-1):   # print every stepView mini-batches
                 print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(local_iter))
                 running_loss = 0.0
