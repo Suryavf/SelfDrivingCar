@@ -64,6 +64,23 @@ def cookedFilesList(path,mode):
     return files
 
 
+""" Save plot
+    ---------
+    Args:
+        data: Data to plot
+        path: File to save
+
+    Return: files list
+"""
+def saveHistogram(data,path):
+    n, bins, patches = plt.hist(x=data, bins=60)#, color='#0504aa',
+                               # alpha=0.7, rwidth=0.85)
+    maxfreq = n.max()
+    plt.ylim(ymax=maxfreq)#np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+    plt.xlim(-2,2)
+    plt.savefig(path)
+
+
 """ Save histogram
     --------------
     Args:
