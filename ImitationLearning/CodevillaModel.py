@@ -14,6 +14,7 @@ from config import Global
 
 import common.pytorch as T
 from common.utils import iter2time
+from common.utils import savePlot
 from common.utils import saveHistogram
 from common.utils import checkdirectory
 from common.utils import cookedFilesList
@@ -104,7 +105,12 @@ class ImitationModel(object):
         self._trainLoss.append(trainLoss)
         self._validLoss.append(validLoss)
         if epoch > 4:
-            pass
+            data = list()
+            data.append( self._trainLoss )
+            data.append( self._validLoss )
+            title = ["Train","Validation"]
+            path = self._figurePath + "/" + "loss" + str(epoch + 1) + ".png"
+            savePlot(data,title,path)
     def _saveMetricFigures(self,epoch,metrics):
         if epoch > 4:
             pass

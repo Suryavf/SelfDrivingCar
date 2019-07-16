@@ -72,13 +72,23 @@ def cookedFilesList(path,mode):
 
     Return: files list
 """
-def savePlot(data,path):
-    n, bins, patches = plt.hist(x=data, bins=60)#, color='#0504aa',
-                               # alpha=0.7, rwidth=0.85)
-    maxfreq = n.max()
-    plt.ylim(ymax=maxfreq)#np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
-    plt.xlim(-2,2)
-    plt.savefig(path)
+def savePlot(data,title,path):
+    n_lines = len(title)
+
+    if n_lines == 1:
+        epochs = np.arange(1,len(data)+1)
+        plt.plot(epochs,data)
+        plt.xlabel("Epoch")
+        plt.ylabel(title[0])
+
+    else:
+        epochs = np.arange(1,len(data[0])+1)
+        fig, ax = plt.subplots()
+        for i in range(n_lines):
+            ax.plot(epochs,data[i])
+        plt.legend(title)
+        plt.xlabel("Epoch")
+        plt.savefig(path)
 
 
 """ Save histogram
