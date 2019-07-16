@@ -20,6 +20,9 @@ from common.utils import checkdirectory
 from common.utils import cookedFilesList
 from common.utils import nameDirectoryModel
 
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
 import numpy as np
 import cv2 as cv
 import secrets
@@ -82,7 +85,7 @@ class ImitationModel(object):
         self._state = {}
         self._trainLoss = list()
         self._validLoss = list()
-
+        self._metrics   = {}
 
     """ Training state functions """
     def _state_reset(self):
@@ -111,9 +114,77 @@ class ImitationModel(object):
             title = ["Train","Validation"]
             path = self._figurePath + "/" + "loss" + str(epoch + 1) + ".png"
             savePlot(data,title,path)
+
     def _saveMetricFigures(self,epoch,metrics):
+        if epoch == 0:
+            self._metrics["Steer"] = list()
+            self._metrics["Gas"  ] = list()
+            self._metrics["Brake"] = list()
+            if _config.model in ['Codevilla19']:
+                self._metrics["Speed"] = list()
+        else:
+            self._metrics["Steer"].append(metrics[0,0]*1.2)
+            self._metrics["Gas"  ].append(metrics[0,1])
+            self._metrics["Brake"].append(metrics[0,2])
+            if _config.model in ['Codevilla19']:
+                self._metrics["Speed"].append(metrics[0,3]*85)
         if epoch > 4:
-            pass
+            epochs = np.arange(1,epoch+1)
+            fig  = plt.figure(figsize=(8,5))
+            grid = plt.GridSpec(20,20)
+            if _config.model in ['Basic','Multimodal','Codevilla18']:
+                # Create figure    
+                steer = fig.add_subplot(grid[0:8,  : ])
+                gas   = fig.add_subplot(grid[ 12:,0:9])
+                brake = fig.add_subplot(grid[ 12:,11:])
+                # Steer
+                steer.plot(epochs,self._metrics["Steer"])
+                steer.set_title('Steer')
+                steer.set_xlabel('Epoch')
+                steer.set_ylabel('Angle')
+                steer.set_xlim(1,epoch)
+                # Gas
+                gas.plot(epochs,self._metrics["Gas"])
+                gas.set_title('Gas')
+                gas.set_xlabel('Epoch')
+                gas.set_xlim(1,epoch)
+                # Brake
+                brake.plot(epochs,self._metrics["Brake"])
+                brake.set_title('Brake')
+                brake.set_xlabel('Epoch')
+                brake.set_xlim(1,epoch)
+            elif _config.model in ['Codevilla19']:
+                # Create figure    
+                steer = fig.add_subplot(grid[0:8,0:9])
+                speed = fig.add_subplot(grid[0:8,11:])
+                gas   = fig.add_subplot(grid[12:,0:9])
+                brake = fig.add_subplot(grid[12:,11:])
+                # Steer
+                steer.plot(epochs,self._metrics["Steer"])
+                steer.set_title('Steer')
+                steer.set_xlabel('Epoch')
+                steer.set_ylabel('Angle')
+                steer.set_xlim(1,epoch)
+                # Speed
+                speed.plot(epochs,self._metrics["Speed"])
+                speed.set_title('Speed')
+                speed.set_xlabel('Epoch')
+                speed.set_ylabel('m/s')
+                speed.yaxis.set_label_position("right")
+                speed.set_xlim(1,epoch)
+                # Gas
+                gas.plot(epochs,self._metrics["Gas"])
+                gas.set_title('Gas')
+                gas.set_xlabel('Epoch')
+                gas.set_xlim(1,epoch)
+                # Brake
+                brake.plot(epochs,self._metrics["Brake"])
+                brake.set_title('Brake')
+                brake.set_xlabel('Epoch')
+                brake.set_xlim(1,epoch)
+            path = self._figurePath + "/" + "metric" + str(epoch + 1) + ".png"
+            plt.savefig(path)
+
     def _saveHistograms(self,epoch,y_out):
         FigPath    = self._figurePath
         saveHistogram(y_out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
@@ -162,5 +233,6 @@ class ImitationModel(object):
             self._state_save(epoch)
 
             # Save Figures
-            self._saveHistograms(epoch,out)
-            
+            self._saveHistograms (epoch,out)
+            self._saveLossFigures(epoch,lossTrain,lossValid)
+
