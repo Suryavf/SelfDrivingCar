@@ -114,7 +114,7 @@ class ImitationModel(object):
             title = ["Train","Validation"]
             path = self._figurePath + "/" + "loss" + str(epoch + 1) + ".png"
             savePlot(data,title,path)
-
+    # https://www.oreilly.com/library/view/python-data-science/9781491912126/ch04.html
     def _saveMetricFigures(self,epoch,metrics):
         if epoch == 0:
             self._metrics["Steer"] = list()
@@ -129,7 +129,7 @@ class ImitationModel(object):
             if _config.model in ['Codevilla19']:
                 self._metrics["Speed"].append(metrics[0,3]*85)
         if epoch > 4:
-            epochs = np.arange(1,epoch+1)
+            epochs = list( range(1,epoch+1) )
             fig  = plt.figure(figsize=(8,5))
             grid = plt.GridSpec(20,20)
             if _config.model in ['Basic','Multimodal','Codevilla18']:
@@ -184,7 +184,6 @@ class ImitationModel(object):
                 brake.set_xlim(1,epoch)
             path = self._figurePath + "/" + "metric" + str(epoch + 1) + ".png"
             plt.savefig(path)
-
     def _saveHistograms(self,epoch,y_out):
         FigPath    = self._figurePath
         saveHistogram(y_out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
