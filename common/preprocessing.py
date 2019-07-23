@@ -267,13 +267,7 @@ class cooking(object):
         self._config    = Config()
         self._validPath = self._config.validPath
         self._trainPath = self._config.trainPath
-
-        # Create directory
-        if not os.path.exists(self._config.modelPath):
-            os.makedirs(self._config.modelPath)
-        if not os.path.exists(self._config.graphPath):
-            os.makedirs(self._config.graphPath)
-
+        
         # File List
         self._validFileList = [self._validPath + "/" + f for f in listdir(self._validPath) if isfile(join(self._validPath, f))]
 

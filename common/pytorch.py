@@ -3,9 +3,12 @@ import torch.nn as nn
 from   torch.utils.data import Dataset,DataLoader
 
 import numpy as np
+from   tqdm import tqdm
 
-from common.data import CoRL2017Dataset as Dataset
+#from common.data import CoRL2017Dataset as Dataset
+from common.data  import CarlaDataset as Dataset
 from common.utils import iter2time
+from common.utils import averager
 from config import Config
 from config import Global
 
@@ -15,6 +18,34 @@ device = torch.device('cuda:0')
 # Settings
 __global = Global()
 __config = Config()
+
+
+# Batch size
+batch_size  = __config.batch_size
+
+# Number of workers
+num_workers = __global.num_workers
+
+# Parameters
+stepView  = __global.stepView
+
+# Conditional (branches)
+if __config.model in ['Codevilla18','Codevilla19']:
+    __branches = True
+else:
+    __branches = False
+
+# Multimodal (image + speed)
+if __config.model in ['Multimodal','Codevilla18','Codevilla19']:
+    __multimodal = True
+else:
+    __multimodal = False
+
+# Speed regression
+if __config.model in ['Codevilla19']:
+    __speedReg = True
+else:
+    __speedReg = False
 
 
 """ Xavier initialization
@@ -29,6 +60,19 @@ def xavierInit(model):
         fan_in  = size[1] # number of columns
         variance = np.sqrt(2.0/(fan_in + fan_out))
         model.weight.data.normal_(0.0, variance)
+"""
+for m in self.modules():
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(
+            m.weight, mode='fan_out', nonlinearity='relu')
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight, 1)
+        nn.init.constant_(m.bias, 0)
+    elif isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(
+            m.weight)
+        m.bias.data.fill_(0.01)
+"""
 
 
 """ Weighted loss
@@ -62,86 +106,91 @@ def MSE(input, target):
     return torch.mean(loss,0)
 
 
+def pred(model,data):
+    action = None 
+    y_pred = None
+
+    # Codevilla18, Codevilla19
+    if __multimodal and __branches:             
+        frame, speed, action, mask = data
+
+        mask   =   mask.to(device)
+        frame  =  frame.to(device)
+        speed  =  speed.to(device)
+        action = action.to(device)
+
+        y_pred = model(frame,speed,mask)
+    
+    # Multimodal
+    elif __multimodal and not __branches:
+        frame, speed, action = data
+
+        frame  =  frame.to(device)
+        speed  =  speed.to(device)
+        action = action.to(device)
+
+        y_pred = model(frame,speed)
+
+    # Basic
+    elif not __multimodal and not __branches:
+        frame, action = data
+
+        frame  =  frame.to(device)
+        action = action.to(device)
+        
+        y_pred = model(frame)
+    else:
+        raise NameError('ERROR 404: Model no found')
+
+    return action, y_pred
+
 """
 Train function
 """
-def train(model,optimizer,scheduler,lossFunc,files):
-    # Parameters
-    max_batch = __global.framePerSecond*__config.time_demostration/__config.batch_size
-    stepView = __global.stepView
-    global_iter = 0
-    local_iter  = 0
+def train(model,optimizer,scheduler,lossFunc,path):
     
     # Acomulative loss
     running_loss = 0.0
-    total_loss   = 0.0
+    total_loss   = averager()
+
+    # Data Loader
+    loader = DataLoader( Dataset( path, train      =   True      , 
+                                        branches   = __branches  ,
+                                        multimodal = __multimodal,
+                                        speedReg   = __speedReg ),
+                        batch_size  = batch_size,
+                        num_workers = num_workers)
+    t = tqdm(iter(loader), leave=False, total=len(loader))
 
     # Train
     model.train()
-    for file in files:
-        print("Read:",file)
-
-        # Files loop
-        for i, data in enumerate(DataLoader(Dataset(file,complete=True),
-                                            pin_memory  = True,
-                                            batch_size  = __config.batch_size,
-                                            num_workers = __global.num_workers), 0):
-            scheduler.step()
-            
-            # get the inputs; data is a list of [frame, steer]
-            
-
-            if   __config.model in ['Basic']:
-                frame, action = data
-
-                frame  =  frame.to(device)
-                action = action.to(device)
-            elif __config.model in ['Multimodal', 'Codevilla18', 'Codevilla19']:
-                frame, speed, action = data
-
-                frame  =  frame.to(device)
-                speed  =  speed.to(device)
-                action = action.to(device)
-                
-            # zero the parameter gradients
-            optimizer.zero_grad()
-            if   __config.model in ['Basic']:
-                outputs = model(frame)
-            elif __config.model in ['Multimodal', 'Codevilla18', 'Codevilla19']:
-                outputs = model(frame,speed)
-
-            loss = lossFunc(outputs, action)
-            loss.backward()
-            optimizer.step()
-            
-            local_iter = global_iter + i # Update local iterator
-            
-            # Print statistics
-            runtime_loss = loss.item()
-            running_loss += runtime_loss
-            total_loss   += runtime_loss
-            if i % stepView == (stepView-1):   # print every stepView mini-batches
-                print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(local_iter))
-                running_loss = 0.0
-
-            # Bye loop 
-            if local_iter>=max_batch:
-                break
+    for i, data in enumerate(t,0):
+        scheduler.step()
         
-        # Bye loop 
-        if local_iter>=max_batch:
-            break
-        global_iter = local_iter  # Update global iterator
+        # Model execute
+        action, output = pred(model,data)
 
-    # Return epoch loss 
-    return total_loss/max_batch
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        loss = lossFunc(output, action)
+        loss.backward()
+        optimizer.step()
+        
+        # Print statistics
+        runtime_loss = loss.item()
+        running_loss += runtime_loss
+        if i % stepView == (stepView-1):   # print every stepView mini-batches
+            print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
+            running_loss = 0.0
+        total_loss.update(running_loss)
+
+    return total_loss.val()
 
 """
 Validation function
 """
-def validation(model,lossFunc,file):
-    stepView = __global.stepView
-
+def validation(model,lossFunc,path):
     # Acomulative loss
     running_loss = 0.0
     count        = 0
@@ -151,31 +200,28 @@ def validation(model,lossFunc,file):
     print("Execute validation")
 
     # Metrics
-    if   __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
-        metrics = np.zeros((1,3))
-    elif __config.model in ['Codevilla19']:
-        metrics = np.zeros((1,4))
+    if __speedReg:
+        metrics = np.zeros((1,4))   # Steer,Gas,Brake,Speed
     else:
-        metrics = np.zeros((1,1))
+        metrics = np.zeros((1,3))   # Steer,Gas,Brake
+
+    # Data Loader
+    loader = DataLoader( Dataset( path, train      =   False     , 
+                                        branches   = __branches  ,
+                                        multimodal = __multimodal,
+                                        speedReg   = __speedReg ),
+                        batch_size  = batch_size,
+                        num_workers = num_workers)
+    t = tqdm(iter(loader), leave=False, total=len(loader))
 
     # Model to evaluation
     model.eval()
-    
-    # Data Loader
     with torch.no_grad():
-        for i, data in enumerate(DataLoader(Dataset(file,complete=True),
-                                            pin_memory  = True,
-                                            batch_size  = __config.batch_size,
-                                            num_workers = __global.num_workers), 0):
-            # get the inputs; data is a list of [frame, steer]
-            frame, speed, action = data
-            frame  =  frame.to(device)
-            speed  =  speed.to(device)
-            action = action.to(device)
+        for i, data in enumerate(t,0):
 
-            # Forward pass
-            output = model(frame,speed)
-
+            # Model execute
+            action, output = pred(model,data)
+            
             # Calculate the loss
             loss = lossFunc(output, action)
             running_loss += loss.item()

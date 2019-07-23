@@ -234,4 +234,4 @@ class ImitationModel(object):
             # Save Figures
             self._saveHistograms (epoch,out)
             self._saveLossFigures(epoch,lossTrain,lossValid)
-
+            
