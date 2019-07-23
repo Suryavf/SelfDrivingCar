@@ -5,8 +5,7 @@ from   torch.utils.data import Dataset,DataLoader
 import numpy as np
 from   tqdm import tqdm
 
-#from common.data import CoRL2017Dataset as Dataset
-from common.data  import CarlaDataset as Dataset
+from common.data import CoRL2017Dataset as Dataset
 from common.utils import iter2time
 from common.utils import averager
 from config import Config
@@ -106,6 +105,14 @@ def MSE(input, target):
     return torch.mean(loss,0)
 
 
+""" Model prediction
+    ----------------
+    Predict target by input 
+        * Input: model (nn.Module)
+                 data  (tuple?)
+        * Output: action: Ground truth
+                  y_pred: prediction
+"""
 def pred(model,data):
     action = None 
     y_pred = None
@@ -144,8 +151,16 @@ def pred(model,data):
 
     return action, y_pred
 
-"""
-Train function
+
+""" Train function
+    --------------
+    Global train function
+        * Input: model     (nn.Module)
+                 optimizer (torch.optim)
+                 scheduler (torch.optim.lr_scheduler)
+                 lossFunc  (function)
+                 path      (path)
+        * Output: total_loss (float) 
 """
 def train(model,optimizer,scheduler,lossFunc,path):
     
@@ -183,22 +198,27 @@ def train(model,optimizer,scheduler,lossFunc,path):
         if i % stepView == (stepView-1):   # print every stepView mini-batches
             print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
             running_loss = 0.0
-        total_loss.update(running_loss)
+        total_loss.update(runtime_loss)
 
     return total_loss.val()
+
 
 """
 Validation function
 """
+""" Validation function
+    -------------------
+    Global validation function
+        * Input: model    (nn.Module)
+                 lossFunc (function)
+                 path     (path)
+        * Output: total_loss (float) 
+"""
 def validation(model,lossFunc,path):
     # Acomulative loss
     running_loss = 0.0
-    count        = 0
-    
     actionList = list()
     
-    print("Execute validation")
-
     # Metrics
     if __speedReg:
         metrics = np.zeros((1,4))   # Steer,Gas,Brake,Speed
@@ -212,10 +232,12 @@ def validation(model,lossFunc,path):
                                         speedReg   = __speedReg ),
                         batch_size  = batch_size,
                         num_workers = num_workers)
-    t = tqdm(iter(loader), leave=False, total=len(loader))
+    n_loader = len(loader)
+    t = tqdm(iter(loader), leave=False, total=n_loader)
 
     # Model to evaluation
     model.eval()
+    print("Execute validation")
     with torch.no_grad():
         for i, data in enumerate(t,0):
 
@@ -230,20 +252,17 @@ def validation(model,lossFunc,path):
             err = MSE(output,action)
             err = err.data.cpu().numpy()
             metrics += err
-
+            
+            # Save actions
             actionList.append( output.data.cpu().numpy() )
-
-            # Update count
-            count = count + 1 
 
             if i % stepView == (stepView-1):   # print every stepView mini-batches
                 print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
                 running_loss = 0.0
-
     
     # Loss/metrics
-    metrics      =      metrics/count
-    running_loss = running_loss/count
+    metrics      =      metrics/n_loader
+    running_loss = running_loss/n_loader
     
     # Concatenate List
     outAction = np.concatenate(actionList,0)

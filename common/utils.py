@@ -147,16 +147,21 @@ class averager():
     def __init__(self):
         self.mean  = 0
         self.count = 0
-
     def reset(self):
         self.mean  = 0
         self.count = 0
-
     def update(self,val):
         n = self.count
         self.count = n + 1
         self.mean  = (self.mean*n + val)/self.count
-
     def val(self):
         return self.mean
+        
+class counter():
+    def __init__(self):
+        self.val = 0
+    def reset(self):
+        self.val = 0
+    def update(self):
+        self.val+= 1
         
