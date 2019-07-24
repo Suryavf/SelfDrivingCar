@@ -224,6 +224,7 @@ def train(model,optimizer,scheduler,lossFunc,path):
             running_loss = 0.0
         total_loss.update(runtime_loss)
 
+    print("Epoch training loss:",total_loss.val())
     return total_loss.val()
 
 
@@ -287,11 +288,16 @@ def validation(model,lossFunc,path):
                 running_loss = 0.0
     
     # Loss/metrics
-    metrics      =      metrics/n_loader
-    running_loss = running_loss/n_loader
+    metrics      =      metrics*batch_size/n_loader
+    running_loss = running_loss*batch_size/n_loader
     
     # Concatenate List
     outAction = np.concatenate(actionList,0)
     
+    print("Validation loss:",running_loss)
+    if __speedReg:
+        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2],"\tSpeed:",metrics[3])
+    else:
+        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
     return running_loss,metrics,outAction
     

@@ -7,9 +7,7 @@ from   torch.utils.data import Dataset
 from   torchvision      import transforms
 from   imgaug           import augmenters as iaa
 
-"""
-Ref: https://github.com/onlytailei/carla_cil_pytorch/blob/uncertain_open/carla_loader.py
-"""
+
 FRAMES_PER_FILE = 200
 
 class RandomTransWrapper(object):
@@ -25,6 +23,7 @@ class RandomTransWrapper(object):
 """ Carla Dataset
     -------------
     Data generator for Carla Dataset.
+    Ref: https://github.com/onlytailei/carla_cil_pytorch/blob/uncertain_open/carla_loader.py
         * Input: path       (str)
                  train      (bool)
                  branches   (bool)
@@ -40,6 +39,28 @@ class RandomTransWrapper(object):
             - path: directory to save
 
     Return: Name for directory model
+
+    ---------------------------------------------------------------
+    Train
+    ===============================================================
+    0. Steer,       (-1.0845270156860352, 1.1989188194274902)
+    1. Gas,         (0.0, 1.0)
+    2. Brake,       (0.0, 1.0)
+    5. Steer Noise, (-1.0845270156860352, 1.0100972652435303)
+    6. Gas Noise,   (0.0, 1.0)
+    7. Brake Noise, (0.0, 1.0)
+    10. Speed,       (-18.73902702331543, 82.63579559326172)
+    ---------------------------------------------------------------
+    Test
+    ===============================================================
+    0. Steer,       (-1.0, 1.1992229223251343)
+    1. Gas,         ( 0.0, 1.0)
+    2. Brake,       ( 0.0, 1.0)
+    5. Steer Noise, (-1.0, 1.0)
+    6. Gas Noise,   ( 0.0, 1.0)
+    7. Brake Noise, ( 0.0, 1.0)
+    10. Speed,       (-15.157238960266113, 82.66552734375)
+
 """
 class CoRL2017Dataset(Dataset):
     def __init__(self, path, train      = True,
@@ -47,7 +68,6 @@ class CoRL2017Dataset(Dataset):
                              multimodal = False,
                              speedReg   = False):
         self._files = glob.glob(path+'*.h5')
-        
         self._files.sort()
         self._transform = None
 
@@ -124,19 +144,4 @@ class CoRL2017Dataset(Dataset):
                     return img, speed, out.reshape(-1)
                 else:
                     return img, out.reshape(-1)
-
-
-"""
-                 branches   (bool)
-                 multimodal (bool)
-                 speedReg   (bool)
-
-
- 0. Steer,       (-1.0, 1.1992229223251343)
- 1. Gas,         ( 0.0, 1.0)
- 2. Brake,       ( 0.0, 1.0)
- 5. Steer Noise, (-1.0, 1.0)
- 6. Gas Noise,   ( 0.0, 1.0)
- 7. Brake Noise, ( 0.0, 1.0)
-10. Speed,       (-15.157238960266113, 82.66552734375)
-"""
+                    
