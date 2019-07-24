@@ -52,8 +52,10 @@ class ImitationModel(object):
         
         self._figurePath = modelDir  +  "/Figure"
         self. _modelPath = modelDir  +  "/Model"
+        self. _validPath = _config.validPath
+        self. _trainPath = _config.trainPath
         self.  _cookPath = _config.cookdPath
-        
+
         checkdirectory(savedPath)
         checkdirectory(modelDir)
         checkdirectory(self._figurePath)
@@ -99,7 +101,7 @@ class ImitationModel(object):
         if _config.model in ['Codevilla19']:
             self._state_add('speedMSE',metr[0,3])
     def _state_save(self,epoch):
-        path = self._modelPath + "model" + str(epoch + 1) + ".pth"
+        path = self._modelPath + "/model" + str(epoch + 1) + ".pth"
         torch.save(self._state,path)
 
 
@@ -203,8 +205,8 @@ class ImitationModel(object):
     """ Train/Evaluation """
     def execute(self):
         # List files
-        trainFiles = cookedFilesList(self. _cookPath,'Train')
-        validFiles = cookedFilesList(self. _cookPath,'Valid')
+        trainPath = self._trainPath#cookedFilesList(self. _cookPath,'Train')
+        validPath = self._validPath#cookedFilesList(self. _cookPath,'Valid')
 
         optimizer = self._optimizer
         scheduler = self._scheduler
@@ -216,10 +218,10 @@ class ImitationModel(object):
             print("Epoch",epoch+1,"-----------------------------------")
             
             # Train
-            lossTrain = T.train(model,optimizer,scheduler,lossFun,trainFiles)
+            lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
             
             # Validation
-            lossValid,metr,out = T.validation(model,lossFun,validFiles)
+            lossValid,metr,out = T.validation(model,lossFun,validPath)
             
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )

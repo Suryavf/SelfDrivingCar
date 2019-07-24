@@ -1,3 +1,6 @@
+import sys
+import contextlib
+
 import torch
 import torch.nn as nn
 from   torch.utils.data import Dataset,DataLoader
@@ -17,7 +20,6 @@ device = torch.device('cuda:0')
 # Settings
 __global = Global()
 __config = Config()
-
 
 # Batch size
 batch_size  = __config.batch_size
@@ -45,6 +47,27 @@ if __config.model in ['Codevilla19']:
     __speedReg = True
 else:
     __speedReg = False
+
+# Ref: https://stackoverflow.com/questions/36986929/redirect-print-command-in-python-script-through-tqdm-write
+class DummyFile(object):
+    file = None
+    def __init__(self, file):
+        self.file = file
+
+    def write(self, x):
+        # Avoid print() second call (useless \n)
+        if len(x.rstrip()) > 0:
+            tqdm.write(x, file=self.file)
+
+@contextlib.contextmanager
+def nostdout():
+    save_stdout = sys.stdout
+    sys.stdout = DummyFile(sys.stdout)
+    yield
+    sys.stdout = save_stdout
+
+def printLoss(i,loss,):
+    print(i+1,":\tloss =",loss,"\t\t",iter2time(i))
 
 
 """ Xavier initialization
@@ -175,8 +198,7 @@ def train(model,optimizer,scheduler,lossFunc,path):
                                         speedReg   = __speedReg ),
                         batch_size  = batch_size,
                         num_workers = num_workers)
-    t = tqdm(iter(loader), leave=False, total=len(loader))
-
+    t = tqdm(iter(loader), leave=False, total=len(loader))#,dynamic_ncols=True)
     # Train
     model.train()
     for i, data in enumerate(t,0):
@@ -234,7 +256,7 @@ def validation(model,lossFunc,path):
                         num_workers = num_workers)
     n_loader = len(loader)
     t = tqdm(iter(loader), leave=False, total=n_loader)
-
+    
     # Model to evaluation
     model.eval()
     print("Execute validation")

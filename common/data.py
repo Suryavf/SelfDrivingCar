@@ -7,7 +7,6 @@ from   torch.utils.data import Dataset
 from   torchvision      import transforms
 from   imgaug           import augmenters as iaa
 
-
 """
 Ref: https://github.com/onlytailei/carla_cil_pytorch/blob/uncertain_open/carla_loader.py
 """
@@ -48,6 +47,7 @@ class CoRL2017Dataset(Dataset):
                              multimodal = False,
                              speedReg   = False):
         self._files = glob.glob(path+'*.h5')
+        
         self._files.sort()
         self._transform = None
 
