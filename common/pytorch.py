@@ -198,7 +198,7 @@ def train(model,optimizer,scheduler,lossFunc,path):
                                         speedReg   = __speedReg ),
                         batch_size  = batch_size,
                         num_workers = num_workers)
-    t = tqdm(iter(loader), leave=False, total=len(loader))#,dynamic_ncols=True)
+    t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
     # Train
     model.train()
     for i, data in enumerate(t,0):
@@ -218,7 +218,9 @@ def train(model,optimizer,scheduler,lossFunc,path):
         runtime_loss = loss.item()
         running_loss += runtime_loss
         if i % stepView == (stepView-1):   # print every stepView mini-batches
-            print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
+            message = 'BatchTrain %i - loss=%.5f'
+            t.set_description( message % ( i+1,running_loss/stepView ))
+            t.refresh()
             running_loss = 0.0
         total_loss.update(runtime_loss)
 
@@ -255,7 +257,7 @@ def validation(model,lossFunc,path):
                         batch_size  = batch_size,
                         num_workers = num_workers)
     n_loader = len(loader)
-    t = tqdm(iter(loader), leave=False, total=n_loader)
+    t = tqdm(iter(loader), leave=False, total=n_loader, desc = 'Validation' )
     
     # Model to evaluation
     model.eval()
@@ -279,7 +281,9 @@ def validation(model,lossFunc,path):
             actionList.append( output.data.cpu().numpy() )
 
             if i % stepView == (stepView-1):   # print every stepView mini-batches
-                print(i+1,":\tloss =",running_loss/stepView,"\t\t",iter2time(i))
+                message = 'BatchValid %i - loss=%.5f'
+                t.set_description( message % ( i+1,running_loss/stepView))
+                t.refresh()
                 running_loss = 0.0
     
     # Loss/metrics
