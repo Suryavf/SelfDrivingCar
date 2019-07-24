@@ -296,8 +296,8 @@ def validation(model,lossFunc,path):
     
     print("Validation loss:",running_loss)
     if __speedReg:
-        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2],"\tSpeed:",metrics[3])
+        print("Steer:",metrics[0][0],"\tGas:",metrics[0][1],"\tBrake:",metrics[0][2],"\tSpeed:",metrics[0][3])
     else:
-        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
+        print("Steer:",metrics[0][0],"\tGas:",metrics[0][1],"\tBrake:",metrics[0][2])
     return running_loss,metrics,outAction
     
