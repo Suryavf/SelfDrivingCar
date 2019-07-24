@@ -90,6 +90,51 @@ def savePlot(data,title,path):
         plt.xlabel("Epoch")
         plt.savefig(path)
 
+def saveScatterSteerSpeed(steer,speed,command,path):
+    hgl = ['Follow lane','Left Turn','Straight','Right Turn']
+    cmd = [0,1,3,2]
+    idx = 0
+
+    fig, axs = plt.subplots(2, 2)
+    for i in range(2):
+        for j in range(2):
+            c = cmd[idx]
+            axs[i,j].scatter(steer[command==c],speed[command==c],alpha=0.1)
+            axs[i,j].grid(True)
+            axs[i,j].set_xlabel("Steer")
+            axs[i,j].set_ylabel("Speed")
+            axs[i,j].set_title(hgl[idx])
+            axs[i,j].set_xlim(-1.2,1.2)
+            axs[i,j].set_ylim( -20, 90)
+            idx += 1
+    fig.tight_layout()
+    fig.set_size_inches(10, 10)
+    fig.savefig(path)
+
+def saveScatterPolarSteerSpeed(steer,speed,command,path):
+    hgl = ['Follow lane','Left Turn','Straight','Right Turn']
+    cmd = [0,1,3,2]
+    idx = 0
+
+    fig, axs = plt.subplots(2, 2)
+
+    x = speed*np.cos(steer)
+    y = speed*np.sin(steer)
+    for i in range(2):
+        for j in range(2):
+            c = cmd[idx]
+            axs[i,j].scatter(y[command==c],x[command==c],alpha=0.05)
+            axs[i,j].grid(True)
+            axs[i,j].set_xlabel("y")
+            axs[i,j].set_ylabel("x")
+            axs[i,j].set_title(hgl[idx])
+            axs[i,j].set_ylim(-20,90)
+            axs[i,j].set_xlim(-50,50)
+            idx += 1
+    fig.tight_layout()
+    fig.set_size_inches(10,10)
+    plt.show()
+    fig.savefig(path)
 
 """ Save histogram
     --------------
@@ -106,6 +151,19 @@ def saveHistogram(data,path):
     plt.ylim(ymax=maxfreq)#np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
     plt.xlim(-2,2)
     plt.savefig(path)
+def save2Histogram(steer,speed,path):
+    fig, axs = plt.subplots(2, 1, sharey=True, tight_layout=True)
+
+    axs[0].hist(x=steer, bins=180)
+    axs[0].set_ylim(0,18000)
+    axs[0].set_title("Steer")
+
+    axs[1].hist(x=speed, bins=180)
+    axs[1].set_xlim(-5,90)
+    axs[1].set_ylim(0,15000)
+    axs[1].set_title("Speed")
+
+    fig.savefig(path)
 
 
 """ Name directory model
