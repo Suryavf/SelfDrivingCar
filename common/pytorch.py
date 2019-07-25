@@ -243,6 +243,7 @@ def validation(model,lossFunc,path):
     # Acomulative loss
     running_loss = 0.0
     actionList = list()
+    lossValid  = averager()
     
     # Metrics
     if __speedReg:
@@ -270,8 +271,9 @@ def validation(model,lossFunc,path):
             action, output = pred(model,data)
             
             # Calculate the loss
-            loss = lossFunc(output, action)
-            running_loss += loss.item()
+            runtime_loss = lossFunc(output, action)
+            running_loss += runtime_loss
+            lossValid.update(running_loss)
 
             # Mean squared error
             err = MSE(output,action)
@@ -288,8 +290,8 @@ def validation(model,lossFunc,path):
                 running_loss = 0.0
     
     # Loss/metrics
-    metrics      =      metrics*batch_size/n_loader
-    running_loss = running_loss*batch_size/n_loader
+    metrics      =      metrics/624
+    running_loss = lossValid.val()
     
     # Concatenate List
     outAction = np.concatenate(actionList,0)
