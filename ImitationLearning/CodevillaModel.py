@@ -13,6 +13,7 @@ from config import Config
 from config import Global
 
 import common.pytorch as T
+from common.utils import averager
 from common.utils import iter2time
 from common.utils import savePlot
 from common.utils import saveHistogram
@@ -218,8 +219,47 @@ class ImitationModel(object):
             print("Epoch",epoch+1,"-----------------------------------")
             
             # Train
-            lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
-            
+            #lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
+            # Acomulative loss
+            running_loss = 0.0
+            lossTrain   = averager()
+
+            # Data Loader
+            loader = DataLoader( Dataset( path, train      =   True      , 
+                                                branches   = __branches  ,
+                                                multimodal = __multimodal,
+                                                speedReg   = __speedReg ),
+                                batch_size  = batch_size,
+                                num_workers = num_workers)
+            t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
+            # Train
+            model.train()
+            for i, data in enumerate(t,0):
+                scheduler.step()
+                
+                # Model execute
+                action, output = pred(model,data)
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                loss = lossFunc(output, action)
+                loss.backward()
+                optimizer.step()
+                
+                # Print statistics
+                runtime_loss = loss.item()
+                running_loss += runtime_loss
+                if i % stepView == (stepView-1):   # print every stepView mini-batches
+                    message = 'BatchTrain %i - loss=%.5f'
+                    t.set_description( message % ( i+1,running_loss/stepView ))
+                    t.refresh()
+                    running_loss = 0.0
+                lossTrain.update(runtime_loss)
+
+            print("Epoch training loss:",lossTrain.val())
+
+
             # Validation
             lossValid,metr,out = T.validation(model,lossFun,validPath)
             
