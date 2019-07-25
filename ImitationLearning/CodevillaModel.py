@@ -24,6 +24,7 @@ from common.utils import nameDirectoryModel
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+from   tqdm import tqdm
 import numpy as np
 import cv2 as cv
 import secrets
@@ -31,6 +32,78 @@ import json
 import math
 import h5py
 import os
+
+# Settings
+__global = Global()
+__config = Config()
+
+# Conditional (branches)
+if __config.model in ['Codevilla18','Codevilla19']:
+    __branches = True
+else:
+    __branches = False
+
+# Multimodal (image + speed)
+if __config.model in ['Multimodal','Codevilla18','Codevilla19']:
+    __multimodal = True
+else:
+    __multimodal = False
+
+# Speed regression
+if __config.model in ['Codevilla19']:
+    __speedReg = True
+else:
+    __speedReg = False
+
+""" Model prediction
+    ----------------
+    Predict target by input 
+        * Input: model (nn.Module)
+                 data  (tuple?)
+        * Output: action: Ground truth
+                  y_pred: prediction
+"""
+def pred(model,data):
+    action = None 
+    y_pred = None
+
+    # Codevilla18, Codevilla19
+    if __multimodal and __branches:             
+        frame, speed, action, mask = data
+
+        mask   =   mask.to(device)
+        frame  =  frame.to(device)
+        speed  =  speed.to(device)
+        action = action.to(device)
+
+        y_pred = model(frame,speed,mask)
+    
+    # Multimodal
+    elif __multimodal and not __branches:
+        frame, speed, action = data
+
+        frame  =  frame.to(device)
+        speed  =  speed.to(device)
+        action = action.to(device)
+
+        y_pred = model(frame,speed)
+
+    # Basic
+    elif not __multimodal and not __branches:
+        frame, action = data
+
+        frame  =  frame.to(device)
+        action = action.to(device)
+        
+        y_pred = model(frame)
+    else:
+        raise NameError('ERROR 404: Model no found')
+
+    return action, y_pred
+
+
+# Parameters
+stepView  = __global.stepView
 
 # CUDA
 device = torch.device('cuda:0')
@@ -212,7 +285,7 @@ class ImitationModel(object):
         optimizer = self._optimizer
         scheduler = self._scheduler
         model     = self.net
-        lossFun   = T.weightedLoss
+        lossFunc  = T.weightedLoss
         
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
@@ -225,12 +298,12 @@ class ImitationModel(object):
             lossTrain   = averager()
 
             # Data Loader
-            loader = DataLoader( Dataset( path, train      =   True      , 
+            loader = DataLoader( Dataset( trainPath, train      =   True      , 
                                                 branches   = __branches  ,
                                                 multimodal = __multimodal,
                                                 speedReg   = __speedReg ),
                                 batch_size  = batch_size,
-                                num_workers = num_workers)
+                                num_workers = 4)
             t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
             # Train
             model.train()
@@ -261,7 +334,7 @@ class ImitationModel(object):
 
 
             # Validation
-            lossValid,metr,out = T.validation(model,lossFun,validPath)
+            lossValid,metr,out = T.validation(model,lossFunc,validPath)
             
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
