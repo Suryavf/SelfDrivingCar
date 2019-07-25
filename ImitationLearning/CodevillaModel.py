@@ -39,21 +39,21 @@ __config = Config()
 
 # Conditional (branches)
 if __config.model in ['Codevilla18','Codevilla19']:
-    __branches = True
+    _branches = True
 else:
-    __branches = False
+    _branches = False
 
 # Multimodal (image + speed)
 if __config.model in ['Multimodal','Codevilla18','Codevilla19']:
-    __multimodal = True
+    _multimodal = True
 else:
-    __multimodal = False
+    _multimodal = False
 
 # Speed regression
 if __config.model in ['Codevilla19']:
-    __speedReg = True
+    _speedReg = True
 else:
-    __speedReg = False
+    _speedReg = False
 
 """ Model prediction
     ----------------
@@ -68,7 +68,7 @@ def pred(model,data):
     y_pred = None
 
     # Codevilla18, Codevilla19
-    if __multimodal and __branches:             
+    if _multimodal and _branches:             
         frame, speed, action, mask = data
 
         mask   =   mask.to(device)
@@ -79,7 +79,7 @@ def pred(model,data):
         y_pred = model(frame,speed,mask)
     
     # Multimodal
-    elif __multimodal and not __branches:
+    elif _multimodal and not _branches:
         frame, speed, action = data
 
         frame  =  frame.to(device)
@@ -89,7 +89,7 @@ def pred(model,data):
         y_pred = model(frame,speed)
 
     # Basic
-    elif not __multimodal and not __branches:
+    elif not _multimodal and not _branches:
         frame, action = data
 
         frame  =  frame.to(device)
@@ -299,9 +299,9 @@ class ImitationModel(object):
 
             # Data Loader
             loader = DataLoader( Dataset( trainPath, train      =   True      , 
-                                                branches   = __branches  ,
-                                                multimodal = __multimodal,
-                                                speedReg   = __speedReg ),
+                                                branches   = _branches  ,
+                                                multimodal = _multimodal,
+                                                speedReg   = _speedReg ),
                                 batch_size  = batch_size,
                                 num_workers = 4)
             t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
