@@ -143,9 +143,9 @@ class ControlModule(nn.Module):
         h1 = F.dropout(h1, p=0.5, training=self.training)
 
         h2 = F.relu(self._fully2( h1))
-        h2 = F.dropout(h2, p=0.5, training=self.training)
+        #h2 = F.dropout(h2, p=0.5, training=self.training)
 
-        out = F.tanh(self._fully3(h2))
+        out = self._fully3(h2)#F.tanh(self._fully3(h2))
 
         return out
 
