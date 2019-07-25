@@ -111,7 +111,7 @@ class CoRL2017Dataset(Dataset):
         with h5py.File(file_name, 'r') as h5_file:
             # Image input
             img = np.array(h5_file['rgb'])[file_idx]
-            img = self._transform(img)
+            #img = self._transform(img)
 
             # Target dataframe
             target = np.array(h5_file['targets'])[file_idx]
