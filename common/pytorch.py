@@ -1,12 +1,17 @@
 import sys
 import contextlib
 
+from os      import listdir
+from os.path import isfile, join
+
 import torch
 import torch.nn as nn
 from   torch.utils.data import Dataset,DataLoader
 
 import numpy as np
 from   tqdm import tqdm
+
+import common.figures as F
 
 from common.data import CoRL2017Dataset as Dataset
 from common.utils import iter2time
@@ -136,7 +141,7 @@ def MSE(input, target):
         * Output: action: Ground truth
                   y_pred: prediction
 """
-def pred(model,data):
+def runModel(model,data):
     action = None 
     y_pred = None
 
@@ -180,12 +185,11 @@ def pred(model,data):
     Global train function
         * Input: model     (nn.Module)
                  optimizer (torch.optim)
-                 scheduler (torch.optim.lr_scheduler)
                  lossFunc  (function)
                  path      (path)
         * Output: total_loss (float) 
 """
-def train(model,optimizer,scheduler,lossFunc,path):
+def train(model,optimizer,lossFunc,path):
     
     # Acomulative loss
     running_loss = 0.0
@@ -202,10 +206,8 @@ def train(model,optimizer,scheduler,lossFunc,path):
     # Train
     model.train()
     for i, data in enumerate(t,0):
-        scheduler.step()
-        
         # Model execute
-        action, output = pred(model,data)
+        action, output = runModel(model,data)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -239,17 +241,19 @@ Validation function
                  path     (path)
         * Output: total_loss (float) 
 """
-def validation(model,lossFunc,path):
+def validation(model,lossFunc,epoch,path,figPath):
     # Acomulative loss
     running_loss = 0.0
-    actionList = list()
-    lossValid  = averager()
+    all_action  = list()
+    all_speed   = list()
+    all_command = list()
+    lossValid = averager()
     
     # Metrics
     if __speedReg:
-        metrics = np.zeros((1,4))   # Steer,Gas,Brake,Speed
+        metrics = averager(4)   # Steer,Gas,Brake,Speed
     else:
-        metrics = np.zeros((1,3))   # Steer,Gas,Brake
+        metrics = averager(3)   # Steer,Gas,Brake
 
     # Data Loader
     loader = DataLoader( Dataset( path, train      =   False     , 
@@ -266,22 +270,39 @@ def validation(model,lossFunc,path):
     print("Execute validation")
     with torch.no_grad():
         for i, data in enumerate(t,0):
+            
+            if __branches:
+                frame, command, speed, action, mask = data
+            else:
+                frame, command, speed, action = data
+
+            # Codevilla18, Codevilla19
+            if       __multimodal and     __branches: 
+                data = frame, speed, action, mask
+            elif     __multimodal and not __branches:
+                data = frame, speed, action
+            elif not __multimodal and not __branches:
+                data = frame, action
+            else:
+                raise NameError('ERROR 404: Model no found')
 
             # Model execute
-            action, output = pred(model,data)
+            action, output = runModel(model,data)
             
             # Calculate the loss
-            runtime_loss = lossFunc(output, action)
+            runtime_loss  = lossFunc(output, action)
             running_loss += runtime_loss
-            lossValid.update(running_loss)
+            lossValid.update(runtime_loss)
 
             # Mean squared error
             err = MSE(output,action)
             err = err.data.cpu().numpy()
-            metrics += err
+            metrics.update(err)
             
-            # Save actions
-            actionList.append( output.data.cpu().numpy() )
+            # Save values
+            all_action .append( output.data.cpu().numpy() )
+            all_speed  .append(  speed  )
+            all_command.append( command )
 
             if i % stepView == (stepView-1):   # print every stepView mini-batches
                 message = 'BatchValid %i - loss=%.5f'
@@ -290,16 +311,28 @@ def validation(model,lossFunc,path):
                 running_loss = 0.0
     
     # Loss/metrics
-    metrics      =      metrics/624
+    metrics      =    metrics.mean
     running_loss = lossValid.val()
     
     # Concatenate List
-    outAction = np.concatenate(actionList,0)
-    
+    all_command = np.concatenate(all_command,0)
+    all_action  = np.concatenate(all_action ,0)
+    all_speed   = np.concatenate(all_speed  ,0)
+
+    # Print results
     print("Validation loss:",running_loss)
     if __speedReg:
-        print("Steer:",metrics[0][0],"\tGas:",metrics[0][1],"\tBrake:",metrics[0][2],"\tSpeed:",metrics[0][3])
+        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2],"\tSpeed:",metrics[3])
     else:
-        print("Steer:",metrics[0][0],"\tGas:",metrics[0][1],"\tBrake:",metrics[0][2])
-    return running_loss,metrics,outAction
+        print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
+    
+    # Save figures
+    F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, figPath+"/Scatter"+str(epoch)+".png" )
+    F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command, figPath+"/Polar"+str(epoch)+".png" )
+    if __speedReg or __multimodal:
+        F.saveHistogramSteerSpeed(all_action[:,0],all_speed,figPath+"/Polar"+str(epoch)+".png")
+    else:
+        F.saveHistogramSteer(all_action[:,0],figPath+"/Polar"+str(epoch)+".png")
+
+    return running_loss,metrics
     

@@ -103,6 +103,65 @@ class CoRL2017Dataset(Dataset):
     def __len__(self):
         return FRAMES_PER_FILE * len(self._files)
 
+    def trainingRoutine(self,img,target):
+        # Steering angle
+        target[0] = target[0]/1.2   # Angle (max 1.2 rad)
+            
+        if self._isBranches:
+            # Control output
+            command = int(target[24])-2
+            out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
+            out[command,:] = target[:3]
+
+            # Mask
+            mask = np.zeros((4, 3), dtype=np.float32)
+            mask[command,:] = 1
+
+            if self._includeSpeed:
+                # Speed input/output (max 90km/h)
+                speed = np.array([target[10]/90,]).astype(np.float32)
+                return img, speed, out.reshape(-1), mask.reshape(-1)
+            else:
+                return img, out.reshape(-1), mask.reshape(-1)
+
+        else:
+            out = target[:3]
+
+            if self._includeSpeed:
+                # Speed input/output (max 90km/h)
+                speed = np.array([target[10]/90,]).astype(np.float32)
+                return img, speed, out.reshape(-1)
+            else:
+                return img, out.reshape(-1)
+
+    def evaluationRoutine(self,img,target):
+        # Steering angle
+        target[0] = target[0]/1.2   # Angle (max 1.2 rad)
+            
+        if self._isBranches:
+            # Control output
+            command = int(target[24])-2
+            out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
+            out[command,:] = target[:3]
+
+            # Mask
+            mask = np.zeros((4, 3), dtype=np.float32)
+            mask[command,:] = 1
+
+            # Speed input/output (max 90km/h)
+            speed = np.array([target[10]/90,]).astype(np.float32)
+            return img, command, speed, out.reshape(-1), mask.reshape(-1)
+
+        else:
+            # Control output
+            command = int(target[24])-2
+
+            # Speed input/output (max 90km/h)
+            speed = np.array([target[10]/90,]).astype(np.float32)
+
+            out = target[:3]
+            return img, command, speed, out.reshape(-1)
+
     def __getitem__(self, idx):
         data_idx  = idx // FRAMES_PER_FILE
         file_idx  = idx  % FRAMES_PER_FILE
@@ -116,32 +175,9 @@ class CoRL2017Dataset(Dataset):
             # Target dataframe
             target = np.array(h5_file['targets'])[file_idx]
             target = target.astype(np.float32)
-            target[0] = target[0]/1.2   # Angle (max 1.2 rad)
-            
-            if self._isBranches:
-                # Control output
-                command = int(target[24])-2
-                out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
-                out[command,:] = target[:3]
 
-                # Mask
-                mask = np.zeros((4, 3), dtype=np.float32)
-                mask[command,:] = 1
-
-                if self._includeSpeed:
-                    # Speed input/output (max 90km/h)
-                    speed = np.array([target[10]/90,]).astype(np.float32)
-                    return img, speed, out.reshape(-1), mask.reshape(-1)
-                else:
-                    return img, out.reshape(-1), mask.reshape(-1)
-
+            if self._isTrain:
+                return self.  trainingRoutine(img,target)
             else:
-                out = target[:3]
+                return self.evaluationRoutine(img,target)
 
-                if self._includeSpeed:
-                    # Speed input/output (max 90km/h)
-                    speed = np.array([target[10]/90,]).astype(np.float32)
-                    return img, speed, out.reshape(-1)
-                else:
-                    return img, out.reshape(-1)
-                    

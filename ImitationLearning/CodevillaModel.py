@@ -13,6 +13,7 @@ from config import Config
 from config import Global
 
 import common.pytorch as T
+import common.figures as fig
 from common.utils import averager
 from common.utils import iter2time
 from common.utils import savePlot
@@ -54,6 +55,21 @@ if __config.model in ['Codevilla19']:
     _speedReg = True
 else:
     _speedReg = False
+
+# Parameters
+stepView  = __global.stepView
+
+# CUDA
+device = torch.device('cuda:0')
+
+# Settings
+_global = Global()
+_config = Config()
+
+# Parameters
+batch_size     = 120
+n_epoch        = 150
+framePerSecond =  10
 
 """ Model prediction
     ----------------
@@ -102,20 +118,6 @@ def pred(model,data):
     return action, y_pred
 
 
-# Parameters
-stepView  = __global.stepView
-
-# CUDA
-device = torch.device('cuda:0')
-
-# Settings
-_global = Global()
-_config = Config()
-
-# Parameters
-batch_size     = 120
-n_epoch        = 150
-framePerSecond =  10
 
 class ImitationModel(object):
     """ Constructor """
@@ -179,96 +181,6 @@ class ImitationModel(object):
         torch.save(self._state,path)
 
 
-    """ Save figures """
-    def _saveLossFigures(self,epoch,trainLoss,validLoss):
-        self._trainLoss.append(trainLoss)
-        self._validLoss.append(validLoss)
-        if epoch > 4:
-            data = list()
-            data.append( self._trainLoss )
-            data.append( self._validLoss )
-            title = ["Train","Validation"]
-            path = self._figurePath + "/" + "loss" + str(epoch + 1) + ".png"
-            savePlot(data,title,path)
-    # https://www.oreilly.com/library/view/python-data-science/9781491912126/ch04.html
-    def _saveMetricFigures(self,epoch,metrics):
-        if epoch == 0:
-            self._metrics["Steer"] = list()
-            self._metrics["Gas"  ] = list()
-            self._metrics["Brake"] = list()
-            if _config.model in ['Codevilla19']:
-                self._metrics["Speed"] = list()
-        else:
-            self._metrics["Steer"].append(metrics[0,0]*1.2)
-            self._metrics["Gas"  ].append(metrics[0,1])
-            self._metrics["Brake"].append(metrics[0,2])
-            if _config.model in ['Codevilla19']:
-                self._metrics["Speed"].append(metrics[0,3]*85)
-        if epoch > 4:
-            epochs = list( range(1,epoch+1) )
-            fig  = plt.figure(figsize=(8,5))
-            grid = plt.GridSpec(20,20)
-            if _config.model in ['Basic','Multimodal','Codevilla18']:
-                # Create figure    
-                steer = fig.add_subplot(grid[0:8,  : ])
-                gas   = fig.add_subplot(grid[ 12:,0:9])
-                brake = fig.add_subplot(grid[ 12:,11:])
-                # Steer
-                steer.plot(epochs,self._metrics["Steer"])
-                steer.set_title('Steer')
-                steer.set_xlabel('Epoch')
-                steer.set_ylabel('Angle')
-                steer.set_xlim(1,epoch)
-                # Gas
-                gas.plot(epochs,self._metrics["Gas"])
-                gas.set_title('Gas')
-                gas.set_xlabel('Epoch')
-                gas.set_xlim(1,epoch)
-                # Brake
-                brake.plot(epochs,self._metrics["Brake"])
-                brake.set_title('Brake')
-                brake.set_xlabel('Epoch')
-                brake.set_xlim(1,epoch)
-            elif _config.model in ['Codevilla19']:
-                # Create figure    
-                steer = fig.add_subplot(grid[0:8,0:9])
-                speed = fig.add_subplot(grid[0:8,11:])
-                gas   = fig.add_subplot(grid[12:,0:9])
-                brake = fig.add_subplot(grid[12:,11:])
-                # Steer
-                steer.plot(epochs,self._metrics["Steer"])
-                steer.set_title('Steer')
-                steer.set_xlabel('Epoch')
-                steer.set_ylabel('Angle')
-                steer.set_xlim(1,epoch)
-                # Speed
-                speed.plot(epochs,self._metrics["Speed"])
-                speed.set_title('Speed')
-                speed.set_xlabel('Epoch')
-                speed.set_ylabel('m/s')
-                speed.yaxis.set_label_position("right")
-                speed.set_xlim(1,epoch)
-                # Gas
-                gas.plot(epochs,self._metrics["Gas"])
-                gas.set_title('Gas')
-                gas.set_xlabel('Epoch')
-                gas.set_xlim(1,epoch)
-                # Brake
-                brake.plot(epochs,self._metrics["Brake"])
-                brake.set_title('Brake')
-                brake.set_xlabel('Epoch')
-                brake.set_xlim(1,epoch)
-            path = self._figurePath + "/" + "metric" + str(epoch + 1) + ".png"
-            plt.savefig(path)
-    def _saveHistograms(self,epoch,y_out):
-        FigPath    = self._figurePath
-        saveHistogram(y_out[:,0], FigPath + "/" + "steer" + str(epoch + 1) + ".png")
-        saveHistogram(y_out[:,1], FigPath + "/" +   "gas" + str(epoch + 1) + ".png")
-        saveHistogram(y_out[:,2], FigPath + "/" + "brake" + str(epoch + 1) + ".png")
-        if _config.model in ['Codevilla19']:
-            saveHistogram(y_out[:,3], FigPath + "/" + "speed" + str(epoch + 1) + ".png")
-
-
     """ Building """
     def build(self):
         self.net = self.net.float()
@@ -279,18 +191,27 @@ class ImitationModel(object):
     """ Train/Evaluation """
     def execute(self):
         # List files
-        trainPath = self._trainPath#cookedFilesList(self. _cookPath,'Train')
-        validPath = self._validPath#cookedFilesList(self. _cookPath,'Valid')
+        trainPath = self._trainPath
+        validPath = self._validPath
 
         optimizer = self._optimizer
         scheduler = self._scheduler
         model     = self.net
         lossFunc  = T.weightedLoss
         
+        epochLoss  = fig.save2PlotByStep(self._figurePath,"Loss","Train","Evaluation")
+        epochSteer = fig.savePlotByStep (self._figurePath,"Steer")
+        epochGas   = fig.savePlotByStep (self._figurePath,"Gas")
+        epochBrake = fig.savePlotByStep (self._figurePath,"Brake")
+
+        if _speedReg or _multimodal:
+            epochSpeed = fig.savePlotByStep(self._figurePath,"Speed")
+
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
             print("Epoch",epoch+1,"-----------------------------------")
-            
+            scheduler.step()
+
             # Train
             #lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
             # Acomulative loss
@@ -298,25 +219,25 @@ class ImitationModel(object):
             lossTrain   = averager()
 
             # Data Loader
-            loader = DataLoader( Dataset( trainPath, train      =   True      , 
-                                                branches   = _branches  ,
-                                                multimodal = _multimodal,
-                                                speedReg   = _speedReg ),
-                                batch_size  = batch_size,
-                                num_workers = 4)
-            t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
+            loader = DataLoader( Dataset( trainPath, train       =   True     , 
+                                                     branches    = _branches  ,
+                                                     multimodal  = _multimodal,
+                                                     speedReg    = _speedReg ),
+                                                     batch_size  =  batch_size,
+                                                     num_workers =  4)
+            t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')
+
             # Train
             model.train()
             for i, data in enumerate(t,0):
-                scheduler.step()
-                
                 # Model execute
                 action, output = pred(model,data)
+                loss = lossFunc(output, action)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
+                model    .zero_grad()
 
-                loss = lossFunc(output, action)
                 loss.backward()
                 optimizer.step()
                 
@@ -334,8 +255,15 @@ class ImitationModel(object):
             print("Epoch training loss:",lossTrain)
 
             # Validation
-            lossValid,metr,out = T.validation(model,lossFunc,validPath)
+            lossValid,metr = T.validation(model,lossFunc,epoch,validPath,self._figurePath)
             
+            epochLoss.update(lossTrain,lossValid)
+            epochSteer.update(metr[0])
+            epochGas  .update(metr[1])
+            epochBrake.update(metr[2])
+            if _speedReg or _multimodal:
+                epochSpeed.update(metr[3])
+
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
             self._state_add('state_dict',    model.state_dict())
@@ -345,8 +273,4 @@ class ImitationModel(object):
             self._state_add('loss_valid',           lossValid  )
             self._state_addMetrics(metr)
             self._state_save(epoch)
-
-            # Save Figures
-            self._saveHistograms (epoch,out)
-            self._saveLossFigures(epoch,lossTrain,lossValid)
             

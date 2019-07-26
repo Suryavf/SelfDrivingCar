@@ -151,7 +151,7 @@ def saveHistogram(data,path):
     plt.ylim(ymax=maxfreq)#np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
     plt.xlim(-2,2)
     plt.savefig(path)
-def save2Histogram(steer,speed,path):
+def saveHistogramSteerSpeed(steer,speed,path):
     fig, axs = plt.subplots(2, 1, sharey=True, tight_layout=True)
 
     axs[0].hist(x=steer, bins=180)
@@ -202,11 +202,18 @@ def checkdirectory(d):
     
 
 class averager():
-    def __init__(self):
-        self.mean  = 0
+    def __init__(self,n=0):
+        if n >0:
+            self.mean = np.array(n)
+        else:    
+            self.mean  = 0
         self.count = 0
+        self.n = n
     def reset(self):
-        self.mean  = 0
+        if self.n >0:
+            self.mean = np.array(self.n)
+        else:    
+            self.mean  = 0
         self.count = 0
     def update(self,val):
         n = self.count
