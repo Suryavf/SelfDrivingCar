@@ -79,24 +79,24 @@ class CoRL2017Dataset(Dataset):
 
     def build(self):
         if self._isTrain:
-            self._transform = transforms.Compose([transforms.ToTensor()])#
-                #transforms.RandomOrder([
-                #    RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
-                #                        p=0.09),
-                #    RandomTransWrapper( seq=iaa.AdditiveGaussianNoise(loc=0,scale=(0.0, 0.05),per_channel=0.5),
-                #                        p=0.09),
-                #    RandomTransWrapper( seq=iaa.Dropout((0.0, 0.10), per_channel=0.5),
-                #                        p=0.3),
-                #    RandomTransWrapper( seq=iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2), per_channel=0.5),
-                #                        p=0.3),
-                #    RandomTransWrapper( seq=iaa.Add((-20, 20), per_channel=0.5),
-                #                        p=0.3),
-                #    RandomTransWrapper( seq=iaa.Multiply((0.9, 1.1), per_channel=0.2),
-                #                        p=0.4),
-                #    RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
-                #                        p=0.09),
-                #    ]),
-                #transforms.ToTensor()])
+            self._transform = transforms.Compose([#transforms.ToTensor()])#
+                transforms.RandomOrder([
+                    RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
+                                        p=0.09),
+                    RandomTransWrapper( seq=iaa.AdditiveGaussianNoise(loc=0,scale=(0.0, 0.05),per_channel=0.5),
+                                        p=0.09),
+                    RandomTransWrapper( seq=iaa.Dropout((0.0, 0.10), per_channel=0.5),
+                                        p=0.3),
+                    RandomTransWrapper( seq=iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2), per_channel=0.5),
+                                        p=0.3),
+                    RandomTransWrapper( seq=iaa.Add((-20, 20), per_channel=0.5),
+                                        p=0.3),
+                    RandomTransWrapper( seq=iaa.Multiply((0.9, 1.1), per_channel=0.2),
+                                        p=0.4),
+                    RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
+                                        p=0.09),
+                    ]),
+                transforms.ToTensor()])
         else:
             self._transform = transforms.Compose([transforms.ToTensor(),])
 

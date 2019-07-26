@@ -245,7 +245,7 @@ class ImitationModel(object):
                 runtime_loss = loss.item()
                 running_loss += runtime_loss
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
-                    message = 'BatchTrain %i - loss=%.5f'
+                    message = 'BatchTrain %i - loss=%.7f'
                     t.set_description( message % ( i+1,running_loss/stepView ))
                     t.refresh()
                     running_loss = 0.0
