@@ -330,8 +330,8 @@ class ImitationModel(object):
                     running_loss = 0.0
                 lossTrain.update(runtime_loss)
 
-            print("Epoch training loss:",lossTrain.val())
-            lossTrain.reset()
+            lossTrain = lossTrain.val()
+            print("Epoch training loss:",lossTrain)
 
             # Validation
             lossValid,metr,out = T.validation(model,lossFunc,validPath)
