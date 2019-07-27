@@ -67,7 +67,6 @@ def saveScatterPolarSteerSpeed(steer,speed,command,path):
             idx += 1
     fig.tight_layout()
     fig.set_size_inches(10,10)
-    plt.show()
     fig.savefig(path)
 
 """ Save histogram

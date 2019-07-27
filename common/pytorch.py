@@ -298,7 +298,8 @@ def validation(model,lossFunc,epoch,path,figPath):
             action, output = runModel(model,data)
             
             # Calculate the loss
-            runtime_loss  = lossFunc(output, action)
+            loss  = lossFunc(output, action)
+            runtime_loss = loss.item()
             running_loss += runtime_loss
             lossValid.update(runtime_loss)
 

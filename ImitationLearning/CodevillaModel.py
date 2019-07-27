@@ -261,7 +261,7 @@ class ImitationModel(object):
             epochSteer.update(metr[0])
             epochGas  .update(metr[1])
             epochBrake.update(metr[2])
-            if _speedReg or _multimodal:
+            if _speedReg:
                 epochSpeed.update(metr[3])
 
             # Save checkpoint
