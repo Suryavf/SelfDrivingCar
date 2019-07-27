@@ -140,7 +140,7 @@ class CoRL2017Dataset(Dataset):
             
         if self._isBranches:
             # Control output
-            command = int(target[24])-2
+            command = np.array(target[24]-2)
             out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
             out[command,:] = target[:3]
 
@@ -151,10 +151,9 @@ class CoRL2017Dataset(Dataset):
             # Speed input/output (max 90km/h)
             speed = np.array([target[10]/90,]).astype(np.float32)
             return img, command, speed, out.reshape(-1), mask.reshape(-1)
-
         else:
             # Control output
-            command = int(target[24])-2
+            command = np.array(target[24]-2)
 
             # Speed input/output (max 90km/h)
             speed = np.array([target[10]/90,]).astype(np.float32)
@@ -168,6 +167,7 @@ class CoRL2017Dataset(Dataset):
         file_name = self._files[data_idx]
 
         with h5py.File(file_name, 'r') as h5_file:
+            ## print('filename: %s - indx: %d' % ( file_name, idx ) )
             # Image input
             img = np.array(h5_file['rgb'])[file_idx]
             img = self._transform(img)

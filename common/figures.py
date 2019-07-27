@@ -49,6 +49,8 @@ def saveScatterPolarSteerSpeed(steer,speed,command,path):
     idx = 0
 
     fig, axs = plt.subplots(2, 2)
+    steer = steer.reshape(-1)
+    speed = speed.reshape(-1)
 
     x = speed*np.cos(steer)
     y = speed*np.sin(steer)

@@ -19,6 +19,13 @@ from common.utils import averager
 from config import Config
 from config import Global
 
+# Solution DataLoader bug
+# Ref: https://github.com/pytorch/pytorch/issues/973
+import resource
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
+# =================
+
 # CUDA
 device = torch.device('cuda:0')
 
@@ -263,13 +270,14 @@ def validation(model,lossFunc,epoch,path,figPath):
                         batch_size  = batch_size,
                         num_workers = num_workers)
     n_loader = len(loader)
-    t = tqdm(iter(loader), leave=False, total=n_loader, desc = 'Validation' )
+    pbar = tqdm(range(1,n_loader+1), leave=False, total=n_loader, desc = 'Validation' )
     
     # Model to evaluation
     model.eval()
     print("Execute validation")
     with torch.no_grad():
-        for i, data in enumerate(t,0):
+        i = 0
+        for data in loader:
             
             if __branches:
                 frame, command, speed, action, mask = data
@@ -305,10 +313,13 @@ def validation(model,lossFunc,epoch,path,figPath):
             all_command.append( command )
 
             if i % stepView == (stepView-1):   # print every stepView mini-batches
-                message = 'BatchValid %i - loss=%.5f'
-                t.set_description( message % ( i+1,running_loss/stepView))
-                t.refresh()
+                message = 'BatchValid loss=%.5f'
+                pbar.set_description( message % ( running_loss/stepView))
+                pbar.refresh()
                 running_loss = 0.0
+
+            i += 1
+            pbar.update()
     
     # Loss/metrics
     metrics      =    metrics.mean

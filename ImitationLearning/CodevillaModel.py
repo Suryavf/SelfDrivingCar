@@ -211,20 +211,20 @@ class ImitationModel(object):
         for epoch in range(n_epoch):
             print("Epoch",epoch+1,"-----------------------------------")
             scheduler.step()
-
+            
             # Train
             #lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
             # Acomulative loss
             running_loss = 0.0
             lossTrain   = averager()
-
+            
             # Data Loader
             loader = DataLoader( Dataset( trainPath, train       =   True     , 
                                                      branches    = _branches  ,
                                                      multimodal  = _multimodal,
                                                      speedReg    = _speedReg ),
                                                      batch_size  =  batch_size,
-                                                     num_workers =  4)
+                                                     num_workers =  8)
             t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')
 
             # Train
@@ -245,12 +245,12 @@ class ImitationModel(object):
                 runtime_loss = loss.item()
                 running_loss += runtime_loss
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
-                    message = 'BatchTrain %i - loss=%.7f'
-                    t.set_description( message % ( i+1,running_loss/stepView ))
+                    message = 'BatchTrain loss=%.7f'
+                    t.set_description( message % ( running_loss/stepView ))
                     t.refresh()
                     running_loss = 0.0
                 lossTrain.update(runtime_loss)
-
+            
             lossTrain = lossTrain.val()
             print("Epoch training loss:",lossTrain)
 
