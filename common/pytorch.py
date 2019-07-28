@@ -341,10 +341,10 @@ def validation(model,lossFunc,epoch,path,figPath):
     # Save figures
     F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, figPath+"/Scatter"+str(epoch)+".png" )
     F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command, figPath+"/Polar"+str(epoch)+".png" )
-    if __speedReg or __multimodal:
-        F.saveHistogramSteerSpeed(all_action[:,0],all_speed,figPath+"/Polar"+str(epoch)+".png")
+    if __speedReg:
+        F.saveHistogramSteerSpeed(all_action[:,0],all_speed,figPath+"/Histogram"+str(epoch)+".png")
     else:
-        F.saveHistogramSteer(all_action[:,0],figPath+"/Polar"+str(epoch)+".png")
+        F.saveHistogramSteer(all_action[:,0],figPath+"/Histogram"+str(epoch)+".png")
 
     return running_loss,metrics
     

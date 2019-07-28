@@ -32,7 +32,7 @@ def saveScatterSteerSpeed(steer,speed,command,path):
     for i in range(2):
         for j in range(2):
             c = cmd[idx]
-            axs[i,j].scatter(steer[command==c],speed[command==c],alpha=0.1)
+            axs[i,j].scatter(steer[command==c]*1.2,speed[command==c]*90,alpha=0.1)
             axs[i,j].grid(True)
             axs[i,j].set_xlabel("Steer")
             axs[i,j].set_ylabel("Speed")
@@ -49,15 +49,15 @@ def saveScatterPolarSteerSpeed(steer,speed,command,path):
     idx = 0
 
     fig, axs = plt.subplots(2, 2)
-    steer = steer.reshape(-1)
-    speed = speed.reshape(-1)
+    steer = steer.reshape(-1)*1.2
+    speed = speed.reshape(-1)*90
 
     x = speed*np.cos(steer)
     y = speed*np.sin(steer)
     for i in range(2):
         for j in range(2):
             c = cmd[idx]
-            axs[i,j].scatter(y[command==c],x[command==c],alpha=0.05)
+            axs[i,j].scatter(y[command==c]*1.2,x[command==c]*90,alpha=0.05)
             axs[i,j].grid(True)
             axs[i,j].set_xlabel("y")
             axs[i,j].set_ylabel("x")
@@ -80,11 +80,11 @@ def saveScatterPolarSteerSpeed(steer,speed,command,path):
 def saveHistogramSteerSpeed(steer,speed,path):
     fig, axs = plt.subplots(2, 1, sharey=True, tight_layout=True)
 
-    axs[0].hist(x=steer, bins=180)
+    axs[0].hist(x=steer*1.2, bins=180)
     axs[0].set_ylim(0,18000)
     axs[0].set_title("Steer")
 
-    axs[1].hist(x=speed, bins=180)
+    axs[1].hist(x=speed*90, bins=180)
     axs[1].set_xlim(-5,90)
     axs[1].set_ylim(0,15000)
     axs[1].set_title("Speed")
@@ -95,7 +95,7 @@ def saveHistogramSteerSpeed(steer,speed,path):
 def saveHistogramSteer(steer,path):
     fig, axs = plt.subplots(1, 1, sharey=True, tight_layout=True)
 
-    axs.hist(x=steer, bins=180)
+    axs.hist(x=steer*1.2, bins=180)
     axs.set_ylim(0,18000)
     axs.set_title("Steer")
 
@@ -119,7 +119,8 @@ class savePlotByStep():
             name = self._name + ".png"
             path = join(self._path,name)
             
-            plt.plot(epochs,self._values)
+            fig, ax = plt.subplots()
+            ax.plot(epochs,self._values)
             plt.xlabel('Epoch')
             plt.ylabel(self._name)
             plt.xlim(1,n_epoch)

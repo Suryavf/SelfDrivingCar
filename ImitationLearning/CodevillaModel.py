@@ -171,11 +171,11 @@ class ImitationModel(object):
     def _state_add(self,name,attr):
         self._state[name]=attr
     def _state_addMetrics(self,metr):
-        self._state_add('steerMSE',metr[0,0])
-        self._state_add(  'gasMSE',metr[0,1])
-        self._state_add('brakeMSE',metr[0,2])
+        self._state_add('steerMSE',metr[0])
+        self._state_add(  'gasMSE',metr[1])
+        self._state_add('brakeMSE',metr[2])
         if _config.model in ['Codevilla19']:
-            self._state_add('speedMSE',metr[0,3])
+            self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
         path = self._modelPath + "/model" + str(epoch + 1) + ".pth"
         torch.save(self._state,path)
@@ -257,12 +257,12 @@ class ImitationModel(object):
             # Validation
             lossValid,metr = T.validation(model,lossFunc,epoch,validPath,self._figurePath)
             
-            epochLoss.update(lossTrain,lossValid)
-            epochSteer.update(metr[0])
+            epochLoss. update(lossTrain,lossValid)
+            epochSteer.update(metr[0]*1.2*1.2)
             epochGas  .update(metr[1])
             epochBrake.update(metr[2])
             if _speedReg:
-                epochSpeed.update(metr[3])
+                epochSpeed.update(metr[3]*90)
 
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
