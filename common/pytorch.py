@@ -21,41 +21,43 @@ from config import Global
 
 # Solution DataLoader bug
 # Ref: https://github.com/pytorch/pytorch/issues/973
-import resource
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
+# import resource
+# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+# resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
+# =================
+torch.multiprocessing.set_sharing_strategy('file_system')
 # =================
 
 # CUDA
 device = torch.device('cuda:0')
 
 # Settings
-__global = Global()
-__config = Config()
+_global = Global()
+_config = Config()
 
 # Batch size
-batch_size  = __config.batch_size
+batch_size  = _config.batch_size
 
 # Number of workers
-num_workers = __global.num_workers
+num_workers = _global.num_workers
 
 # Parameters
-stepView  = __global.stepView
+stepView  = _global.stepView
 
 # Conditional (branches)
-if __config.model in ['Codevilla18','Codevilla19']:
+if _config.model in ['Codevilla18','Codevilla19']:
     __branches = True
 else:
     __branches = False
 
 # Multimodal (image + speed)
-if __config.model in ['Multimodal','Codevilla18','Codevilla19']:
+if _config.model in ['Multimodal','Codevilla18','Codevilla19']:
     __multimodal = True
 else:
     __multimodal = False
 
 # Speed regression
-if __config.model in ['Codevilla19']:
+if _config.model in ['Codevilla19']:
     __speedReg = True
 else:
     __speedReg = False
@@ -116,15 +118,15 @@ for m in self.modules():
         target: Ground truth
 """
 # Weight to weightedLoss()
-if  __config.model in ['Basic', 'Multimodal', 'Codevilla18']:
-    weightLoss = torch.Tensor([ __config.lambda_steer, 
-                                __config.lambda_gas  , 
-                                __config.lambda_brake]).float().cuda(device) 
-elif __config.model in ['Codevilla19']:
-    weightLoss = torch.Tensor([ __config.lambda_steer * __config.lambda_action, 
-                                __config.lambda_gas   * __config.lambda_action, 
-                                __config.lambda_brake * __config.lambda_action,
-                                __config.lambda_speed ]).float().cuda(device) 
+if  _config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+    weightLoss = torch.Tensor([ _config.lambda_steer, 
+                                _config.lambda_gas  , 
+                                _config.lambda_brake]).float().cuda(device) 
+elif _config.model in ['Codevilla19']:
+    weightLoss = torch.Tensor([ _config.lambda_steer * _config.lambda_action, 
+                                _config.lambda_gas   * _config.lambda_action, 
+                                _config.lambda_brake * _config.lambda_action,
+                                _config.lambda_speed ]).float().cuda(device) 
 def weightedLoss(input, target):
     loss = torch.abs(input - target)
     loss = torch.mean(loss,0)
@@ -256,6 +258,9 @@ def validation(model,lossFunc,epoch,path,figPath):
     all_command = list()
     lossValid = averager()
     
+    max_speed    = _global.max_speed
+    max_steering = _global.max_steering
+
     # Metrics
     if __speedReg:
         metrics = averager(4)   # Steer,Gas,Brake,Speed
@@ -331,6 +336,13 @@ def validation(model,lossFunc,epoch,path,figPath):
     all_action  = np.concatenate(all_action ,0)
     all_speed   = np.concatenate(all_speed  ,0)
 
+    # To real values
+    metrics     [0] = metrics[0] * max_steering * max_steering
+    all_action[:,0] = all_action[:,0] * max_steering
+    all_speed       = all_speed       * max_speed
+    if __speedReg:
+        metrics [3] = metrics[3] * max_speed * max_speed
+
     # Print results
     print("Validation loss:",running_loss)
     if __speedReg:
@@ -339,12 +351,15 @@ def validation(model,lossFunc,epoch,path,figPath):
         print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
     
     # Save figures
-    F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, figPath+"/Scatter"+str(epoch)+".png" )
-    F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command, figPath+"/Polar"+str(epoch)+".png" )
+    histogramPath = figPath + "/Histogram" + str(epoch) + ".png"
+    scatterPath   = figPath + "/Scatter"   + str(epoch) + ".png"
+    polarPath     = figPath + "/Polar"     + str(epoch) + ".png"
+    F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, scatterPath )
+    F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command, polarPath )
     if __speedReg:
-        F.saveHistogramSteerSpeed(all_action[:,0],all_speed,figPath+"/Histogram"+str(epoch)+".png")
+        F.saveHistogramSteerSpeed(all_action[:,0],all_speed,histogramPath)
     else:
-        F.saveHistogramSteer(all_action[:,0],figPath+"/Histogram"+str(epoch)+".png")
+        F.saveHistogramSteer     (all_action[:,0],          histogramPath)
 
     return running_loss,metrics
     

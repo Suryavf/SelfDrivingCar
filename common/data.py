@@ -3,12 +3,20 @@ import random
 import numpy as np
 import torch
 import h5py
+from   config import Config
+from   config import Global
 from   torch.utils.data import Dataset
 from   torchvision      import transforms
 from   imgaug           import augmenters as iaa
 
+# Settings
+_global = Global()
+_config = Config()
 
 FRAMES_PER_FILE = 200
+
+_max_steering = _global.max_steering
+_max_speed    = _global.max_speed
 
 class RandomTransWrapper(object):
     def __init__(self, seq, p=0.5):
@@ -104,8 +112,11 @@ class CoRL2017Dataset(Dataset):
         return FRAMES_PER_FILE * len(self._files)
 
     def trainingRoutine(self,img,target):
+        max_steering = _max_steering
+        max_speed    = _max_speed
+
         # Steering angle
-        target[0] = target[0]/1.2   # Angle (max 1.2 rad)
+        target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
             
         if self._isBranches:
             # Control output
@@ -119,7 +130,7 @@ class CoRL2017Dataset(Dataset):
 
             if self._includeSpeed:
                 # Speed input/output (max 90km/h)
-                speed = np.array([target[10]/90,]).astype(np.float32)
+                speed = np.array([target[10]/max_speed,]).astype(np.float32)
                 return img, speed, out.reshape(-1), mask.reshape(-1)
             else:
                 return img, out.reshape(-1), mask.reshape(-1)
@@ -129,14 +140,17 @@ class CoRL2017Dataset(Dataset):
 
             if self._includeSpeed:
                 # Speed input/output (max 90km/h)
-                speed = np.array([target[10]/90,]).astype(np.float32)
+                speed = np.array([target[10]/max_speed,]).astype(np.float32)
                 return img, speed, out.reshape(-1)
             else:
                 return img, out.reshape(-1)
 
     def evaluationRoutine(self,img,target):
+        max_steering = _max_steering
+        max_speed    = _max_speed
+
         # Steering angle
-        target[0] = target[0]/1.2   # Angle (max 1.2 rad)
+        target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
             
         if self._isBranches:
             # Control output
@@ -149,14 +163,14 @@ class CoRL2017Dataset(Dataset):
             mask[command,:] = 1
 
             # Speed input/output (max 90km/h)
-            speed = np.array([target[10]/90,]).astype(np.float32)
+            speed = np.array([target[10]/max_speed,]).astype(np.float32)
             return img, command, speed, out.reshape(-1), mask.reshape(-1)
         else:
             # Control output
             command = np.array(target[24]-2)
 
             # Speed input/output (max 90km/h)
-            speed = np.array([target[10]/90,]).astype(np.float32)
+            speed = np.array([target[10]/max_speed,]).astype(np.float32)
 
             out = target[:3]
             return img, command, speed, out.reshape(-1)
@@ -167,7 +181,6 @@ class CoRL2017Dataset(Dataset):
         file_name = self._files[data_idx]
 
         with h5py.File(file_name, 'r') as h5_file:
-            ## print('filename: %s - indx: %d' % ( file_name, idx ) )
             # Image input
             img = np.array(h5_file['rgb'])[file_idx]
             img = self._transform(img)
@@ -180,4 +193,4 @@ class CoRL2017Dataset(Dataset):
                 return self.  trainingRoutine(img,target)
             else:
                 return self.evaluationRoutine(img,target)
-
+                

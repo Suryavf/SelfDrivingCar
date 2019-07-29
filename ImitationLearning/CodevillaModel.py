@@ -258,11 +258,11 @@ class ImitationModel(object):
             lossValid,metr = T.validation(model,lossFunc,epoch,validPath,self._figurePath)
             
             epochLoss. update(lossTrain,lossValid)
-            epochSteer.update(metr[0]*1.2*1.2)
+            epochSteer.update(metr[0])
             epochGas  .update(metr[1])
             epochBrake.update(metr[2])
             if _speedReg:
-                epochSpeed.update(metr[3]*90)
+                epochSpeed.update(metr[3])
 
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
