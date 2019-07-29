@@ -47,7 +47,7 @@ class BasicNet(nn.Module):
         x = self._fully(x)
         x = F.dropout(x, p=0.5, training=self.training)
 
-        y_pred = F.tanh(self._out(x))
+        y_pred = self._out(x)
 
         return y_pred
 
