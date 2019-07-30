@@ -1,4 +1,4 @@
-from ImitationLearning.CodevillaModel import ImitationModel
+from ImitationLearning.ImitationModel import ImitationModel
 test = ImitationModel()
 test.build()
 test.execute()
