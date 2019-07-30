@@ -18,68 +18,6 @@ from config import Global
 _global = Global()
 _config = Config()
 
-""" Basic Network for regression by ResNet34
-    ----------------------------------------
-    ResNet34 network.
-        * Input: image (matrix: 3,88,200)
-        * Output: action (vector: 1,3) [Steer,Gas,Brake]
-
-    Methods:
-        @forward: Forward network
-            - x: image input
-        @saveSettings: Save setting
-            - path: directory to save
-
-    Return: Name for directory model
-"""
-class BasicNet(nn.Module):
-    def __init__(self):
-        super(BasicNet, self).__init__()
-
-        self._perception = ResNet()
-        self._fully      = nn.Linear(512,256)
-        self._out        = nn.Linear(256,  3)
-
-    def forward(self,x):
-        x = self._perception(x)
-        x = F.dropout(x, p=0.5, training=self.training)
-
-        x = self._fully(x)
-        x = F.dropout(x, p=0.5, training=self.training)
-
-        y_pred = self._out(x)
-
-        return y_pred
-
-    def saveSettings(self,path):
-        setting = {
-            "model"            : _config.            model,
-            "n_epoch"          : _config.          n_epoch,
-            "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
-            "Optimizer":{
-                "type"         : "adam",
-                "Learning_rate": {
-                    "initial"     : _config.learning_rate_initial,
-                    "decay_steps" : _config.learning_rate_decay_steps,
-                    "decay_factor": _config.learning_rate_decay_factor
-                },
-                "beta_1": _config.adam_beta_1,
-                "beta_2": _config.adam_beta_2
-            },
-            "Loss":{
-                "type": "weighted",
-                "Lambda":{
-                    "steer": _config.lambda_steer,
-                    "gas"  : _config.lambda_gas  ,
-                    "brake": _config.lambda_brake
-                }
-            }
-        }
-        
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
-
 
 """ Speed Module
     
@@ -150,6 +88,69 @@ class ControlModule(nn.Module):
         return out
 
 
+""" Basic Network for regression by ResNet34
+    ----------------------------------------
+    ResNet34 network.
+        * Input: image (matrix: 3,88,200)
+        * Output: action (vector: 1,3) [Steer,Gas,Brake]
+
+    Methods:
+        @forward: Forward network
+            - x: image input
+        @saveSettings: Save setting
+            - path: directory to save
+
+    Return: Name for directory model
+"""
+class BasicNet(nn.Module):
+    def __init__(self):
+        super(BasicNet, self).__init__()
+
+        self._perception = ResNet()
+        self._fully      = nn.Linear(512,256)
+        self._out        = nn.Linear(256,  3)
+
+    def forward(self,x):
+        x = self._perception(x)
+        x = F.dropout(x, p=0.5, training=self.training)
+
+        x = self._fully(x)
+        x = F.dropout(x, p=0.5, training=self.training)
+
+        y_pred = self._out(x)
+
+        return y_pred
+
+    def saveSettings(self,path):
+        setting = {
+            "model"            : _config.            model,
+            "n_epoch"          : _config.          n_epoch,
+            "batch_size"       : _config.       batch_size,
+            "time_demostration": _config.time_demostration,
+            "Optimizer":{
+                "type"         : "adam",
+                "Learning_rate": {
+                    "initial"     : _config.learning_rate_initial,
+                    "decay_steps" : _config.learning_rate_decay_steps,
+                    "decay_factor": _config.learning_rate_decay_factor
+                },
+                "beta_1": _config.adam_beta_1,
+                "beta_2": _config.adam_beta_2
+            },
+            "Loss":{
+                "type": "weighted",
+                "Lambda":{
+                    "steer": _config.lambda_steer,
+                    "gas"  : _config.lambda_gas  ,
+                    "brake": _config.lambda_brake
+                }
+            }
+        }
+        
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
+
+
 """ Multimodal Network for regression
     ---------------------------------
     ResNet34 network.
@@ -182,7 +183,6 @@ class MultimodalNet(nn.Module):
         self._control      .apply(xavierInit)
         xavierInit(self._jointLayer)
     
-
     def forward(self,img,vm):
         percp = self._perception   (img)
         speed = self._measuredSpeed( vm)
@@ -193,6 +193,85 @@ class MultimodalNet(nn.Module):
 
         y_pred = self._control(signal)
 
+        return y_pred
+
+    def saveSettings(self,path):
+        setting = {
+            "model"            : _config.            model,
+            "n_epoch"          : _config.          n_epoch,
+            "batch_size"       : _config.       batch_size,
+            "time_demostration": _config.time_demostration,
+            "Optimizer":{
+                "type"         : "adam",
+                "Learning_rate": {
+                    "initial"     : _config.learning_rate_initial,
+                    "decay_steps" : _config.learning_rate_decay_steps,
+                    "decay_factor": _config.learning_rate_decay_factor
+                },
+                "beta_1": _config.adam_beta_1,
+                "beta_2": _config.adam_beta_2
+            },
+            "Loss":{
+                "type": "weighted",
+                "Lambda":{
+                    "steer": _config.lambda_steer,
+                    "gas"  : _config.lambda_gas  ,
+                    "brake": _config.lambda_brake
+                }
+            }
+        }
+        
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
+
+
+""" Codevilla 2018 Network
+    ----------------------
+    Codevilla, F., Miiller, M., López, A., Koltun, V., & Dosovitskiy, A. (2018). 
+    "End-to-end driving via conditional imitation learning". In 2018 IEEE International 
+    Conference on Robotics and Automation (ICRA) (pp. 1-9).
+    Ref: https://arxiv.org/pdf/1710.02410.pdf
+        * Input: image (matrix: 3,88,200)
+                 speed (scalar)
+        * Output: action (vector: 3) [Steer,Gas,Brake]
+
+    Methods:
+        @forward: Forward network
+            - img: image input
+            - vm : speed input
+        @saveSettings: Save setting
+            - path: directory to save
+
+    Return: Name for directory model
+"""
+class Codevilla18Net(nn.Module):
+    def __init__(self):
+        super(Codevilla18Net, self).__init__()
+
+        self._perception    =        ResNet()
+        self._measuredSpeed =   SpeedModule()
+        self._control       = ControlModule()
+
+        self._jointLayer    = nn.Linear(640,512)
+
+        # Inicialize
+        self._perception   .apply(xavierInit)
+        self._measuredSpeed.apply(xavierInit)
+        self._control      .apply(xavierInit)
+        xavierInit(self._jointLayer)
+    
+    def forward(self,img,vm):
+        percp = self._perception   (img)
+        speed = self._measuredSpeed( vm)
+        
+        joint  = torch.cat( (percp,speed), dim=1  )
+        signal = F.relu(self._jointLayer(joint))
+        signal = F.dropout(signal, p=0.5, training=self.training)
+        
+        # Branches
+        branches = nn.ModuleList([ ControlModule() for i in range(4) ])
+        y_pred   = torch.cat( [out(signal) for out in branches], dim=1)
+        
         return y_pred
 
     def saveSettings(self,path):

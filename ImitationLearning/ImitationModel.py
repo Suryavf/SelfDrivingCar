@@ -142,6 +142,8 @@ class ImitationModel(object):
             self.net = imL.BasicNet()
         elif _config.model is 'Multimodal':
             self.net = imL.MultimodalNet()
+        elif _config.model is 'Codevilla18':
+            self.net = imL.Codevilla18Net()
         else:
             print("ERROR: mode no found")
         
