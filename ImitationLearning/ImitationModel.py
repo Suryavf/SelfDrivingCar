@@ -227,7 +227,7 @@ class ImitationModel(object):
                                                      speedReg    = _speedReg ),
                                                      batch_size  =  batch_size,
                                                      num_workers =  8)
-            t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')
+            t = tqdm(iter(loader), leave=False, total=len(loader))
 
             # Train
             model.train()

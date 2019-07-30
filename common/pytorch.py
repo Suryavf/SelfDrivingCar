@@ -211,7 +211,7 @@ def train(model,optimizer,lossFunc,path):
                                         speedReg   = __speedReg ),
                         batch_size  = batch_size,
                         num_workers = num_workers)
-    t = tqdm(iter(loader), leave=False, total=len(loader),desc='Train')#,dynamic_ncols=True)
+    t = tqdm(iter(loader), leave=False, total=len(loader))
     # Train
     model.train()
     for i, data in enumerate(t,0):
