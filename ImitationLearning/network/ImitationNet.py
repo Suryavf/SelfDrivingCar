@@ -51,7 +51,7 @@ class SpeedModule(nn.Module):
         out = F.relu(self._fully3(h2))
         out = F.dropout(out, p=0.5, training=self.training)
 
-        return torch.squeeze(out) #out
+        return torch.squeeze(out)
   
     
 """ Control Module

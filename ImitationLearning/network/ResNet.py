@@ -148,3 +148,4 @@ def resnet34(**kwargs):
     """ResNet-34 model.
     """
     return ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    

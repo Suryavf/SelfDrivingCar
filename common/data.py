@@ -104,6 +104,7 @@ class CoRL2017Dataset(Dataset):
                     RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
                                         p=0.09),
                     ]),
+                transforms.Resize((88,200)),
                 transforms.ToTensor()])
         else:
             self._transform = transforms.Compose([transforms.ToTensor(),])
