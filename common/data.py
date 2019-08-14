@@ -104,10 +104,13 @@ class CoRL2017Dataset(Dataset):
                     RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
                                         p=0.09),
                     ]),
-                transforms.Resize((88,200)),
+                transforms.ToPILImage(),
+                transforms.Resize((96,192)),
                 transforms.ToTensor()])
         else:
-            self._transform = transforms.Compose([transforms.ToTensor(),])
+            self._transform = transforms.Compose([transforms.ToPILImage(),
+                                                  transforms.Resize((96,192)),
+                                                  transforms.ToTensor(),])
 
     def __len__(self):
         return FRAMES_PER_FILE * len(self._files)
@@ -152,7 +155,7 @@ class CoRL2017Dataset(Dataset):
 
         # Steering angle
         target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
-            
+        
         if self._isBranches:
             # Control output
             command = np.array(target[24]-2)

@@ -81,6 +81,7 @@ def saveHistogramSteerSpeed(steer,speed,path):
     fig, axs = plt.subplots(2, 1, sharey=True, tight_layout=True)
 
     axs[0].hist(x=steer, bins=180)
+    axs[0].set_xlim(-1.3,1.3)
     axs[0].set_ylim(0,18000)
     axs[0].set_title("Steer")
 
@@ -96,6 +97,7 @@ def saveHistogramSteer(steer,path):
     fig, axs = plt.subplots(1, 1, sharey=True, tight_layout=True)
 
     axs.hist(x=steer, bins=180)
+    axs.set_xlim(-1.3,1.3)
     axs.set_ylim(0,18000)
     axs.set_title("Steer")
 

@@ -6,8 +6,7 @@ class Config(object):
     trainPath = "/media/victor/Datos/CORL2017ImitationLearningData/AgentHuman/SeqTrain"
     modelPath = "/media/victor/Datos/Tesis/SelfDrivingCar/ImitationLearning/network"
     graphPath = "/media/victor/Datos/Tesis/SelfDrivingCar/ImitationLearning/network/Graph"
-    filesPerGroup = 100#187
-
+    
     srate           = 10
     epochs          = 30*3600*srate  # 30 horas
     batch_size      = 120

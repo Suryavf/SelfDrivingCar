@@ -275,7 +275,7 @@ def validation(model,lossFunc,epoch,path,figPath):
                         batch_size  = batch_size,
                         num_workers = num_workers)
     n_loader = len(loader)
-    pbar = tqdm(range(1,n_loader+1), leave=False, total=n_loader, desc = 'Validation' )
+    pbar = tqdm(range(1,n_loader+1), leave=False, total=n_loader)
     
     # Model to evaluation
     model.eval()
@@ -326,6 +326,7 @@ def validation(model,lossFunc,epoch,path,figPath):
 
             i += 1
             pbar.update()
+        pbar.close()
     
     # Loss/metrics
     metrics      =    metrics.mean

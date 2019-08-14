@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 from   tqdm import tqdm
+import pandas as pd
 import numpy as np
 import cv2 as cv
 import secrets
@@ -205,6 +206,9 @@ class ImitationModel(object):
         epochSteer = fig.savePlotByStep (self._figurePath,"Steer")
         epochGas   = fig.savePlotByStep (self._figurePath,"Gas")
         epochBrake = fig.savePlotByStep (self._figurePath,"Brake")
+        
+        valuesToSave = list()
+        df = pd.DataFrame()
 
         if _speedReg or _multimodal:
             epochSpeed = fig.savePlotByStep(self._figurePath,"Speed")
@@ -212,7 +216,6 @@ class ImitationModel(object):
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
             print("Epoch",epoch+1,"-----------------------------------")
-            scheduler.step()
             
             # Train
             #lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
@@ -252,6 +255,10 @@ class ImitationModel(object):
                     t.refresh()
                     running_loss = 0.0
                 lossTrain.update(runtime_loss)
+            t.close()
+            
+            # Scheduler step
+            scheduler.step()
             
             lossTrain = lossTrain.val()
             print("Epoch training loss:",lossTrain)
@@ -265,6 +272,16 @@ class ImitationModel(object):
             epochBrake.update(metr[2])
             if _speedReg:
                 epochSpeed.update(metr[3])
+
+            if _speedReg:
+                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2],metr[3]) )
+                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake','Speed'])
+            else:
+                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
+                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
+
+            # Save csv
+            df.to_csv(self._modelPath + "/model.csv")
 
             # Save checkpoint
             self._state_add(     'epoch',           epoch + 1  )
