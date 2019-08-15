@@ -100,9 +100,7 @@ class Kim2017(nn.Module):
         torch.nn.init.xavier_uniform_(self.init_Wc.weight)
 
         #
-        self.out = torch.zeros([self.sequence_len,
-                                int(self.batch_size/self.sequence_len),
-                                n_out])
+        
         
     """ Initialize LSTM: hidden state and cell state
         Ref: Xu, Kelvin, et al. "Show, attend and tell: Neural 
@@ -114,57 +112,108 @@ class Kim2017(nn.Module):
                   cell    [1,batch,H]
     """
     def initializeLSTM(self,feature):
-        # Mean features
-        feature = torch.mean(feature,1) # [batch,L,D] -> [batch,D]
-        
-        hidden = self.init_Wh(feature)  # [batch,D]*[D,H] -> [batch,H]
-        hidden = self.init_tanh(hidden) # [batch,H]
-        hidden = hidden.unsqueeze(0)    # [1,batch,H]
+        with torch.no_grad():
+            # Mean features
+            feature = torch.mean(feature,1) # [batch,L,D] -> [batch,D]
+            
+            hidden = self.init_Wh(feature)  # [batch,D]*[D,H] -> [batch,H]
+            hidden = self.init_tanh(hidden) # [batch,H]
+            hidden = hidden.unsqueeze(0)    # [1,batch,H]
 
-        cell = self.init_Wc(feature)    # [batch,D]*[D,H] -> [batch,H]
-        cell = self.init_tanh(cell)     # [batch,H]
-        cell = cell.unsqueeze(0)        # [1,batch,H]
+            cell = self.init_Wc(feature)    # [batch,D]*[D,H] -> [batch,H]
+            cell = self.init_tanh(cell)     # [batch,H]
+            cell = cell.unsqueeze(0)        # [1,batch,H]
 
-        # (h,c) ~ [num_layers, batch, hidden_size]
-        return hidden.contiguous(),cell.contiguous()
+            # (h,c) ~ [num_layers, batch, hidden_size]
+            return hidden.contiguous(),cell.contiguous()
         
     """ Forward """
     def forward(self,feature):
         batch_size   = int(self.batch_size/self.sequence_len)
         sequence_len = self.sequence_len
-
-        # Fragment
-        sequence = feature.view( batch_size,sequence_len,self.L,self.D )
-        sequence.transpose_(0,1)    # [sequence,batch,L,D]
-
-        # Inicialize hidden state and cell state
-        #   * hidden ~ [1,batch,H]
-        #   * cell   ~ [1,batch,H]
-        hidden,cell = self.initializeLSTM(sequence[0])
-
-        # Sequence loop
-        for k in range(sequence_len):
-            # One time
-            xt = sequence[k]                  # [batch,L,D]
-            
-            # Visual Attention
-            alpha = self.attn(xt,hidden)      # [batch,L,1]
-            yt = xt * alpha                   # [batch,L,D]x[batch,L,1] = [batch,L,D]
-            yt = yt.view(1,batch_size,self.R) # [1,batch,R]
-
-            # LSTM
-            #  * yt     ~ [sequence,batch,H]
-            #  * hidden ~ [ layers ,batch,H]
-            #  * cell   ~ [ layers ,batch,H]
-            yt,(hidden,cell) = self.lstm(yt,(hidden,cell))
-
-            # Control
-            ut = self.Wh(hidden) + self.Wy(yt)               # [1,batch,M]
-            ut = F.dropout(ut, p=0.5, training=self.training)
-            ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-            
-            # Save sequence out
-            self.out[k] = ut
         
-        return self.out.contiguous().transpose(0,1).view(self.batch_size,self.n_out)
+        #
+        # Training mode
+        # -------------
+        if self.training:
+            out = torch.zeros([sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
+
+            # Fragment
+            sequence = feature.view( batch_size,sequence_len,self.L,self.D )
+            sequence.transpose_(0,1)    # [sequence,batch,L,D]
+
+            # Inicialize hidden state and cell state
+            #   * hidden ~ [1,batch,H]
+            #   * cell   ~ [1,batch,H]
+            hidden,cell = self.initializeLSTM(sequence[0])
+
+            # Sequence loop
+            for k in range(sequence_len):
+                # One time
+                xt = sequence[k]        # [batch,L,D]
+                
+                # Visual Attention
+                alpha = self.attn(xt,hidden)                # [batch,L,1]
+                visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
+                visual = visual.reshape(batch_size,self.R)  # [batch,R]
+                visual = visual.unsqueeze(0)                # [1,batch,R]
+                
+                # LSTM
+                #  * yt     ~ [sequence,batch,H]
+                #  * hidden ~ [ layers ,batch,H]
+                #  * cell   ~ [ layers ,batch,H]
+                yt,(hidden,cell) = self.lstm(visual,(hidden,cell))
+                
+                # Control
+                ut = self.Wh(hidden) + self.Wy(visual)               # [1,batch,M]
+                ut = F.dropout(ut, p=0.5, training=self.training)
+                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
+                
+                # Save sequence out
+                out[k] = ut
+            
+            return out.transpose(0,1).contiguous().view(self.batch_size,self.n_out)
+            
+            
+        #
+        # Evaluation mode
+        # ---------------
+        else:
+            # Fragment
+            sequence = feature # [batch,L,D]
+
+            # Inicialize hidden state and cell state
+            #   * hidden ~ [1,batch,H]
+            #   * cell   ~ [1,batch,H]
+            hidden,cell = self.initializeLSTM(feature[0].unsqueeze(0))
+            
+            # Prediction container
+            #pred = self.out.contiguous().view(self.batch_size,self.n_out)
+            pred = torch.zeros([self.batch_size,self.n_out]).to( torch.device('cuda:0') )
+
+            # Sequence loop
+            for k in range(self.batch_size):
+                # One time
+                xt = sequence[k].unsqueeze(0)       # [1,L,D]
+
+                # Visual Attention
+                alpha = self.attn(xt,hidden)      # [batch,L,1]
+                yt = xt * alpha                   # [batch,L,D]x[batch,L,1] = [batch,L,D]
+                yt = yt.view(1,self.R)  # [1,R]
+                yt = yt.unsqueeze(0)    # [1,1,R]
+
+                # LSTM
+                #  * yt     ~ [sequence,batch,H]
+                #  * hidden ~ [ layers ,batch,H]
+                #  * cell   ~ [ layers ,batch,H]
+                yt,(hidden,cell) = self.lstm(yt,(hidden,cell))
+
+                # Control
+                ut = self.Wh(hidden) + self.Wy(yt)               # [1,batch,M]
+                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
+                
+                # Save sequence out
+                pred[k] = ut
+
+            return pred
         

@@ -1,5 +1,18 @@
 import torch
+import numpy as np
 import torch.nn as nn
+
+def xavierInit(model):
+    if isinstance(model, nn.Conv2d):
+        nn.init.xavier_uniform_(model.weight.data)
+        model.bias.data.fill_(0)
+    
+    if isinstance(model, nn.Linear):
+        size = model.weight.size()
+        fan_out = size[0] # number of rows
+        fan_in  = size[1] # number of columns
+        variance = np.sqrt(2.0/(fan_in + fan_out))
+        model.weight.data.normal_(0.0, variance)
 
 """ Convolutional Neuronal Network - 5 layers
     -----------------------------------------
@@ -42,7 +55,7 @@ class CNN5(nn.Module):
                         nn.ReLU()
                     )
         # Initialize
-        torch.nn.init.xavier_uniform_(self.net.weight)
+        self.net.apply(xavierInit)
         
     """ Forward """
     def forward(self,img):

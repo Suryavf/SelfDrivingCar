@@ -7,6 +7,7 @@ from   torch.utils.data import Dataset,DataLoader
 from   torch.autograd import Variable as V
 
 import ImitationLearning.network.ImitationNet as imL
+import Attention.        network.AttentionNet as attn
 
 from config import Config
 from config import Global
@@ -145,6 +146,8 @@ class ImitationModel(object):
             self.net = imL.MultimodalNet()
         elif _config.model is 'Codevilla18':
             self.net = imL.Codevilla18Net()
+        elif _config.model is 'Kim2017':
+            self.net = attn.Kim2017Net()
         else:
             print("ERROR: mode no found")
         
@@ -231,7 +234,7 @@ class ImitationModel(object):
                                                      batch_size  =  batch_size,
                                                      num_workers =  8)
             t = tqdm(iter(loader), leave=False, total=len(loader))
-
+            
             # Train
             model.train()
             for i, data in enumerate(t,0):

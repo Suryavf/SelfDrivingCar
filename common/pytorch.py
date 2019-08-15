@@ -118,7 +118,7 @@ for m in self.modules():
         target: Ground truth
 """
 # Weight to weightedLoss()
-if  _config.model in ['Basic', 'Multimodal', 'Codevilla18']:
+if  _config.model in ['Basic', 'Multimodal', 'Codevilla18','Kim2017']:
     weightLoss = torch.Tensor([ _config.lambda_steer, 
                                 _config.lambda_gas  , 
                                 _config.lambda_brake]).float().cuda(device) 
