@@ -64,6 +64,7 @@ class Attention(nn.Module):
         * Output: alpha  [batch,L,1]
 """
 class Kim2017(nn.Module):
+    """ Constructor """
     def __init__(self,n_out):
         super(Kim2017, self).__init__()
         
