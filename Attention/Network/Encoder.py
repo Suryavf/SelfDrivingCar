@@ -11,6 +11,7 @@ import torch.nn as nn
         * Output: xt [batch,L,D]
 """
 class CNN5(nn.Module):
+    """ Constructor """
     def __init__(self):
         super(CNN5, self).__init__()
         # Parameters
@@ -43,6 +44,7 @@ class CNN5(nn.Module):
         # Initialize
         torch.nn.init.xavier_uniform_(self.net.weight)
         
+    """ Forward """
     def forward(self,img):
         xt = self.net(img)                          # [batch,D,h,w]
         xt = xt.view(self.batch_size,self.D,self.L) # [batch,D,L]
