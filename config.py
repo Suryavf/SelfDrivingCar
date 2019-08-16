@@ -16,7 +16,7 @@ class Config(object):
     filesPerGroup = 100#187
 
     # Model
-    model      = 'Multimodal' # Basic, Multimodal, Codevilla18, Codevilla19
+    model      = 'Kim2017' # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
     n_epoch    =  80
     batch_size = 120
     time_demostration = 72000 # 20 h
@@ -37,4 +37,8 @@ class Config(object):
     lambda_brake = 0.05
     lambda_action = 0.95
     lambda_speed  = 0.05
+    
+class setting(object):
+    def __init__(self):
+        pass
     

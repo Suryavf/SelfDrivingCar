@@ -250,17 +250,16 @@ class Codevilla18Net(nn.Module):
 
         self._perception    =        ResNet()
         self._measuredSpeed =   SpeedModule()
-        self._control       = ControlModule()
-
         self._jointLayer    = nn.Linear(640,512)
+
+        self._branches = nn.ModuleList([ ControlModule() for i in range(4) ])
 
         # Inicialize
         self._perception   .apply(xavierInit)
         self._measuredSpeed.apply(xavierInit)
-        self._control      .apply(xavierInit)
         xavierInit(self._jointLayer)
     
-    def forward(self,img,vm):
+    def forward(self,img,vm,mask):
         percp = self._perception   (img)
         speed = self._measuredSpeed( vm)
         
@@ -269,10 +268,9 @@ class Codevilla18Net(nn.Module):
         signal = F.dropout(signal, p=0.5, training=self.training)
         
         # Branches
-        branches = nn.ModuleList([ ControlModule() for i in range(4) ])
-        y_pred   = torch.cat( [out(signal) for out in branches], dim=1)
+        y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
         
-        return y_pred
+        return y_pred*mask
 
     def saveSettings(self,path):
         setting = {

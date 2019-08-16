@@ -127,6 +127,8 @@ elif _config.model in ['Codevilla19']:
                                 _config.lambda_gas   * _config.lambda_action, 
                                 _config.lambda_brake * _config.lambda_action,
                                 _config.lambda_speed ]).float().cuda(device) 
+if __branches:
+    weightLoss = torch.cat( [weightLoss for _ in range(4)] )
 def weightedLoss(input, target):
     loss = torch.abs(input - target)
     loss = torch.mean(loss,0)
@@ -310,7 +312,7 @@ def validation(model,lossFunc,epoch,path,figPath):
             runtime_loss = loss.item()
             running_loss += runtime_loss
             lossValid.update(runtime_loss)
-
+            
             # Mean squared error
             err = MSE(output,action)
             err = err.data.cpu().numpy()
