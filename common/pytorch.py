@@ -298,6 +298,9 @@ def validation(model,lossFunc,epoch,path,figPath):
                 data = frame, action
             else:
                 raise NameError('ERROR 404: Model no found')
+            
+            if frame.shape[0] != 120:
+                break
 
             # Model execute
             action, output = runModel(model,data)

@@ -234,7 +234,7 @@ class ImitationModel(object):
                                                      batch_size  =  batch_size,
                                                      num_workers =  8)
             t = tqdm(iter(loader), leave=False, total=len(loader))
-            
+        
             # Train
             model.train()
             for i, data in enumerate(t,0):

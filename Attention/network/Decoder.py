@@ -98,8 +98,6 @@ class Kim2017(nn.Module):
         torch.nn.init.xavier_uniform_(self.     Wu.weight)
         torch.nn.init.xavier_uniform_(self.init_Wh.weight)
         torch.nn.init.xavier_uniform_(self.init_Wc.weight)
-
-        #
         
         
     """ Initialize LSTM: hidden state and cell state
@@ -188,28 +186,27 @@ class Kim2017(nn.Module):
             hidden,cell = self.initializeLSTM(feature[0].unsqueeze(0))
             
             # Prediction container
-            #pred = self.out.contiguous().view(self.batch_size,self.n_out)
             pred = torch.zeros([self.batch_size,self.n_out]).to( torch.device('cuda:0') )
 
             # Sequence loop
             for k in range(self.batch_size):
                 # One time
-                xt = sequence[k].unsqueeze(0)       # [1,L,D]
+                xt = sequence[k].unsqueeze(0)      # [1,L,D]
 
                 # Visual Attention
-                alpha = self.attn(xt,hidden)      # [batch,L,1]
-                yt = xt * alpha                   # [batch,L,D]x[batch,L,1] = [batch,L,D]
-                yt = yt.view(1,self.R)  # [1,R]
-                yt = yt.unsqueeze(0)    # [1,1,R]
+                alpha = self.attn(xt,hidden)       # [batch,L,1]
+                visual = xt * alpha                # [batch,L,D]x[batch,L,1] = [batch,L,D]
+                visual = visual.reshape(1,self.R)  # [1,R]
+                visual = visual.unsqueeze(0)       # [1,1,R]
 
                 # LSTM
                 #  * yt     ~ [sequence,batch,H]
                 #  * hidden ~ [ layers ,batch,H]
                 #  * cell   ~ [ layers ,batch,H]
-                yt,(hidden,cell) = self.lstm(yt,(hidden,cell))
+                yt,(hidden,cell) = self.lstm(visual,(hidden,cell))
 
                 # Control
-                ut = self.Wh(hidden) + self.Wy(yt)               # [1,batch,M]
+                ut = self.Wh(hidden) + self.Wy(visual)           # [1,batch,M]
                 ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
                 
                 # Save sequence out
