@@ -96,19 +96,6 @@ def xavierInit(model):
         fan_in  = size[1] # number of columns
         variance = np.sqrt(2.0/(fan_in + fan_out))
         model.weight.data.normal_(0.0, variance)
-"""
-for m in self.modules():
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(
-            m.weight, mode='fan_out', nonlinearity='relu')
-    elif isinstance(m, nn.BatchNorm2d):
-        nn.init.constant_(m.weight, 1)
-        nn.init.constant_(m.bias, 0)
-    elif isinstance(m, nn.Linear):
-        nn.init.xavier_uniform_(
-            m.weight)
-        m.bias.data.fill_(0.01)
-"""
 
 
 """ Weighted loss
@@ -118,15 +105,9 @@ for m in self.modules():
         target: Ground truth
 """
 # Weight to weightedLoss()
-if  _config.model in ['Basic', 'Multimodal', 'Codevilla18','Kim2017']:
-    weightLoss = torch.Tensor([ _config.lambda_steer, 
-                                _config.lambda_gas  , 
-                                _config.lambda_brake]).float().cuda(device) 
-elif _config.model in ['Codevilla19']:
-    weightLoss = torch.Tensor([ _config.lambda_steer * _config.lambda_action, 
-                                _config.lambda_gas   * _config.lambda_action, 
-                                _config.lambda_brake * _config.lambda_action,
-                                _config.lambda_speed ]).float().cuda(device) 
+weightLoss = torch.Tensor([ _config.lambda_steer, 
+                            _config.lambda_gas  , 
+                            _config.lambda_brake]).float().cuda(device) 
 if __branches:
     weightLoss = torch.cat( [weightLoss for _ in range(4)] )
 def weightedLoss(input, target):
@@ -134,7 +115,15 @@ def weightedLoss(input, target):
     loss = torch.mean(loss,0)
 
     return torch.sum(loss*weightLoss)
+def weightedSpeedRegLoss(input, action,vm,vp):
+    actionLoss = torch.abs (input - action)
+    actionLoss = torch.mean(actionLoss,0)
+    actionLoss = torch.sum (actionLoss*weightLoss)
 
+    speedLoss = torch.abs(vm -vp)
+    speedLoss = torch.mean(speedLoss)
+
+    return actionLoss * _config.lambda_action + speedLoss * _config.lambda_speed
 
 """
 Metrics
