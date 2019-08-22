@@ -52,8 +52,40 @@ class SpeedModule(nn.Module):
         out = F.dropout(out, p=0.5, training=self.training)
 
         return torch.squeeze(out)
-  
+
+
+""" Speed Regularization Module
     
+    Fully connect network.
+        * Input : torch (512)
+        * Output: speed (scalar)
+
+    Methods:
+        @forward: Forward network
+            - x: input
+        @saveSettings: Save setting
+            - path: directory to save
+
+    Return: Name for directory model
+"""
+class SpeedRegModule(nn.Module):
+    def __init__(self):
+        super(SpeedRegModule, self).__init__()
+
+        self._fully1 = nn.Linear(512,256)
+        self._fully2 = nn.Linear(256,256)
+        self._fully3 = nn.Linear(256, 1 )
+
+    def forward(self,sig):
+        h1 = F.relu(self._fully1(sig))
+        h1 = F.dropout(h1, p=0.5, training=self.training)
+        h2 = F.relu(self._fully2( h1))
+
+        out = self._fully3(h2)
+
+        return out
+    
+
 """ Control Module
     
     Fully connect network.
@@ -300,4 +332,59 @@ class Codevilla18Net(nn.Module):
         
         with open(path, "w") as write_file:
             json.dump(setting, write_file, indent=4)
+
+
+""" Codevilla 2019 Network
+    ----------------------
+    Codevilla, F., Santana, E., López, A. M., & Gaidon, A. (2019). Exploring 
+    the Limitations of Behavior Cloning for Autonomous Driving.
+    Ref: https://arxiv.org/pdf/1904.08980.pdf
+        * Input: image (matrix: 3,88,200)
+                 speed (scalar)
+        * Output: action (vector: 4) [Steer,Gas,Brake]
+                  speed
+
+    Methods:
+        @forward: Forward network
+            - img: image input
+            - vm : speed input
+        @saveSettings: Save setting
+            - path: directory to save
+
+    Return: Name for directory model
+"""
+class Codevilla19Net(nn.Module):
+    def __init__(self):
+        super(Codevilla19Net, self).__init__()
+
+        self._perception    =           ResNet()
+        self._measuredSpeed =      SpeedModule()
+        self._regSpeed      =   SpeedRegModule()
+        self._jointLayer    = nn.Linear(640,512)
+
+        self._branches = nn.ModuleList([ ControlModule() for i in range(4) ])
+
+        # Inicialize
+        self._perception   .apply(xavierInit)
+        self._measuredSpeed.apply(xavierInit)
+        xavierInit(self._jointLayer)
+    
+    def forward(self,img,vm,mask):
+        percp = self._perception   (img)
+        speed = self._measuredSpeed( vm)
+        
+        # Actions prediction
+        joint  = torch.cat( (percp,speed), dim=1  )
+        signal = F.relu(self._jointLayer(joint))
+        signal = F.dropout(signal, p=0.5, training=self.training)
+        
+        #Speed prediction
+        v_pred = self._regSpeed(percp)
+        
+        # Branches
+        y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
+        y_pred = y_pred*mask
+        
+        
+        return y_pred*mask,v_pred
 

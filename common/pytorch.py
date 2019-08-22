@@ -130,8 +130,12 @@ Metrics
 """
 def MSE(input, target):
     loss = (input - target) ** 2
-    return torch.mean(loss,0)
-
+    if __branches:
+        loss = torch.mean(loss,0)
+        loss = loss.view(4,3)
+        return torch.sum(loss,0)
+    else:
+        return torch.mean(loss,0)
 
 """ Model prediction
     ----------------
@@ -154,8 +158,12 @@ def runModel(model,data):
         speed  =  speed.to(device)
         action = action.to(device)
 
-        y_pred = model(frame,speed,mask)
-    
+        if __speedReg:
+            y_pred,speed,v_pred = model(frame,speed,mask)
+            return action, y_pred, speed, v_pred
+        else:
+            y_pred = model(frame,speed,mask)
+
     # Multimodal
     elif __multimodal and not __branches:
         frame, speed, action = data
@@ -294,23 +302,37 @@ def validation(model,lossFunc,epoch,path,figPath):
                 break
 
             # Model execute
-            action, output = runModel(model,data)
+            if __speedReg:
+                action, y_pred, speed, v_pred = runModel(model,data)
+                loss = weightedSpeedRegLoss(y_pred,action,speed,v_pred)
+            else:
+                action, output = runModel(model,data)
+                loss  = lossFunc(output, action)
             
             # Calculate the loss
-            loss  = lossFunc(output, action)
             runtime_loss = loss.item()
             running_loss += runtime_loss
             lossValid.update(runtime_loss)
             
             # Mean squared error
             err = MSE(output,action)
+            if __speedReg:
+                verr = (speed - v_pred) ** 2
+                verr = torch.mean(verr)
+                err = torch.cat([err,verr])
             err = err.data.cpu().numpy()
             metrics.update(err)
+            
+            if __branches:
+                output = output.view(-1,4,3)
+                output = output.sum(1)
             
             # Save values
             all_action .append( output.data.cpu().numpy() )
             all_speed  .append(  speed  )
             all_command.append( command )
+
+            
 
             if i % stepView == (stepView-1):   # print every stepView mini-batches
                 message = 'BatchValid loss=%.5f'
@@ -346,9 +368,9 @@ def validation(model,lossFunc,epoch,path,figPath):
         print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
     
     # Save figures
-    histogramPath = figPath + "/Histogram" + str(epoch) + ".png"
-    scatterPath   = figPath + "/Scatter"   + str(epoch) + ".png"
-    polarPath     = figPath + "/Polar"     + str(epoch) + ".png"
+    histogramPath = figPath + "/Histogram/Histogram" + str(epoch+1) + ".png"
+    scatterPath   = figPath + "/Scatter/Scatter"   + str(epoch+1) + ".png"
+    polarPath     = figPath + "/Polar/Polar"     + str(epoch+1) + ".png"
     F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, scatterPath )
     F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command, polarPath )
     if __speedReg:

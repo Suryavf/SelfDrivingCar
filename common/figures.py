@@ -118,7 +118,7 @@ class savePlotByStep():
 
         if n_epoch > 2:
             epochs = list( range(1,n_epoch+1) )
-            name = self._name + ".png"
+            name = self._name + ".svg"
             path = join(self._path,name)
             
             fig, ax = plt.subplots()
@@ -148,7 +148,7 @@ class save2PlotByStep():
 
         if n_epoch > 2:
             epochs = list( range(1,n_epoch+1) )
-            name = self._name + ".png"
+            name = self._name + ".svg"
             path = join(self._path,name)
             
             fig, ax = plt.subplots()

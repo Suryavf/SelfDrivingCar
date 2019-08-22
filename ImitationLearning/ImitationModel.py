@@ -94,7 +94,11 @@ def pred(model,data):
         speed  =  speed.to(device)
         action = action.to(device)
 
-        y_pred = model(frame,speed,mask)
+        if _speedReg:
+            y_pred,v_pred = model(frame,speed,mask)
+            return action, y_pred, speed, v_pred
+        else:
+            y_pred = model(frame,speed,mask)
     
     # Multimodal
     elif _multimodal and not _branches:
@@ -139,6 +143,10 @@ class ImitationModel(object):
         checkdirectory(self._figurePath)
         checkdirectory(self. _modelPath)
 
+        checkdirectory(self._figurePath + "/Histogram")
+        checkdirectory(self._figurePath + "/Scatter")
+        checkdirectory(self._figurePath + "/Polar")
+
         # Nets
         if   _config.model is 'Basic':
             self.net = imL.BasicNet()
@@ -146,6 +154,8 @@ class ImitationModel(object):
             self.net = imL.MultimodalNet()
         elif _config.model is 'Codevilla18':
             self.net = imL.Codevilla18Net()
+        elif _config.model is 'Codevilla19':
+            self.net = imL.Codevilla19Net()
         elif _config.model is 'Kim2017':
             self.net = attn.Kim2017Net()
         else:
@@ -218,7 +228,7 @@ class ImitationModel(object):
 
         # Loop over the dataset multiple times
         for epoch in range(n_epoch):
-            print("Epoch",epoch+1,"-----------------------------------")
+            print("\nEpoch",epoch+1,"-----------------------------------")
             
             # Train
             #lossTrain = T.train(model,optimizer,scheduler,lossFun,trainPath)
@@ -239,8 +249,12 @@ class ImitationModel(object):
             model.train()
             for i, data in enumerate(t,0):
                 # Model execute
-                action, output = pred(model,data)
-                loss = lossFunc(output, action)
+                if _speedReg:
+                    action, y_pred, speed, v_pred = pred(model,data)
+                    loss = T.weightedSpeedRegLoss(y_pred,action,speed,v_pred)
+                else:
+                    action, output = pred(model,data)
+                    loss = T.weightedLoss(output, action)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()

@@ -105,13 +105,13 @@ class CoRL2017Dataset(Dataset):
                                         p=0.09),
                     ]),
                 transforms.ToPILImage(),
-                transforms.Resize((92,196)),
-                #transforms.Resize((96,192)),
+                #transforms.Resize((92,196)),
+                transforms.Resize((96,192)),
                 transforms.ToTensor()])
         else:
             self._transform = transforms.Compose([transforms.ToPILImage(),
-                                                  transforms.Resize((92,196)),
-                                                  #transforms.Resize((96,192)),
+                                                  #transforms.Resize((92,196)),
+                                                  transforms.Resize((96,192)),
                                                   transforms.ToTensor(),])
 
     def __len__(self):
@@ -160,7 +160,7 @@ class CoRL2017Dataset(Dataset):
         
         if self._isBranches:
             # Control output
-            command = np.array(target[24]-2)
+            command = int(np.array(target[24]-2))
             out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
             out[command,:] = target[:3]
 
