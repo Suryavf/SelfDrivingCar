@@ -16,7 +16,7 @@ class Config(object):
     filesPerGroup = 100#187
 
     # Model
-    model      = 'Kim2017' # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+    model      = 'Codevilla19' # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
     n_epoch    =  80
     batch_size = 120
     time_demostration = 72000 # 20 h

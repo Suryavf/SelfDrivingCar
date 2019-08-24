@@ -32,6 +32,8 @@ class RandomTransWrapper(object):
     -------------
     Data generator for Carla Dataset.
     Ref: https://github.com/onlytailei/carla_cil_pytorch/blob/uncertain_open/carla_loader.py
+    https://github.com/felipecode/imitation-learning-1
+    https://github.com/carla-simulator/data-collector/blob/master/docs/dataset_format_description.md
         * Input: path       (str)
                  train      (bool)
                  branches   (bool)

@@ -159,7 +159,7 @@ def runModel(model,data):
         action = action.to(device)
 
         if __speedReg:
-            y_pred,speed,v_pred = model(frame,speed,mask)
+            y_pred,v_pred = model(frame,speed,mask)
             return action, y_pred, speed, v_pred
         else:
             y_pred = model(frame,speed,mask)
@@ -276,6 +276,9 @@ def validation(model,lossFunc,epoch,path,figPath):
     n_loader = len(loader)
     pbar = tqdm(range(1,n_loader+1), leave=False, total=n_loader)
     
+    if __speedReg:
+        error = torch.zeros(4)
+
     # Model to evaluation
     model.eval()
     print("Execute validation")
@@ -303,8 +306,8 @@ def validation(model,lossFunc,epoch,path,figPath):
 
             # Model execute
             if __speedReg:
-                action, y_pred, speed, v_pred = runModel(model,data)
-                loss = weightedSpeedRegLoss(y_pred,action,speed,v_pred)
+                action, output, speed, v_pred = runModel(model,data)
+                loss = weightedSpeedRegLoss(output,action,speed,v_pred)
             else:
                 action, output = runModel(model,data)
                 loss  = lossFunc(output, action)
@@ -317,9 +320,12 @@ def validation(model,lossFunc,epoch,path,figPath):
             # Mean squared error
             err = MSE(output,action)
             if __speedReg:
+                error[:3] = err
                 verr = (speed - v_pred) ** 2
                 verr = torch.mean(verr)
-                err = torch.cat([err,verr])
+                error[3] = verr
+                err = error
+
             err = err.data.cpu().numpy()
             metrics.update(err)
             
@@ -328,9 +334,9 @@ def validation(model,lossFunc,epoch,path,figPath):
                 output = output.sum(1)
             
             # Save values
-            all_action .append( output.data.cpu().numpy() )
-            all_speed  .append(  speed  )
-            all_command.append( command )
+            all_action .append(  output.data.cpu().numpy() )
+            all_speed  .append(   speed.data.cpu().numpy()  )
+            all_command.append( command.data.cpu().numpy() )
 
             
 
