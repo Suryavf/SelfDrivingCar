@@ -13,14 +13,12 @@ class Config(object):
     trainPath = "./data/h5file/SeqTrain/"
     cookdPath = "/media/victor/Datos/Cooked"
     savedPath = "/media/victor/Datos/Saved"
-    filesPerGroup = 100#187
-
+    
     # Model
     model      = 'Codevilla19' # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
     n_epoch    =  80
     batch_size = 120
-    time_demostration = 72000 # 20 h
-
+    
     # Learning rate
     learning_rate_initial      = 0.0001
     learning_rate_decay_steps  = 10
