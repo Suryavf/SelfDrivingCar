@@ -1,4 +1,6 @@
-import math
+import random
+import numpy as np
+import torch
 
 class Global(object):
     framePerSecond =  10
@@ -36,7 +38,93 @@ class Config(object):
     lambda_action = 0.95
     lambda_speed  = 0.05
     
-class setting(object):
+
+class Init(object):
+    def __init__(self,manual_seed=True,seed=0):
+        self.manual_seed = manual_seed
+        self.seed        =        seed
+        self.device      =        None
+        self.device_name =    'cuda:0'
+        self.num_workers =          8
+        
+        # Seed
+        if self.manual_seed:
+            self.seed = int(random.random()*1000000)
+            torch.manual_seed(self.seed)
+            np.random   .seed(self.seed)
+
+        # Device
+        self.device = torch.device(self.device_name)
+
+    def device_(self,type_):
+        self.device_name = type_
+        self.device = torch.device(type_)
+
+
+class General_settings(object):
     def __init__(self):
-        pass
-    
+        self.framePerSecond =  10
+        self.framePerFile   = 200
+        self.stepView       =  10 # Print in Train
+
+        # Path files
+        self.validPath = "./data/h5file/SeqVal/"
+        self.trainPath = "./data/h5file/SeqTrain/"
+        self.savedPath = "/media/victor/Datos/Saved"
+
+
+class Preprocessing_settings(object):
+    def __init__(self):
+        self.data_aug     = True
+        self.Laskey_noise = False
+        self.input_size   = (88,200,3)
+        self.reshape      = False
+
+        # Normalize
+        self.max_speed    =  90
+        self.max_steering = 1.2
+
+
+class _Scheduler_settings(object):
+    def __init__(self):
+        self.available = True
+
+        self.learning_rate_initial      = 0.0001
+        self.learning_rate_decay_steps  = 10
+        self.learning_rate_decay_factor = 0.5
+
+
+class _Optimizer_settings(object):
+    def __init__(self):
+        self.type          = "adam"
+        self.learning_rate = 0.0001
+        self.beta_1        = 0.70   #0.9  #0.7 
+        self.beta_2        = 0.85   #0.999#0.85
+
+
+class _Loss_settings(object):
+    def __init__(self):
+        self.type         = "weight"
+        self.lambda_steer = 0.45
+        self.lambda_gas   = 0.45
+        self.lambda_brake = 0.10
+        self.lambda_action = 0.95
+        self.lambda_speed  = 0.05
+
+
+class Train_settings(object):
+    def __init__(self):
+        self.loss      =      _Loss_settings()
+        self.optimizer = _Optimizer_settings()
+        self.scheduler = _Scheduler_settings()
+
+        self.n_epoch    =  80
+        self.batch_size = 120
+
+
+class Setting(object):
+    def __init__(self):
+        self.preprocessing = Preprocessing_settings()
+        self.general       =       General_settings()
+        self.train         =         Train_settings()
+        
