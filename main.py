@@ -1,6 +1,6 @@
 import sys
 import argparse
-from utils import Setting
+import config
 
 from EndToEnd.endToEndModel import EndToEndModel
 from EndToEnd.CILmodel      import CILmodel
@@ -8,9 +8,14 @@ from ReinforcementLearning.dqnAgent import DQNAgent
 
 class Main():
 
-    def __init__(self,s):
-        self.model = None
+    def __init__(self,init,setting):
 
+        self.setting = setting
+        self.init    = init
+
+
+        self.model = None
+        """
         # Basic End-To-End
         if s.model == "endToEnd":
             from EndToEnd.config import Config
@@ -25,7 +30,7 @@ class Main():
             self.model = DQNAgent(Config())
         else:
             print("Invalid model type")
-
+        """
 
     def train(self):
         self.model.train()
@@ -42,26 +47,35 @@ if __name__ == "__main__":
     # Parser define
     parser = argparse.ArgumentParser(description="SelfDriving")
 
-    parser.add_argument("--data" ,type=str,default="./data"   ,help="Data for train/test")
-    parser.add_argument("--nets" ,type=str,default="./nets"   ,help="Path of model train")
-    parser.add_argument("--host" ,type=str,default="localhost",help="IP of the host server (default: localhost)")
-    parser.add_argument("--port" ,type=int,default=2000       ,help="TCP port to listen to (default: 2000)")
-    parser.add_argument("--city" ,type=str,default="Town01"   ,help="The town that is going to be used on benchmark") #Town01/Town02
-    parser.add_argument("--mode" ,type=str,default="train"    ,help="Select execution mode: train,test,play")
-    parser.add_argument("--model",type=str,default="model"    ,help="Agents model")
+    # Path
+    parser.add_argument("--trainpath" ,type=str,help="Data for train")
+    parser.add_argument("--validpath" ,type=str,help="Data for validation")
+    parser.add_argument("--savedpath" ,type=str,help="Data for saved data")
+    parser.add_argument("--n_epoch"   ,type=str,help="Number of epoch for train")
+    parser.add_argument("--batch_size",type=str,help="Batch size for train")
+
+    parser.add_argument("--mode" ,type=str,help="Select execution mode: train,test,play")
+    parser.add_argument("--model",type=str,help="Agents model")
     args = parser.parse_args()
 
 
     # Setting  
-    s = Setting()
-    s.datapath = args.data
-    s. netpath = args.nets
-    s.    host = args.host
-    s.    port = args.port
-    s.    city = args.city
+    init    = config.   Init()
+    setting = config.Setting()
+
+    # Path
+    if args.trainpath  is not None: setting.general.trainPath = args.trainpath
+    if args.validpath  is not None: setting.general.validPath = args.validpath
+    if args.savedpath  is not None: setting.general.savedPath = args.savedpath
+
+    # Train
+    if args.n_epoch    is not None: setting.train.n_epoch    = args.n_epoch
+    if args.batch_size is not None: setting.train.batch_size = args.batch_size
+    
+
 
     # Main program
-    main = Main(s)
+    main = Main(init,setting)
     """
     if   args.mode == "train":
         main.train()

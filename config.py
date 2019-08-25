@@ -40,21 +40,24 @@ class Config(object):
     
 
 class Init(object):
-    def __init__(self,manual_seed=True,seed=0):
-        self.manual_seed = manual_seed
-        self.seed        =        seed
-        self.device      =        None
-        self.device_name =    'cuda:0'
-        self.num_workers =          8
+    def __init__(self):
+        self.manual_seed =   False
+        self.seed        =       0
+        self.device      =    None
+        self.device_name = 'cuda:0'
+        self.num_workers =       8
         
-        # Seed
-        if self.manual_seed:
-            self.seed = int(random.random()*1000000)
-            torch.manual_seed(self.seed)
-            np.random   .seed(self.seed)
-
         # Device
         self.device = torch.device(self.device_name)
+
+    def set_seed(self,seed = -1):
+        if seed < 0:
+            self.seed = int(random.random()*1000000)
+        else:
+            self.seed = seed
+
+        torch.manual_seed(self.seed)
+        np.random   .seed(self.seed)
 
     def device_(self,type_):
         self.device_name = type_
@@ -104,10 +107,10 @@ class _Optimizer_settings(object):
 
 class _Loss_settings(object):
     def __init__(self):
-        self.type         = "weight"
-        self.lambda_steer = 0.45
-        self.lambda_gas   = 0.45
-        self.lambda_brake = 0.10
+        self.type          = "weight"
+        self.lambda_steer  = 0.45
+        self.lambda_gas    = 0.45
+        self.lambda_brake  = 0.10
         self.lambda_action = 0.95
         self.lambda_speed  = 0.05
 
@@ -118,8 +121,11 @@ class Train_settings(object):
         self.optimizer = _Optimizer_settings()
         self.scheduler = _Scheduler_settings()
 
-        self.n_epoch    =  80
-        self.batch_size = 120
+        self.n_epoch      =  80
+        self.batch_size   = 120
+        self.sequence_len =  20
+
+        self.dropout = 0.5
 
 
 class Setting(object):
@@ -127,4 +133,6 @@ class Setting(object):
         self.preprocessing = Preprocessing_settings()
         self.general       =       General_settings()
         self.train         =         Train_settings()
+        
+        self.model = "Codevilla19"
         
