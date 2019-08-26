@@ -190,6 +190,21 @@ def nameDirectoryModel(mode):
     
     time = year+month+day+hour+minute
     return mode+time
+def nameDirectory():
+    # Time
+    now = datetime.datetime.now()
+
+    year  = str(now.year)[2:]
+    if now.day<10: day = "0"+str(now.day)
+    else         : day =     str(now.day)
+    if now.hour<10: hour = "0"+str(now.hour)
+    else          : hour =     str(now.hour)
+    if now.month<10: month = "0"+str(now.month)
+    else           : month =     str(now.month)
+    if now.minute<10: minute = "0"+str(now.minute)
+    else            : minute =     str(now.minute)
+    
+    return year+month+day+hour+minute
 
 
 """ Check directory

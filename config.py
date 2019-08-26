@@ -42,6 +42,8 @@ class Config(object):
 _branchesList        = ['Codevilla18','Codevilla19']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
 _speedRegressionList = ['Codevilla19']
+_inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
+_outputSpeedList     = ['Codevilla19']
 
 class BooleanConditions(object):
     def __init__(self,model ):
@@ -67,11 +69,24 @@ class BooleanConditions(object):
         else:
             self.speedRegression = False
         
+        # Input speed
+        if model in _inputSpeedList:
+            self.inputSpeed = True
+        else:
+            self.inputSpeed = False
+
+        # Output speed
+        if model in _outputSpeedList:
+            self.outputSpeed = True
+        else:
+            self.outputSpeed = False
+
+
 
 class Init(object):
     def __init__(self):
         self.manual_seed =   False
-        self.seed        =       0
+        self.seed        =      -1
         self.device      =    None
         self.device_name = 'cuda:0'
         self.num_workers =       8
@@ -102,7 +117,7 @@ class General_settings(object):
         # Path files
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
-        self.savedPath = "/media/victor/Datos/Saved"
+        self.savedPath = "/media/victor/Datos/Saved/"
 
 
 class Preprocessing_settings(object):
@@ -165,4 +180,4 @@ class Setting(object):
         
         self.model   = "Codevilla19"
         self.boolean = BooleanConditions(self.model)
-        
+
