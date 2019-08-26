@@ -201,26 +201,32 @@ def train(model,optimizer,lossFunc,path):
     
     # Acomulative loss
     running_loss = 0.0
-    total_loss   = averager()
+    lossTrain   = averager()
 
     # Data Loader
-    loader = DataLoader( Dataset( path, train      =   True      , 
-                                        branches   = __branches  ,
-                                        multimodal = __multimodal,
-                                        speedReg   = __speedReg ),
-                        batch_size  = batch_size,
-                        num_workers = num_workers)
+    loader = DataLoader( Dataset( trainPath, train       =   True     , 
+                                                branches    = _branches  ,
+                                                multimodal  = _multimodal,
+                                                speedReg    = _speedReg ),
+                                                batch_size  =  batch_size,
+                                                num_workers =  8)
     t = tqdm(iter(loader), leave=False, total=len(loader))
+    
     # Train
     model.train()
     for i, data in enumerate(t,0):
         # Model execute
-        action, output = runModel(model,data)
+        if _speedReg:
+            action, y_pred, speed, v_pred = pred(model,data)
+            loss = T.weightedSpeedRegLoss(y_pred,action,speed,v_pred)
+        else:
+            action, output = pred(model,data)
+            loss = T.weightedLoss(output, action)
 
         # zero the parameter gradients
         optimizer.zero_grad()
+        model    .zero_grad()
 
-        loss = lossFunc(output, action)
         loss.backward()
         optimizer.step()
         
@@ -228,14 +234,17 @@ def train(model,optimizer,lossFunc,path):
         runtime_loss = loss.item()
         running_loss += runtime_loss
         if i % stepView == (stepView-1):   # print every stepView mini-batches
-            message = 'BatchTrain %i - loss=%.5f'
-            t.set_description( message % ( i+1,running_loss/stepView ))
+            message = 'BatchTrain loss=%.7f'
+            t.set_description( message % ( running_loss/stepView ))
             t.refresh()
             running_loss = 0.0
-        total_loss.update(runtime_loss)
+        lossTrain.update(runtime_loss)
+    t.close()
+    
+    lossTrain = lossTrain.val()
+    print("Epoch training loss:",lossTrain)
 
-    print("Epoch training loss:",total_loss.val())
-    return total_loss.val()
+    return lossTrain
 
 
 """

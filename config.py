@@ -39,6 +39,35 @@ class Config(object):
     lambda_speed  = 0.05
     
 
+_branchesList        = ['Codevilla18','Codevilla19']
+_multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
+_speedRegressionList = ['Codevilla19']
+
+class BooleanConditions(object):
+    def __init__(self,model ):
+        self.branches        = False
+        self.multimodal      = False
+        self.speedRegression = False
+
+        # Conditional (branches)
+        if model in _branchesList:
+            self.branches = True
+        else:
+            self.branches = False
+
+        # Multimodal (image + speed)
+        if model in _multimodalList:
+            self.multimodal = True
+        else:
+            self.multimodal = False
+
+        # Speed regression
+        if model in _speedRegressionList:
+            self.speedRegression = True
+        else:
+            self.speedRegression = False
+        
+
 class Init(object):
     def __init__(self):
         self.manual_seed =   False
@@ -134,5 +163,6 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model = "Codevilla19"
+        self.model   = "Codevilla19"
+        self.boolean = BooleanConditions(self.model)
         

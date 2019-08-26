@@ -127,7 +127,12 @@ def pred(model,data):
 
 class ImitationModel(object):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,init,setting):
+
+        self.init    =    init
+        self.setting = setting
+
+
         # Paths
         savedPath = _config.savedPath
         modelDir  = savedPath + "/" + nameDirectoryModel(_config.model)
@@ -149,31 +154,34 @@ class ImitationModel(object):
 
         # Nets
         if   _config.model is 'Basic':
-            self.net = imL.BasicNet()
+            self.model = imL.BasicNet()
         elif _config.model is 'Multimodal':
-            self.net = imL.MultimodalNet()
+            self.model = imL.MultimodalNet()
         elif _config.model is 'Codevilla18':
-            self.net = imL.Codevilla18Net()
+            self.model = imL.Codevilla18Net()
         elif _config.model is 'Codevilla19':
-            self.net = imL.Codevilla19Net()
+            self.model = imL.Codevilla19Net()
         elif _config.model is 'Kim2017':
-            self.net = attn.Kim2017Net()
+            self.model = attn.Kim2017Net()
         else:
             print("ERROR: mode no found")
         
         # Save settings
-        self.net.saveSettings(modelDir + "/setting.json")
+        self.model.saveSettings(modelDir + "/setting.json")
 
         # Optimizator
-        self._optimizer = optim.Adam(   self.net.parameters(), 
+        self.optimizer = optim.Adam(   self.model.parameters(), 
                                         lr    = _config.adam_lrate, 
                                         betas =(_config.adam_beta_1, 
                                                 _config.adam_beta_2)   )
 
         # Scheduler
-        self._scheduler = optim.lr_scheduler.StepLR(self._optimizer,
+        self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = _config.learning_rate_decay_steps,
                                                     gamma     = _config.learning_rate_decay_factor)
+
+        # Loss Function
+        self.lossFunc = T.weightedLoss
 
         # Internal parameters
         self._state = {}
@@ -199,9 +207,159 @@ class ImitationModel(object):
 
     """ Building """
     def build(self):
-        self.net = self.net.float()
-        self.net = self.net.apply(T.xavierInit)
-        self.net = self.net.to(device)
+        self.model = self.model.float()
+        self.model = self.model.apply(T.xavierInit)
+        self.model = self.model.to(device)
+
+
+    def trainExecute(self,data):
+        # Boolean conditions
+        branches        = self.setting.boolean.branches
+        multimodal      = self.setting.boolean.multimodal
+        speedRegression = self.setting.boolean.speedRegression
+        
+        inputSpeed = multimodal or speedRegression
+
+        # Input
+        if   not inputSpeed and not branches:
+            frame, action = data
+            
+            frame  =  frame.to(device)
+            action = action.to(device)
+
+        elif     inputSpeed and not branches:
+            frame, speed, action = data
+
+            frame  =  frame.to(device)
+            speed  =  speed.to(device)
+            action = action.to(device)
+
+        elif not inputSpeed and     branches:
+            frame, action, mask = data
+
+            mask   =   mask.to(device)
+            frame  =  frame.to(device)
+            action = action.to(device)
+
+        elif     inputSpeed and     branches:
+            frame, speed, action, mask = data
+
+            mask   =   mask.to(device)
+            frame  =  frame.to(device)
+            speed  =  speed.to(device)
+            action = action.to(device)
+
+        else:
+            raise NameError('ERROR 404: Model no found')
+
+
+        action = None 
+        y_pred = None
+
+        # Codevilla18, Codevilla19
+        if _multimodal and _branches:             
+            frame, speed, action, mask = data
+
+            mask   =   mask.to(device)
+            frame  =  frame.to(device)
+            speed  =  speed.to(device)
+            action = action.to(device)
+
+            if _speedReg:
+                y_pred,v_pred = self.model(frame,speed,mask)
+                return action, y_pred, speed, v_pred
+            else:
+                y_pred = self.model(frame,speed,mask)
+        
+        # Multimodal
+        elif _multimodal and not _branches:
+            frame, speed, action = data
+
+            frame  =  frame.to(device)
+            speed  =  speed.to(device)
+            action = action.to(device)
+
+            y_pred = self.model(frame,speed)
+
+        # Basic
+        elif not _multimodal and not _branches:
+            frame, action = data
+
+            frame  =  frame.to(device)
+            action = action.to(device)
+            
+            y_pred = self.model(frame)
+        else:
+            raise NameError('ERROR 404: Model no found')
+
+        return action, y_pred
+
+
+    """ Train function
+        --------------
+        Global train function
+            * Input: model     (nn.Module)
+                     optimizer (torch.optim)
+                     lossFunc  (function)
+                     path      (path)
+            * Output: total_loss (float) 
+    """
+    def train(self):
+        
+        # Acomulative loss
+        running_loss = 0.0
+        lossTrain   = averager()
+
+        # Data Loader
+        loader = DataLoader(  Dataset(  self.setting.general.trainPath, 
+                                        train       = True     , 
+                                        branches    = self.setting.boolean.branches  ,
+                                        multimodal  = self.setting.boolean.multimodal,
+                                        speedReg    = self.setting.boolean.speedRegression ),
+                                        batch_size  = self.setting.train.batch_size,
+                                        num_workers = self.init.num_workers)
+        t = tqdm(iter(loader), leave=False, total=len(loader))
+        
+        # Train
+        self.model.train()
+        for i, data in enumerate(t,0):
+            # Model execute
+            pred = self.trainExecute(data)
+            loss = self.lossFunc(1,2)
+            """
+            if _speedReg:
+                action, y_pred, speed, v_pred = pred(model,data)
+                loss = T.weightedSpeedRegLoss(y_pred,action,speed,v_pred)
+            else:
+                action, output = pred(model,data)
+                loss = T.weightedLoss(output, action)
+            """
+
+            # zero the parameter gradients
+            self.optimizer.zero_grad()
+            self.model    .zero_grad()
+
+            loss.backward()
+            self.optimizer.step()
+            
+            # Print statistics
+            runtime_loss = loss.item()
+            running_loss += runtime_loss
+            if i % stepView == (stepView-1):   # print every stepView mini-batches
+                message = 'BatchTrain loss=%.7f'
+                t.set_description( message % ( running_loss/stepView ))
+                t.refresh()
+                running_loss = 0.0
+            lossTrain.update(runtime_loss)
+        t.close()
+        
+        lossTrain = lossTrain.val()
+        print("Epoch training loss:",lossTrain)
+
+        return lossTrain
+
+
+
 
 
     """ Train/Evaluation """
@@ -212,7 +370,7 @@ class ImitationModel(object):
 
         optimizer = self._optimizer
         scheduler = self._scheduler
-        model     = self.net
+        model     = self.model
         lossFunc  = T.weightedLoss
         
         epochLoss  = fig.save2PlotByStep(self._figurePath,"Loss","Train","Evaluation")

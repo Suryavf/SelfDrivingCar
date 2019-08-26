@@ -2,8 +2,6 @@ import sys
 import argparse
 import config
 
-from EndToEnd.endToEndModel import EndToEndModel
-from EndToEnd.CILmodel      import CILmodel
 from ReinforcementLearning.dqnAgent import DQNAgent
 
 class Main():
@@ -58,7 +56,6 @@ if __name__ == "__main__":
     parser.add_argument("--model",type=str,help="Agents model")
     args = parser.parse_args()
 
-
     # Setting  
     init    = config.   Init()
     setting = config.Setting()
@@ -72,8 +69,6 @@ if __name__ == "__main__":
     if args.n_epoch    is not None: setting.train.n_epoch    = args.n_epoch
     if args.batch_size is not None: setting.train.batch_size = args.batch_size
     
-
-
     # Main program
     main = Main(init,setting)
     """
