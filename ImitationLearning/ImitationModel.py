@@ -1,15 +1,11 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from   torchvision import models, transforms, utils
 from   torch.utils.data import Dataset,DataLoader
-from   torch.autograd import Variable as V
 
 import ImitationLearning.network.ImitationNet as imL
 import Attention.        network.AttentionNet as attn
 
-import common.pytorch as T
 import common.figures as F
 import common.  utils as U
 from common.data  import CoRL2017Dataset as Dataset
@@ -18,11 +14,6 @@ from   tqdm import tqdm
 import pandas as pd
 import numpy  as np
 import os
-
-# Parameters
-batch_size     = 120
-n_epoch        = 150
-framePerSecond =  10
 
 
 class ImitationModel(object):
@@ -125,7 +116,7 @@ class ImitationModel(object):
         self._state_add('steerMSE',metr[0])
         self._state_add(  'gasMSE',metr[1])
         self._state_add('brakeMSE',metr[2])
-        if _config.model in ['Codevilla19']:
+        if self.setting.boolean.speedRegression:
             self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
         path = self._modelPath + "/model" + str(epoch + 1) + ".pth"
@@ -135,18 +126,17 @@ class ImitationModel(object):
     """ Building """
     def build(self):
         self.model = self.model.float()
-        self.model = self.model.apply(T.xavierInit)
         self.model = self.model.to(self.device)
 
 
     """ Loss Function """
-    def _weightedLossAct(x):
+    def _weightedLossAct(self,x):
         a_msr,a_pred = x
         loss = torch.abs(a_msr - a_pred)
         loss = torch.mean(loss,0)
 
-    return torch.sum(loss*self.weightLoss)
-    def _weightedLossActSpeed(x):
+        return torch.sum(loss*self.weightLoss)
+    def _weightedLossActSpeed(self,x):
         a_msr, a_pred, v_msr, v_pred = x
 
         actionLoss = torch.abs (a_msr - a_pred)
@@ -156,18 +146,16 @@ class ImitationModel(object):
         speedLoss = torch.abs(v_msr -v_pred)
         speedLoss = torch.mean(speedLoss)
 
-    return   actionLoss * self.setting.train.loss.lambda_action 
-           +  speedLoss * self.setting.train.loss.lambda_speed
+        lambda_action = self.setting.train.loss.lambda_action
+        lambda_speed  = self.setting.train.loss.lambda_speed
+        return actionLoss * lambda_action  +  speedLoss * lambda_speed
 
 
     """ Train Routine """
     def _trainRoutine(self,data):
 
         # Boolean conditions
-        branches        = self.setting.boolean.branches
-        multimodal      = self.setting.boolean.multimodal
-        speedRegression = self.setting.boolean.speedRegression
-        
+        branches    = self.setting.boolean.   branches
         inputSpeed  = self.setting.boolean. inputSpeed
         outputSpeed = self.setting.boolean.outputSpeed
 
@@ -234,7 +222,7 @@ class ImitationModel(object):
         # Acomulative loss
         running_loss = 0.0
         lossTrain   = U.averager()
-        stepView = setting.general.stepView
+        stepView = self.setting.general.stepView
 
         # Data Loader
         loader = DataLoader(  Dataset(  self.setting.general.trainPath, 
@@ -279,10 +267,13 @@ class ImitationModel(object):
 
     """ Validation Routine """
     def _validationRoutine(self,data):
+        # Boolean conditions
+        branches    = self.setting.boolean.  branches
+        inputSpeed  = self.setting.boolean.inputSpeed
+
         # Input
         if self.setting.boolean.branches:
             frame, command, v_msr, a_msr, mask = data
-
             mask    =    mask.to(self.device)
             frame   =   frame.to(self.device)
             v_msr   =   v_msr.to(self.device)
@@ -291,7 +282,6 @@ class ImitationModel(object):
 
         else:
             frame, command, v_msr, a_msr = data
-
             frame   =   frame.to(self.device)
             v_msr   =   v_msr.to(self.device)
             a_msr   =   a_msr.to(self.device)
@@ -325,9 +315,12 @@ class ImitationModel(object):
         errSteer = err[:,0]
         err = torch.mean(err,0)
         if self.setting.boolean.outputSpeed:
+            error = torch.zeros(4)
+            error[:3] = err
             verr = torch.abs(v_msr - v_pred)
             verr = torch.mean(verr)
-            err = torch.cat([ err, torch.tensor([verr],device=device) ])
+            error[3] = verr
+            err = error
 
         # Action
         if self.setting.boolean.branches:
@@ -351,7 +344,7 @@ class ImitationModel(object):
                      path     (path)
             * Output: total_loss (float) 
     """
-    def _Validation(self):
+    def _Validation(self,epoch):
         # Acomulative loss
         running_loss = 0.0
         all_speed    = list()
@@ -360,6 +353,7 @@ class ImitationModel(object):
         all_command  = list()
         all_errSteer = list()
         lossValid = U.averager()
+        stepView  = self.setting.general.stepView
         
         max_speed    = self.setting.preprocessing.max_speed
         max_steering = self.setting.preprocessing.max_steering
@@ -386,9 +380,7 @@ class ImitationModel(object):
         with torch.no_grad():
             for i, data in enumerate(t,0):
                 # Model execute
-                loss,err,
-                steer,errSteer,
-                a_pred,v_msr,command= self._evaluationRoutine(data)
+                loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
 
                 # Calculate the loss
                 runtime_loss  = loss.item()
@@ -455,29 +447,21 @@ class ImitationModel(object):
         return running_loss,metrics
     
 
-
-
-
     """ Train/Evaluation """
     def execute(self):
-        # List files
-        trainPath = self._trainPath
-        validPath = self._validPath
+        # Boolean conditions
+        outputSpeed = self.setting.boolean.outputSpeed
 
-        optimizer = self._optimizer
-        scheduler = self._scheduler
-        model     = self.model
-        lossFunc  = T.weightedLoss
-        
         epochLoss  = F.save2PlotByStep(self._figurePath,"Loss","Train","Evaluation")
         epochSteer = F.savePlotByStep (self._figurePath,"Steer")
         epochGas   = F.savePlotByStep (self._figurePath,"Gas")
         epochBrake = F.savePlotByStep (self._figurePath,"Brake")
         
         valuesToSave = list()
+        n_epoch = self.setting.train.n_epoch
         df = pd.DataFrame()
 
-        if _speedReg or _multimodal:
+        if outputSpeed:
             epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
 
         # Loop over the dataset multiple times
@@ -489,16 +473,16 @@ class ImitationModel(object):
             self.scheduler.step()
             
             # Validation
-            lossValid,metr = T.validation(model,lossFunc,epoch,validPath,self._figurePath)
+            lossValid,metr = self._Validation(epoch)
             
             epochLoss. update(lossTrain,lossValid)
             epochSteer.update(metr[0])
             epochGas  .update(metr[1])
             epochBrake.update(metr[2])
-            if _speedReg:
+            if outputSpeed:
                 epochSpeed.update(metr[3])
 
-            if _speedReg:
+            if outputSpeed:
                 valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2],metr[3]) )
                 df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake','Speed'])
             else:
@@ -509,12 +493,12 @@ class ImitationModel(object):
             df.to_csv(self._modelPath + "/model.csv")
 
             # Save checkpoint
-            self._state_add(     'epoch',           epoch + 1  )
-            self._state_add('state_dict',    model.state_dict())
-            self._state_add( 'scheduler',scheduler.state_dict())
-            self._state_add( 'optimizer',optimizer.state_dict())
-            self._state_add('loss_train',           lossTrain  )
-            self._state_add('loss_valid',           lossValid  )
+            self._state_add(     'epoch',                epoch + 1  )
+            self._state_add('state_dict',self.    model.state_dict())
+            self._state_add( 'scheduler',self.scheduler.state_dict())
+            self._state_add( 'optimizer',self.optimizer.state_dict())
+            self._state_add('loss_train',                lossTrain  )
+            self._state_add('loss_valid',                lossValid  )
             self._state_addMetrics(metr)
             self._state_save(epoch)
             

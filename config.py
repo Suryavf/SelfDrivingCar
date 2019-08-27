@@ -167,7 +167,7 @@ class Train_settings(object):
         self.optimizer = _Optimizer_settings()
         self.scheduler = _Scheduler_settings()
 
-        self.n_epoch      =  80
+        self.n_epoch      = 100
         self.batch_size   = 120
         self.sequence_len =  20
 

@@ -142,6 +142,9 @@ class BasicNet(nn.Module):
         self._fully      = nn.Linear(512,256)
         self._out        = nn.Linear(256,  3)
 
+        xavierInit(self._fully)
+        xavierInit(self._out  )
+
     def forward(self,x):
         x = self._perception(x)
         x = F.dropout(x, p=0.5, training=self.training)
@@ -158,7 +161,6 @@ class BasicNet(nn.Module):
             "model"            : _config.            model,
             "n_epoch"          : _config.          n_epoch,
             "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
             "Optimizer":{
                 "type"         : "adam",
                 "Learning_rate": {
@@ -232,7 +234,6 @@ class MultimodalNet(nn.Module):
             "model"            : _config.            model,
             "n_epoch"          : _config.          n_epoch,
             "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
             "Optimizer":{
                 "type"         : "adam",
                 "Learning_rate": {
@@ -309,7 +310,6 @@ class Codevilla18Net(nn.Module):
             "model"            : _config.            model,
             "n_epoch"          : _config.          n_epoch,
             "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
             "Optimizer":{
                 "type"         : "adam",
                 "Learning_rate": {
@@ -393,7 +393,6 @@ class Codevilla19Net(nn.Module):
             "model"            : _config.            model,
             "n_epoch"          : _config.          n_epoch,
             "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
             "Optimizer":{
                 "type"         : "adam",
                 "Learning_rate": {
