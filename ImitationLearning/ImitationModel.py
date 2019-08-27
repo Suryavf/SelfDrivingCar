@@ -53,7 +53,7 @@ class ImitationModel(object):
             print("ERROR: mode no found")
         
         # Save settings
-        self.model.saveSettings(modelDir + "/setting.json")
+        self.model.saveSettings( os.path.join(self._modelPath,"setting.json") )
 
         # Optimizator
         self.optimizer = optim.Adam(   self.model.parameters(), 
