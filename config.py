@@ -109,6 +109,9 @@ class Init(object):
         self.device_name = type_
         self.device = torch.device(type_)
 
+    def save(self):
+        pass
+
 
 class General_settings(object):
     def __init__(self):
@@ -120,6 +123,17 @@ class General_settings(object):
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
         self.savedPath = "/media/victor/Datos/Saved/"
+
+    def save(self):
+        return {
+            "framePerSecond" : self.framePerSecond,
+            "framePerFile"   : self.  framePerFile,
+            "stepView"       : self.      stepView,
+
+            "validPath" : self.validPath,
+            "trainPath" : self.trainPath,
+            "savedPath" : self.savedPath
+        }
 
 
 class Preprocessing_settings(object):
@@ -133,6 +147,17 @@ class Preprocessing_settings(object):
         self.max_speed    =  90
         self.max_steering = 1.2
 
+    def save(self):
+        return {
+            "reshape"      : self.      reshape,
+            "data_aug"     : self.     data_aug,
+            "input_size"   : self.   input_size,
+            "Laskey_noise" : self. Laskey_noise,
+
+            "max_speed"    : self.   max_speed,
+            "max_steering" : self.max_steering
+        }
+
 
 class _Scheduler_settings(object):
     def __init__(self):
@@ -142,6 +167,14 @@ class _Scheduler_settings(object):
         self.learning_rate_decay_steps  = 10
         self.learning_rate_decay_factor = 0.5
 
+    def save(self):
+        return {
+            "learning_rate_decay_factor" : self.learning_rate_decay_factor,
+            "learning_rate_decay_steps"  : self. learning_rate_decay_steps,
+            "learning_rate_initial"      : self.     learning_rate_initial,
+            "available"                  : self.                 available
+        }
+
 
 class _Optimizer_settings(object):
     def __init__(self):
@@ -149,6 +182,14 @@ class _Optimizer_settings(object):
         self.learning_rate = 0.0001
         self.beta_1        = 0.70   #0.9  #0.7 
         self.beta_2        = 0.85   #0.999#0.85
+
+    def save(self):
+        return {
+            "type"          : self.         type,
+            "beta_1"        : self.       beta_1,
+            "beta_2"        : self.       beta_2,
+            "learning_rate" : self.learning_rate
+        }
 
 
 class _Loss_settings(object):
@@ -159,6 +200,16 @@ class _Loss_settings(object):
         self.lambda_brake  = 0.10
         self.lambda_action = 0.95
         self.lambda_speed  = 0.05
+
+    def save(self):
+        return {
+            "type"          : self.         type,
+            "lambda_gas"    : self.   lambda_gas,
+            "lambda_steer"  : self. lambda_steer,
+            "lambda_brake"  : self. lambda_brake,
+            "lambda_speed"  : self. lambda_speed,
+            "lambda_action" : self.lambda_action
+        }
 
 
 class Train_settings(object):
@@ -173,13 +224,45 @@ class Train_settings(object):
 
         self.dropout = 0.5
 
+    def save(self):
+        return {
+            "dropout"      : self.     dropout,
+            "n_epoch"      : self.     n_epoch,
+            "batch_size"   : self.  batch_size,
+            "sequence_len" : self.sequence_len,
+            
+            "scheduler" : self.scheduler.save(),
+            "optimizer" : self.optimizer.save(),
+            "loss"      : self.     loss.save()
+        }
+
+
+class Evaluation_settings(object):
+    def __init__(self):
+        self.metric = "MAE"
+
+    def save(self):
+        return {
+            "metric": self.metric
+        }
+
 
 class Setting(object):
     def __init__(self):
         self.preprocessing = Preprocessing_settings()
+        self.evaluation    =    Evaluation_settings()
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
         self.model   = "Codevilla19"
         self.boolean = BooleanConditions(self.model)
 
+    def save(self):
+        return {
+            "model": self.model,
+
+            "preprocessing": self.preprocessing.save(),
+            "evaluation"   : self.   evaluation.save(),
+            "general"      : self.      general.save(),
+            "train"        : self.        train.save()
+        }
