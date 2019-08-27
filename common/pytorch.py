@@ -246,10 +246,6 @@ def train(model,optimizer,lossFunc,path):
 
     return lossTrain
 
-
-"""
-Validation function
-"""
 """ Validation function
     -------------------
     Global validation function

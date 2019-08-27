@@ -49,8 +49,10 @@ class BooleanConditions(object):
     def __init__(self,model ):
         self.branches        = False
         self.multimodal      = False
+        self.inputSpeed      = False
+        self.outputSpeed     = False
         self.speedRegression = False
-
+        
         # Conditional (branches)
         if model in _branchesList:
             self.branches = True

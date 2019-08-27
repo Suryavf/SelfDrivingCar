@@ -43,6 +43,25 @@ def saveScatterSteerSpeed(steer,speed,command,path):
     fig.tight_layout()
     fig.set_size_inches(10, 10)
     fig.savefig(path)
+def saveScatterError(steer,steerErr,command,path):
+    hgl = ['Follow lane','Left Turn','Straight','Right Turn']
+    cmd = [0,1,3,2]
+    idx = 0
+
+    fig, axs = plt.subplots(2, 2)
+    for i in range(2):
+        for j in range(2):
+            c = cmd[idx]
+            axs[i,j].scatter(steer[command==c],steerErr[command==c],alpha=0.1)
+            axs[i,j].grid(True)
+            axs[i,j].set_xlabel("Steer (True)")
+            axs[i,j].set_ylabel("Steer Error")
+            axs[i,j].set_title(hgl[idx])
+            axs[i,j].set_xlim(-1.2,1.2)
+            idx += 1
+    fig.tight_layout()
+    fig.set_size_inches(10, 10)
+    fig.savefig(path)
 def saveScatterPolarSteerSpeed(steer,speed,command,path):
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
