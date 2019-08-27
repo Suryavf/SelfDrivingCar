@@ -1,15 +1,10 @@
 import json
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from   torch.autograd import Variable as V
-from   torch.utils.data import Dataset,DataLoader
-from   torchvision import models, transforms, utils
 
-from ImitationLearning.network.ResNet import resnet34        as ResNet
-from common.data                      import CoRL2017Dataset as Dataset
-from common.pytorch import xavierInit
+import numpy as np
+from ImitationLearning.network.ResNet import resnet34 as ResNet
 
 from config import Config
 from config import Global
@@ -17,6 +12,20 @@ from config import Global
 # Settings
 _global = Global()
 _config = Config()
+
+
+""" Xavier initialization
+    ---------------------
+    Args:
+        model: torch model
+"""
+def xavierInit(model):
+    if isinstance(model, nn.Linear):
+        size = model.weight.size()
+        fan_out = size[0] # number of rows
+        fan_in  = size[1] # number of columns
+        variance = np.sqrt(2.0/(fan_in + fan_out))
+        model.weight.data.normal_(0.0, variance)
 
 
 """ Speed Module

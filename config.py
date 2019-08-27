@@ -4,7 +4,7 @@ import torch
 
 class Global(object):
     framePerSecond =  10
-    num_workers    =   8
+    num_workers    =   1
     stepView       =  10 # Print in Train
     max_steering   = 1.2
     max_speed      =  90

@@ -15,6 +15,14 @@ import pandas as pd
 import numpy  as np
 import os
 
+# Solution DataLoader bug
+# Ref: https://github.com/pytorch/pytorch/issues/973
+# import resource
+# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+# resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
+# =================
+torch.multiprocessing.set_sharing_strategy('file_system')
+# =================
 
 class ImitationModel(object):
     """ Constructor """
@@ -82,7 +90,6 @@ class ImitationModel(object):
         self. _trainPath = self.setting.general.trainPath
 
         # Root Path
-        os.path.join()
         savedPath = self.setting.general.savedPath
         modelPath = os.path.join(savedPath,self.setting.model)
         execPath  = os.path.join(modelPath,U.nameDirectory())
@@ -225,13 +232,9 @@ class ImitationModel(object):
         stepView = self.setting.general.stepView
 
         # Data Loader
-        loader = DataLoader(  Dataset(  self.setting.general.trainPath, 
-                                        train       = True     , 
-                                        branches    = self.setting.boolean.branches  ,
-                                        multimodal  = self.setting.boolean.multimodal,
-                                        speedReg    = self.setting.boolean.speedRegression ),
-                                        batch_size  = self.setting.train.batch_size,
-                                        num_workers = self.init.num_workers)
+        loader = DataLoader(Dataset(self.setting, train = True),
+                                    batch_size  = self.setting.train.batch_size,
+                                    num_workers = self.init.num_workers)
         t = tqdm(iter(loader), leave=False, total=len(loader))
         
         # Train
@@ -365,15 +368,10 @@ class ImitationModel(object):
             metrics = U.averager(3)   # Steer,Gas,Brake
 
         # Data Loader
-        loader = DataLoader(  Dataset(  self.setting.general.validPath, 
-                                        train       =   False     , 
-                                        branches    = self.setting.boolean.branches  ,
-                                        multimodal  = self.setting.boolean.multimodal,
-                                        speedReg    = self.setting.boolean.speedRegression ),
-                                        batch_size  = self.setting.train.batch_size,
-                                        num_workers = self.init.num_workers)
-        n_loader = len(loader)
-        t = tqdm(range(1,n_loader+1), leave=False, total=n_loader)
+        loader = DataLoader(Dataset(self.setting, train = False),
+                                    batch_size  = self.setting.train.batch_size,
+                                    num_workers = self.init.num_workers)
+        t = tqdm(iter(loader), leave=False, total=len(loader))
         
         # Model to evaluation
         self.model.eval()

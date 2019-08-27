@@ -73,46 +73,45 @@ class RandomTransWrapper(object):
 
 """
 class CoRL2017Dataset(Dataset):
-    def __init__(self, path, train      = True,
-                             branches   = False,
-                             multimodal = False,
-                             speedReg   = False):
+    def __init__(self, setting, train = True):
+
+        self._isTrain      = train
+        self._isBranches   = setting.boolean.branches
+        self._includeSpeed = setting.boolean.multimodal or setting.boolean.speedRegression
+
+        if train: path = setting.general.trainPath
+        else    : path = setting.general.validPath
         self._files = glob.glob(path+'*.h5')
         self._files.sort()
         self._transform = None
-
-        self._isTrain      =      train
-        self._isBranches   =   branches
-        self._includeSpeed = multimodal or speedReg
         
+        self._transformDataAug = transforms.RandomOrder([
+                                    RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
+                                                        p=0.09),
+                                    RandomTransWrapper( seq=iaa.AdditiveGaussianNoise(loc=0,scale=(0.0, 0.05),per_channel=0.5),
+                                                        p=0.09),
+                                    RandomTransWrapper( seq=iaa.Dropout((0.0, 0.10), per_channel=0.5),
+                                                        p=0.3),
+                                    RandomTransWrapper( seq=iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2), per_channel=0.5),
+                                                        p=0.3),
+                                    RandomTransWrapper( seq=iaa.Add((-20, 20), per_channel=0.5),
+                                                        p=0.3),
+                                    RandomTransWrapper( seq=iaa.Multiply((0.9, 1.1), per_channel=0.2),
+                                                        p=0.4),
+                                    RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
+                                                        p=0.09),
+                                    ])
+
         self.build()
 
     def build(self):
         if self._isTrain:
-            self._transform = transforms.Compose([#transforms.ToTensor()])#
-                transforms.RandomOrder([
-                    RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
-                                        p=0.09),
-                    RandomTransWrapper( seq=iaa.AdditiveGaussianNoise(loc=0,scale=(0.0, 0.05),per_channel=0.5),
-                                        p=0.09),
-                    RandomTransWrapper( seq=iaa.Dropout((0.0, 0.10), per_channel=0.5),
-                                        p=0.3),
-                    RandomTransWrapper( seq=iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2), per_channel=0.5),
-                                        p=0.3),
-                    RandomTransWrapper( seq=iaa.Add((-20, 20), per_channel=0.5),
-                                        p=0.3),
-                    RandomTransWrapper( seq=iaa.Multiply((0.9, 1.1), per_channel=0.2),
-                                        p=0.4),
-                    RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
-                                        p=0.09),
-                    ]),
-                transforms.ToPILImage(),
-                #transforms.Resize((92,196)),
-                transforms.Resize((96,192)),
-                transforms.ToTensor()])
+            self._transform = transforms.Compose([  self._transformDataAug,
+                                                    transforms.ToPILImage(),
+                                                    transforms.Resize((96,192)),
+                                                    transforms.ToTensor()])
         else:
             self._transform = transforms.Compose([transforms.ToPILImage(),
-                                                  #transforms.Resize((92,196)),
                                                   transforms.Resize((96,192)),
                                                   transforms.ToTensor(),])
 
