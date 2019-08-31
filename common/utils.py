@@ -5,43 +5,8 @@ import matplotlib.pyplot as plt
 from random import shuffle
 import numpy as np
 import datetime
+import argparse
 import os
-
-# Settings
-_global = Global()
-_config = Config()
-
-
-""" Number of iterations to data train time
-    ---------------------------------------
-    Args:
-        ite: Iteration number
-
-    Return: time in text
-"""
-def iter2time(ite):
-    time = ite*_config.batch_size/_global.framePerSecond
-
-    # Hours
-    hour = np.floor(time/3600)
-    time = time - hour*3600
-
-    # Minutes
-    minute = np.floor(time/60)
-    time = time - minute*60
-
-    # Seconds
-    second = time
-
-    # Text
-    txt = ""
-    if(  hour>0): txt = txt + str( hour ) + "h\t"
-    else        : txt = txt + "\t"
-
-    if(minute>0): txt = txt + str(minute) + "m\t"
-    else        : txt = txt + "\t"
-
-    return txt + str(second) + "s"
 
 
 """ Cooked files list
@@ -205,6 +170,23 @@ def nameDirectory():
     else            : minute =     str(now.minute)
     
     return year+month+day+hour+minute
+
+
+""" String to bool
+    ---------------
+    Args:
+        v: directory by check
+
+"""
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if   v.lower() in ('yes', 'true','t','y','1'):
+        return True
+    elif v.lower() in ( 'no','false','f','n','0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 """ Check directory

@@ -2,7 +2,11 @@ import sys
 import argparse
 import config
 
+from common.utils import str2bool
 from ReinforcementLearning.dqnAgent import DQNAgent
+from ImitationLearning.ImitationModel import ImitationModel
+
+_imitationLearningList = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017']
 
 class Main():
 
@@ -11,34 +15,24 @@ class Main():
         self.setting = setting
         self.init    = init
 
-
         self.model = None
-        """
-        # Basic End-To-End
-        if s.model == "endToEnd":
-            from EndToEnd.config import Config
-            self.model = EndToEndModel(Config())
-        # CIL
-        elif s.model == "cil":
-            self.model = CILmodel(s.city)
 
-        # Basic DQN
-        elif s.model == "dqn":
-            from ReinforcementLearning.config import Config
-            self.model = DQNAgent(Config())
+        if setting.model in _imitationLearningList:
+            self.model = ImitationModel(init,setting)
         else:
-            print("Invalid model type")
-        """
+            raise NameError('ERROR 404: Model no found')
+
+        self.model.build()
 
     def train(self):
-        self.model.train()
-
+        self.model.execute()
+    """
     def test (self):
         self.model.test()
 
     def play (self):
         self.model.play()
-
+    """
 
 if __name__ == "__main__":
 
@@ -49,8 +43,11 @@ if __name__ == "__main__":
     parser.add_argument("--trainpath" ,type=str,help="Data for train")
     parser.add_argument("--validpath" ,type=str,help="Data for validation")
     parser.add_argument("--savedpath" ,type=str,help="Data for saved data")
-    parser.add_argument("--n_epoch"   ,type=str,help="Number of epoch for train")
-    parser.add_argument("--batch_size",type=str,help="Batch size for train")
+    parser.add_argument("--n_epoch"   ,type=int,help="Number of epoch for train")
+    parser.add_argument("--batch_size",type=int,help="Batch size for train")
+
+    parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger")
+    parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
 
     parser.add_argument("--mode" ,type=str,help="Select execution mode: train,test,play")
     parser.add_argument("--model",type=str,help="Agents model")
@@ -69,6 +66,9 @@ if __name__ == "__main__":
     if args.n_epoch    is not None: setting.train.n_epoch    = args.n_epoch
     if args.batch_size is not None: setting.train.batch_size = args.batch_size
     
+    if args.optimizer is not None: setting.train.optimizer.optimizer = args.optimizer
+    if args.scheduler is not None: setting.train.scheduler.available = args.scheduler
+
     # Main program
     main = Main(init,setting)
     """

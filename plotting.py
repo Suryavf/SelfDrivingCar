@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 basic       = "/media/victor/Datos/Saved/Basic1908112006/Model/model.csv"
 multimodal  = "/media/victor/Datos/Saved/Multimodal1908121930/Model/model.csv"
 codevilla18 = "/media/victor/Datos/Saved/Codevilla181908201218/Model/model.csv"
-codevilla19 = "/media/victor/Datos/Saved/Codevilla191908221756/Model/model.csv"
+codevilla19 = "/media/victor/Datos/Saved/Codevilla19/1908270053/Model/model.csv"
+#"/media/victor/Datos/Saved/Codevilla191908221756/Model/model.csv"
 kim2017     = "/media/victor/Datos/Saved/Kim20171908151827/Model/model.csv"
 
 

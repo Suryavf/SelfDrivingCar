@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import torch
+import json
 
 class Global(object):
     framePerSecond =  10
@@ -109,8 +110,16 @@ class Init(object):
         self.device_name = type_
         self.device = torch.device(type_)
 
-    def save(self):
-        pass
+    def save(self,path):
+        setting = {
+            "manual_seed" : self.manual_seed,
+            "device_name" : self.device_name,
+            "num_workers" : self.num_workers,
+            "seed"        : self.       seed,
+        }
+
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
 
 
 class General_settings(object):
@@ -138,10 +147,11 @@ class General_settings(object):
 
 class Preprocessing_settings(object):
     def __init__(self):
-        self.data_aug     = True
-        self.Laskey_noise = False
-        self.input_size   = (88,200,3)
-        self.reshape      = False
+        self.data_aug      = True
+        self.Laskey_noise  = False
+        self.input_size    = (88,200,3)
+        self.input_reshape = (88,200)
+        self.reshape       = False
 
         # Normalize
         self.max_speed    =  90
@@ -164,7 +174,7 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 10
+        self.learning_rate_decay_steps  = 15
         self.learning_rate_decay_factor = 0.5
 
     def save(self):
@@ -178,7 +188,7 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "adam"
+        self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
         self.beta_1        = 0.70   #0.9  #0.7 
         self.beta_2        = 0.85   #0.999#0.85
@@ -218,7 +228,7 @@ class Train_settings(object):
         self.optimizer = _Optimizer_settings()
         self.scheduler = _Scheduler_settings()
 
-        self.n_epoch      = 100
+        self.n_epoch      = 150
         self.batch_size   = 120
         self.sequence_len =  20
 
@@ -254,11 +264,11 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Codevilla19"
+        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
-    def save(self):
-        return {
+    def save(self,path):
+        setting = {
             "model": self.model,
 
             "preprocessing": self.preprocessing.save(),
@@ -266,3 +276,7 @@ class Setting(object):
             "general"      : self.      general.save(),
             "train"        : self.        train.save()
         }
+
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
+            

@@ -43,7 +43,6 @@ class Kim2017Net(nn.Module):
             "model"            : _config.            model,
             "n_epoch"          : _config.          n_epoch,
             "batch_size"       : _config.       batch_size,
-            "time_demostration": _config.time_demostration,
             "Optimizer":{
                 "type"         : "adam",
                 "Learning_rate": {

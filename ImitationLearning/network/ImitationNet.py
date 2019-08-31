@@ -1,4 +1,3 @@
-import json
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,11 +7,6 @@ from ImitationLearning.network.ResNet import resnet34 as ResNet
 
 from config import Config
 from config import Global
-
-# Settings
-_global = Global()
-_config = Config()
-
 
 """ Xavier initialization
     ---------------------
@@ -113,18 +107,17 @@ class ControlModule(nn.Module):
     def __init__(self):
         super(ControlModule, self).__init__()
 
-        self._fully1 = nn.Linear(512,256)
-        self._fully2 = nn.Linear(256,256)
-        self._fully3 = nn.Linear(256, 3 )
+        self.fully1 = nn.Linear(512,256)
+        self.fully2 = nn.Linear(256,256)
+        self.fully3 = nn.Linear(256, 3 )
 
     def forward(self,sig):
-        h1 = F.relu(self._fully1(sig))
+        h1 = F.relu(self.fully1(sig))
         h1 = F.dropout(h1, p=0.5, training=self.training)
 
-        h2 = F.relu(self._fully2( h1))
-        #h2 = F.dropout(h2, p=0.5, training=self.training)
+        h2 = F.relu(self.fully2( h1))
 
-        out = self._fully3(h2)#F.tanh(self._fully3(h2))
+        out = self.fully3(h2)
 
         return out
 
@@ -164,34 +157,6 @@ class BasicNet(nn.Module):
         y_pred = self._out(x)
 
         return y_pred
-
-    def saveSettings(self,path):
-        setting = {
-            "model"            : _config.            model,
-            "n_epoch"          : _config.          n_epoch,
-            "batch_size"       : _config.       batch_size,
-            "Optimizer":{
-                "type"         : "adam",
-                "Learning_rate": {
-                    "initial"     : _config.learning_rate_initial,
-                    "decay_steps" : _config.learning_rate_decay_steps,
-                    "decay_factor": _config.learning_rate_decay_factor
-                },
-                "beta_1": _config.adam_beta_1,
-                "beta_2": _config.adam_beta_2
-            },
-            "Loss":{
-                "type": "weighted",
-                "Lambda":{
-                    "steer": _config.lambda_steer,
-                    "gas"  : _config.lambda_gas  ,
-                    "brake": _config.lambda_brake
-                }
-            }
-        }
-        
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
 
 
 """ Multimodal Network for regression
@@ -237,34 +202,6 @@ class MultimodalNet(nn.Module):
         y_pred = self._control(signal)
 
         return y_pred
-
-    def saveSettings(self,path):
-        setting = {
-            "model"            : _config.            model,
-            "n_epoch"          : _config.          n_epoch,
-            "batch_size"       : _config.       batch_size,
-            "Optimizer":{
-                "type"         : "adam",
-                "Learning_rate": {
-                    "initial"     : _config.learning_rate_initial,
-                    "decay_steps" : _config.learning_rate_decay_steps,
-                    "decay_factor": _config.learning_rate_decay_factor
-                },
-                "beta_1": _config.adam_beta_1,
-                "beta_2": _config.adam_beta_2
-            },
-            "Loss":{
-                "type": "weighted",
-                "Lambda":{
-                    "steer": _config.lambda_steer,
-                    "gas"  : _config.lambda_gas  ,
-                    "brake": _config.lambda_brake
-                }
-            }
-        }
-        
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
 
 
 """ Codevilla 2018 Network
@@ -313,34 +250,6 @@ class Codevilla18Net(nn.Module):
         y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
         
         return y_pred*mask
-
-    def saveSettings(self,path):
-        setting = {
-            "model"            : _config.            model,
-            "n_epoch"          : _config.          n_epoch,
-            "batch_size"       : _config.       batch_size,
-            "Optimizer":{
-                "type"         : "adam",
-                "Learning_rate": {
-                    "initial"     : _config.learning_rate_initial,
-                    "decay_steps" : _config.learning_rate_decay_steps,
-                    "decay_factor": _config.learning_rate_decay_factor
-                },
-                "beta_1": _config.adam_beta_1,
-                "beta_2": _config.adam_beta_2
-            },
-            "Loss":{
-                "type": "weighted",
-                "Lambda":{
-                    "steer": _config.lambda_steer,
-                    "gas"  : _config.lambda_gas  ,
-                    "brake": _config.lambda_brake
-                }
-            }
-        }
-        
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
 
 
 """ Codevilla 2019 Network
@@ -396,32 +305,4 @@ class Codevilla19Net(nn.Module):
         
         
         return y_pred*mask,v_pred
-
-    def saveSettings(self,path):
-        setting = {
-            "model"            : _config.            model,
-            "n_epoch"          : _config.          n_epoch,
-            "batch_size"       : _config.       batch_size,
-            "Optimizer":{
-                "type"         : "adam",
-                "Learning_rate": {
-                    "initial"     : _config.learning_rate_initial,
-                    "decay_steps" : _config.learning_rate_decay_steps,
-                    "decay_factor": _config.learning_rate_decay_factor
-                },
-                "beta_1": _config.adam_beta_1,
-                "beta_2": _config.adam_beta_2
-            },
-            "Loss":{
-                "type": "weighted",
-                "Lambda":{
-                    "steer": _config.lambda_steer,
-                    "gas"  : _config.lambda_gas  ,
-                    "brake": _config.lambda_brake
-                }
-            }
-        }
-        
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
             

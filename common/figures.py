@@ -10,10 +10,6 @@ import numpy as np
 import datetime
 import os
 
-# Settings
-_global = Global()
-_config = Config()
-
 
 """ Save plot
     ---------
@@ -58,6 +54,7 @@ def saveScatterError(steer,steerErr,command,path):
             axs[i,j].set_ylabel("Steer Error")
             axs[i,j].set_title(hgl[idx])
             axs[i,j].set_xlim(-1.2,1.2)
+            axs[i,j].set_ylim(-0.1,1.2)
             idx += 1
     fig.tight_layout()
     fig.set_size_inches(10, 10)

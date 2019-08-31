@@ -8,6 +8,8 @@ import Attention.        network.AttentionNet as attn
 
 import common.figures as F
 import common.  utils as U
+from common.RAdam  import RAdam
+from common.Ranger import Ranger
 from common.data  import CoRL2017Dataset as Dataset
 
 from   tqdm import tqdm
@@ -52,13 +54,22 @@ class ImitationModel(object):
             print("ERROR: mode no found")
         
         # Save settings
-        self.model.saveSettings( os.path.join(self._modelPath,"setting.json") )
+        self.  init .save( os.path.join(self._modelPath,   "init.json") )
+        self.setting.save( os.path.join(self._modelPath,"setting.json") )
 
         # Optimizator
-        self.optimizer = optim.Adam(   self.model.parameters(), 
-                                        lr    = self.setting.train.optimizer.learning_rate, 
-                                        betas =(self.setting.train.optimizer.beta_1, 
-                                                self.setting.train.optimizer.beta_2)   )
+        if   self.setting.train.optimizer.type is "Adam":
+            optFun = optim.Adam
+        elif self.setting.train.optimizer.type is "RAdam":
+            optFun = RAdam
+        elif self.setting.train.optimizer.type is "Ranger":
+            optFun = Ranger
+        else:
+            raise NameError('ERROR 404: Optimizer no found')
+        self.optimizer = optFun(    self.model.parameters(),
+                                    lr    = self.setting.train.optimizer.learning_rate, 
+                                    betas =(self.setting.train.optimizer.beta_1, 
+                                            self.setting.train.optimizer.beta_2)   )
 
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
@@ -290,6 +301,10 @@ class ImitationModel(object):
             a_msr   =   a_msr.to(self.device)
             command = command.to(self.device)
 
+        if frame.shape[0] != 120:
+            loss,err,steer,errSteer,a_pred,v_msr,command = (-1,-1,-1,-1,-1,-1,-1)
+            return loss,err,steer,errSteer,a_pred,v_msr,command
+        
         # Model
         if   not inputSpeed and not branches:
             output = self.model(frame)
@@ -379,7 +394,10 @@ class ImitationModel(object):
             for i, data in enumerate(t,0):
                 # Model execute
                 loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
-
+                
+                if loss == -1:
+                    break
+                
                 # Calculate the loss
                 runtime_loss  = loss.item()
                 running_loss += runtime_loss
