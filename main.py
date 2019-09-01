@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 import config
@@ -22,6 +23,8 @@ class Main():
             raise NameError('ERROR 404: Model no found')
         self.model.build()
         
+    def load(self,path):
+        self.model.load(path)
     def train(self):
         self.model.execute()
     def play (self):
@@ -34,26 +37,32 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SelfDriving")
 
     # Path
-    parser.add_argument("--trainpath" ,type=str,help="Data for train")
-    parser.add_argument("--validpath" ,type=str,help="Data for validation")
-    parser.add_argument("--savedpath" ,type=str,help="Data for saved data")
-    parser.add_argument("--n_epoch"   ,type=int,help="Number of epoch for train")
-    parser.add_argument("--batch_size",type=int,help="Batch size for train")
-    parser.add_argument("--model"     ,type=str,help="End-to-End model")
+    parser.add_argument("--trainpath"  ,type=str,help="Data for train")
+    parser.add_argument("--validpath"  ,type=str,help="Data for validation")
+    parser.add_argument("--savedpath"  ,type=str,help="Path for saved data")
+    parser.add_argument("--modelpath"  ,type=str,help="Model file path")
+    parser.add_argument("--settingpath",type=str,help="Setting folder path")
+    parser.add_argument("--n_epoch"    ,type=int,help="Number of epoch for train")
+    parser.add_argument("--batch_size" ,type=int,help="Batch size for train")
+    parser.add_argument("--model"      ,type=str,help="End-to-End model")
 
     parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger")
     parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
 
-    parser.add_argument("--mode" ,type=str,help="Select execution mode: train,play")
+    parser.add_argument("--mode",default="train",type=str,help="Select execution mode: train,play")
     args = parser.parse_args()
 
     # Setting  
     init    = config.   Init()
     setting = config.Setting()
-    setting.print()
+
+    # Load    
+    if args.settingpath is not None:
+        init   .load( os.path.join(args.settingpath,   "init.json") )
+        setting.load( os.path.join(args.settingpath,"setting.json") )
     
     # Model
-    if args.model  is not None: setting.model = args.model
+    if args.model is not None: setting.model = args.model
     
     # Path
     if args.trainpath  is not None: setting.general.trainPath = args.trainpath
@@ -67,13 +76,20 @@ if __name__ == "__main__":
     if args.optimizer is not None: setting.train.optimizer.optimizer = args.optimizer
     if args.scheduler is not None: setting.train.scheduler.available = args.scheduler
 
+    # Print settings
+    setting.print()
+
     # Main program
     main = Main(init,setting)
     
+    # Load model
+    if args.modelpath is not None:
+        main.load(args.modelpath)
+
     if   args.mode == "train":
         main.train()
     elif args.mode == "play":
         main.play()
     else:
         print("Valid execution modes: train,play")
-
+        

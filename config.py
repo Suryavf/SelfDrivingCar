@@ -199,7 +199,7 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 15
+        self.learning_rate_decay_steps  = 10
         self.learning_rate_decay_factor = 0.5
 
     def load(self,data):
@@ -228,8 +228,8 @@ class _Optimizer_settings(object):
     def __init__(self):
         self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
-        self.beta_1        = 0.70   #0.9  #0.7 
-        self.beta_2        = 0.85   #0.999#0.85
+        self.beta_1        = 0.90   #0.9  #0.7 
+        self.beta_2        = 0.999  #0.999#0.85
 
     def load(self,data):
         self.type          = data[         "type"]

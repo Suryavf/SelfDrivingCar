@@ -141,6 +141,15 @@ class ImitationModel(object):
         torch.save(self._state,path)
 
 
+    """ Load model """
+    def load(self,path):
+        checkpoint = torch.load(path)
+        
+        self.model    .load_state_dict(checkpoint['state_dict'])
+        self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
+        self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
+
+
     """ Building """
     def build(self):
         self.model = self.model.float()
