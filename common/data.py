@@ -3,20 +3,10 @@ import random
 import numpy as np
 import torch
 import h5py
-from   config import Config
-from   config import Global
 from   torch.utils.data import Dataset
 from   torchvision      import transforms
 from   imgaug           import augmenters as iaa
 
-# Settings
-_global = Global()
-_config = Config()
-
-FRAMES_PER_FILE = 200
-
-_max_steering = _global.max_steering
-_max_speed    = _global.max_speed
 
 class RandomTransWrapper(object):
     def __init__(self, seq, p=0.5):
@@ -78,6 +68,9 @@ class CoRL2017Dataset(Dataset):
         self._isTrain      = train
         self._isBranches   = setting.boolean.branches
         self._includeSpeed = setting.boolean.multimodal or setting.boolean.speedRegression
+        
+        self.setting = setting
+        self.framePerFile = self.setting.general.framePerFile
 
         if train: path = setting.general.trainPath
         else    : path = setting.general.validPath
@@ -116,11 +109,11 @@ class CoRL2017Dataset(Dataset):
                                                   transforms.ToTensor(),])
 
     def __len__(self):
-        return FRAMES_PER_FILE * len(self._files)
+        return self.framePerFile * len(self._files)
 
     def trainingRoutine(self,img,target):
-        max_steering = _max_steering
-        max_speed    = _max_speed
+        max_steering = self.setting.preprocessing.max_steering
+        max_speed    = self.setting.preprocessing.max_speed
 
         # Steering angle
         target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
@@ -153,8 +146,8 @@ class CoRL2017Dataset(Dataset):
                 return img, out.reshape(-1)
 
     def evaluationRoutine(self,img,target):
-        max_steering = _max_steering
-        max_speed    = _max_speed
+        max_steering = self.setting.preprocessing.max_steering
+        max_speed    = self.setting.preprocessing.max_speed
 
         # Steering angle
         target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
@@ -183,8 +176,8 @@ class CoRL2017Dataset(Dataset):
             return img, command, speed, out.reshape(-1)
 
     def __getitem__(self, idx):
-        data_idx  = idx // FRAMES_PER_FILE
-        file_idx  = idx  % FRAMES_PER_FILE
+        data_idx  = idx // self.framePerFile
+        file_idx  = idx  % self.framePerFile
         file_name = self._files[data_idx]
 
         with h5py.File(file_name, 'r') as h5_file:

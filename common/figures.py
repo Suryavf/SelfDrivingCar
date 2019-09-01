@@ -1,6 +1,3 @@
-from config import Config
-from config import Global
-
 from os      import listdir
 from os.path import isfile, join
 

@@ -3,48 +3,12 @@ import numpy as np
 import torch
 import json
 
-class Global(object):
-    framePerSecond =  10
-    num_workers    =   1
-    stepView       =  10 # Print in Train
-    max_steering   = 1.2
-    max_speed      =  90
-
-class Config(object):
-    # Path files
-    validPath = "./data/h5file/SeqVal/"
-    trainPath = "./data/h5file/SeqTrain/"
-    cookdPath = "/media/victor/Datos/Cooked"
-    savedPath = "/media/victor/Datos/Saved"
-    
-    # Model
-    model      = 'Codevilla19' # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
-    n_epoch    =  80
-    batch_size = 120
-    
-    # Learning rate
-    learning_rate_initial      = 0.0001
-    learning_rate_decay_steps  = 10
-    learning_rate_decay_factor = 0.5
-
-    # Adam Optimizer
-    adam_lrate  = 0.0001
-    adam_beta_1 = 0.7#0.9  #0.7 
-    adam_beta_2 = 0.85#0.999#0.85
-
-    # Loss
-    lambda_steer = 0.45
-    lambda_gas   = 0.45
-    lambda_brake = 0.05
-    lambda_action = 0.95
-    lambda_speed  = 0.05
-    
-
 _branchesList        = ['Codevilla18','Codevilla19']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
 _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
+
 
 class BooleanConditions(object):
     def __init__(self,model ):

@@ -1,6 +1,3 @@
-from config import Config
-from config import Global
-
 import matplotlib.pyplot as plt
 from random import shuffle
 import numpy as np
