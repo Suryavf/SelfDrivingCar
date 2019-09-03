@@ -5,8 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 from ImitationLearning.network.ResNet import resnet34 as ResNet
 
-from config import Config
-from config import Global
 
 """ Xavier initialization
     ---------------------

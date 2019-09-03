@@ -1,3 +1,6 @@
+#Ranger deep learning optimizer - RAdam + Lookahead combined.
+#https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
+
 import math
 import torch
 from torch.optim.optimizer import Optimizer, required
@@ -5,12 +8,14 @@ import itertools as it
 #from torch.optim import Optimizer
 #credit - Lookahead implementation from LonePatient - https://github.com/lonePatient/lookahead_pytorch/blob/master/optimizer.py
 #credit2 - RAdam code by https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam.py
+#changes 8/31/19 - fix references to *self*.N_sma_threshold; 
+#changed eps to 1e-5 as better default than 1e-8.
 
 # Ranger
-# Ref: https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
+# Source: https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
 class Ranger(Optimizer):
     
-    def __init__(self, params, lr=1e-3, alpha=0.5, k=6, N_sma_threshhold=5, betas=(.95,0.999), eps=1e-8, weight_decay=0):
+    def __init__(self, params, lr=1e-3, alpha=0.5, k=6, N_sma_threshhold=5, betas=(.95,0.999), eps=1e-5, weight_decay=0):
         #parameter checks
         if not 0.0 <= alpha <= 1.0:
             raise ValueError(f'Invalid slow update rate: {alpha}')
@@ -21,10 +26,10 @@ class Ranger(Optimizer):
         if not eps > 0:
             raise ValueError(f'Invalid eps: {eps}')
         
-        # parameter comments:
+        #parameter comments:
         # beta1 (momentum) of .95 seems to work better than .90...
-        # N_sma_threshold of 5 seems better in testing than 4.
-        # In both cases, worth testing on your dataset (.90 vs .95, 4 vs 5) to make sure which works best for you.
+        #N_sma_threshold of 5 seems better in testing than 4.
+        #In both cases, worth testing on your dataset (.90 vs .95, 4 vs 5) to make sure which works best for you.
         
         #prep defaults and init torch.optim base
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
@@ -60,12 +65,11 @@ class Ranger(Optimizer):
         
     def step(self, closure=None):
         loss = None
-        # note - below is commented out b/c I have other work that passes back the loss as a float, 
-        # and thus not a callable closure.  
-        # Uncomment if you need to use the actual closure...
+        #note - below is commented out b/c I have other work that passes back the loss as a float, and thus not a callable closure.  
+        #Uncomment if you need to use the actual closure...
         
-        if closure is not None:
-            loss = closure()
+        #if closure is not None:
+            #loss = closure()
             
         #------------ radam
         for group in self.param_groups:
@@ -106,19 +110,19 @@ class Ranger(Optimizer):
                     N_sma = N_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                     buffered[1] = N_sma
                     if N_sma > self.N_sma_threshhold:
-                        step_size = group['lr'] * math.sqrt((1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2) / N_sma * N_sma_max / (N_sma_max - 2)) / (1 - beta1 ** state['step'])
+                        step_size = math.sqrt((1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2) / N_sma * N_sma_max / (N_sma_max - 2)) / (1 - beta1 ** state['step'])
                     else:
-                        step_size = group['lr'] / (1 - beta1 ** state['step'])
+                        step_size = 1.0 / (1 - beta1 ** state['step'])
                     buffered[2] = step_size
     
                 if group['weight_decay'] != 0:
                     p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
     
-                if N_sma > 4:
+                if N_sma > self.N_sma_threshhold:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(-step_size, exp_avg, denom)
+                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg, denom)
                 else:
-                    p_data_fp32.add_(-step_size, exp_avg)
+                    p_data_fp32.add_(-step_size * group['lr'], exp_avg)
     
                 p.data.copy_(p_data_fp32)
         
@@ -130,12 +134,11 @@ class Ranger(Optimizer):
             group['step_counter'] += 1
             if group['step_counter'] % self.k != 0:
                 continue
-            for p,q in zip(group['params'],slow_weights):
-                if p.grad is None:
+            for _p,_q in zip(group['params'],slow_weights):
+                if _p.grad is None:
                     continue
-                q.data.add_(self.alpha,p.data - q.data)
-                p.data.copy_(q.data)
-            
-        
+                _q.data.add_(self.alpha,_p.data - _q.data)
+                _p.data.copy_(_q.data)
             
         return loss
+

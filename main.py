@@ -55,7 +55,7 @@ if __name__ == "__main__":
     init    = config.   Init()
     setting = config.Setting()
 
-    # Load    
+    # Load setting
     if args.settingpath is not None:
         init   .load( os.path.join(args.settingpath,   "init.json") )
         setting.load( os.path.join(args.settingpath,"setting.json") )
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     if args.n_epoch    is not None: setting.train.n_epoch    = args.n_epoch
     if args.batch_size is not None: setting.train.batch_size = args.batch_size
     
-    if args.optimizer is not None: setting.train.optimizer.optimizer = args.optimizer
+    if args.optimizer is not None: setting.train.optimizer.type      = args.optimizer
     if args.scheduler is not None: setting.train.scheduler.available = args.scheduler
 
     # Print settings

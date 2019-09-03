@@ -36,64 +36,40 @@ class ImitationModel(object):
         # Device
         self.device = self.init.device
 
-        # Paths
-        self._checkFoldersToSave()
-
-        # Nets
-        if   self.setting.model is 'Basic':
-            self.model = imL.BasicNet()
-        elif self.setting.model is 'Multimodal':
-            self.model = imL.MultimodalNet()
-        elif self.setting.model is 'Codevilla18': 
-            self.model = imL.Codevilla18Net()
-        elif self.setting.model is 'Codevilla19':
-            self.model = imL.Codevilla19Net()
-        elif self.setting.model is 'Kim2017':
-            self.model = attn.Kim2017Net()
-        else:
-            print("ERROR: mode no found")
-        
-        # Save settings
-        self.  init .save( os.path.join(self._modelPath,   "init.json") )
-        self.setting.save( os.path.join(self._modelPath,"setting.json") )
-
-        # Optimizator
-        if   self.setting.train.optimizer.type is "Adam":
-            optFun = optim.Adam
-        elif self.setting.train.optimizer.type is "RAdam":
-            optFun = RAdam
-        elif self.setting.train.optimizer.type is "Ranger":
-            optFun = Ranger
-        else:
-            raise NameError('ERROR 404: Optimizer no found')
-        self.optimizer = optFun(    self.model.parameters(),
-                                    lr    = self.setting.train.optimizer.learning_rate, 
-                                    betas =(self.setting.train.optimizer.beta_1, 
-                                            self.setting.train.optimizer.beta_2)   )
-
-        # Scheduler
-        self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
-                                                    step_size = self.setting.train.scheduler.learning_rate_decay_steps,
-                                                    gamma     = self.setting.train.scheduler.learning_rate_decay_factor)
-
-        # Loss Function
-        self.weightLoss = torch.Tensor([self.setting.train.loss.lambda_steer, 
-                                        self.setting.train.loss.lambda_gas  , 
-                                        self.setting.train.loss.lambda_brake]).float().cuda(self.device) 
-        if self.setting.boolean.branches:
-            self.weightLoss = torch.cat( [self.weightLoss for _ in range(4)] )
-        if self.setting.boolean.speedRegression:
-            self.lossFunc = self._weightedLossActSpeed
-        else:
-            self.lossFunc = self._weightedLossAct
-
         # Internal parameters
         self._state     = {}
         self._trainLoss = list()
         self._validLoss = list()
         self._metrics   = {}
 
+        # Paths
+        self._checkFoldersToSave()
 
+        # Nets
+        if   self.setting.model == 'Basic':
+            self.model = imL.BasicNet()
+        elif self.setting.model == 'Multimodal':
+            self.model = imL.MultimodalNet()
+        elif self.setting.model == 'Codevilla18': 
+            self.model = imL.Codevilla18Net()
+        elif self.setting.model == 'Codevilla19':
+            self.model = imL.Codevilla19Net()
+        elif self.setting.model == 'Kim2017':
+            self.model = attn.Kim2017Net()
+        else:
+            txt = self.setting.model
+            print("ERROR: mode no found (" + txt + ")")
+        
+        # Save settings
+        self.init.save( os.path.join(self._modelPath,   "init.json") )
+        self.setting.save( os.path.join(self._modelPath,"setting.json") )
+
+        self.optimizer  = None
+        self.scheduler  = None
+        self.weightLoss = None
+        self.lossFunc   = None
+        
+        
     """ Check folders to save """
     def _checkFoldersToSave(self):
         # Data Path
@@ -154,6 +130,37 @@ class ImitationModel(object):
     def build(self):
         self.model = self.model.float()
         self.model = self.model.to(self.device)
+
+        # Optimizator
+        if  self.setting.train.optimizer.type == "Adam":
+            optFun = optim.Adam
+        elif self.setting.train.optimizer.type == "RAdam":
+            optFun = RAdam
+        elif self.setting.train.optimizer.type == "Ranger":
+            optFun = Ranger
+        else:
+            txt = self.setting.train.optimizer.type
+            raise NameError('ERROR 404: Optimizer no found ('+txt+')')
+        self.optimizer = optFun(    self.model.parameters(),
+                                    lr    =  self.setting.train.optimizer.learning_rate, 
+                                    betas = (self.setting.train.optimizer.beta_1, 
+                                             self.setting.train.optimizer.beta_2 ) )
+
+        # Scheduler
+        self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
+                                                    step_size = self.setting.train.scheduler.learning_rate_decay_steps,
+                                                    gamma = self.setting.train.scheduler.learning_rate_decay_factor)
+
+        # Loss Function
+        self.weightLoss = torch.Tensor([self.setting.train.loss.lambda_steer, 
+                                        self.setting.train.loss.lambda_gas  , 
+                                        self.setting.train.loss.lambda_brake]).float().cuda(self.device) 
+        if self.setting.boolean.branches:
+            self.weightLoss = torch.cat( [self.weightLoss for _ in range(4)] )
+        if self.setting.boolean.speedRegression:
+            self.lossFunc = self._weightedLossActSpeed
+        else:
+            self.lossFunc = self._weightedLossAct
 
 
     """ Loss Function """
