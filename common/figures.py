@@ -36,6 +36,7 @@ def saveScatterSteerSpeed(steer,speed,command,path):
     fig.tight_layout()
     fig.set_size_inches(10, 10)
     fig.savefig(path)
+    plt.close('all')
 def saveScatterError(steer,steerErr,command,path):
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
@@ -56,6 +57,7 @@ def saveScatterError(steer,steerErr,command,path):
     fig.tight_layout()
     fig.set_size_inches(10, 10)
     fig.savefig(path)
+    plt.close('all')
 def saveScatterPolarSteerSpeed(steer,speed,command,path):
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
@@ -81,6 +83,7 @@ def saveScatterPolarSteerSpeed(steer,speed,command,path):
     fig.tight_layout()
     fig.set_size_inches(10,10)
     fig.savefig(path)
+    plt.close('all')
 
 """ Save histogram
     --------------
@@ -105,6 +108,7 @@ def saveHistogramSteerSpeed(steer,speed,path):
 
     fig.set_size_inches(12,10)
     fig.savefig(path)
+    plt.close('all')
 
 def saveHistogramSteer(steer,path):
     fig, axs = plt.subplots(1, 1, sharey=True, tight_layout=True)
@@ -116,6 +120,7 @@ def saveHistogramSteer(steer,path):
 
     fig.set_size_inches(12,5)
     fig.savefig(path)
+    plt.close('all')
 
 
 class savePlotByStep():
@@ -140,6 +145,7 @@ class savePlotByStep():
             plt.ylabel(self._name)
             plt.xlim(1,n_epoch)
             plt.savefig(path)
+            plt.close('all')
 
     def reset(self):
         self._values = list()
@@ -171,6 +177,7 @@ class save2PlotByStep():
             plt.legend([self._line1,self._line2])
             plt.xlabel("Epoch")
             plt.savefig(path)
+            plt.close('all')
 
     def reset(self):
         self._values1 = list()
