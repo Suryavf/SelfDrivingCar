@@ -1,6 +1,7 @@
 from os      import listdir
 from os.path import isfile, join
 
+from scipy.interpolate import interp2d
 import matplotlib.pyplot as plt
 from random import shuffle
 import numpy as np
@@ -183,3 +184,74 @@ class save2PlotByStep():
         self._values1 = list()
         self._values2 = list()
         
+
+""" Save color mersh
+    ----------------
+    Args:
+        data: Data to histogram
+        path: File to save
+
+    Return: files list
+"""
+def saveColorMershError(steer,steerErr,command,path):
+    hgl = ['Follow lane','Left Turn','Straight','Right Turn']
+    cmd = [0,1,3,2]
+
+    # Length
+    x_len = 100
+    y_len = 50
+    limit = 10
+    
+    x    = np.linspace( -1.2, 1.2,x_len )
+    y    = np.linspace( -0.1, 1.2,y_len )
+    xnew = np.linspace( -1.2, 1.2, 1000 )
+    ynew = np.linspace( -0.1, 1.2, 1000 )
+
+    rawMersh = list()
+    for _ in range(x_len): rawMersh.append( list() )
+    cte = 2/(x_len)
+
+    idx = 0
+    fig, axs = plt.subplots(2, 2)
+    for i in range(2):
+        for j in range(2):
+            # Select command
+            c = cmd[idx]
+
+            st  = steer   [command==c]
+            err = steerErr[command==c]
+
+            mersh = list()
+            for _ in range(x_len): mersh.append( list() )
+            for s,e in zip(st,err):
+                pst = int(np.floor( (s+1)/cte ))
+                mersh[pst].append( e )
+            
+            # Create mersh
+            for k in range(x_len):
+                vec = mersh[k]
+                if len(vec)>limit:
+                    vec , _ = np.histogram( vec, y_len )
+                    maxVec  = np.max( vec )
+                    vec     = np.multiply( vec,(vec>limit))
+                    mersh[k]= vec / maxVec
+                else:
+                    mersh[k] = np.zeros(y_len)
+            mersh = np.array( mersh )
+
+            # Smooth mersh
+            f = interp2d(x, y, mersh, kind='cubic')
+            mersh = f(xnew,ynew)
+            Xn, Yn = np.meshgrid(xnew, ynew)
+
+            axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet')
+            axs[i,j].set_xlabel("Steer (True)")
+            axs[i,j].set_ylabel("Steer Error")
+            axs[i,j].set_title(hgl[idx])
+            idx += 1
+
+    fig.tight_layout()
+    fig.set_size_inches(10, 10)
+    fig.savefig(path)
+    plt.close('all')
+    

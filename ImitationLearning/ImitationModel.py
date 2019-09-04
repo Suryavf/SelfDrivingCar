@@ -61,7 +61,7 @@ class ImitationModel(object):
             print("ERROR: mode no found (" + txt + ")")
         
         # Save settings
-        self.init.save( os.path.join(self._modelPath,   "init.json") )
+        self.  init .save( os.path.join(self._modelPath,   "init.json") )
         self.setting.save( os.path.join(self._modelPath,"setting.json") )
 
         self.optimizer  = None
@@ -85,16 +85,18 @@ class ImitationModel(object):
         U.checkdirectory( execPath)
 
         # Figures Path
-        self._figurePath             = os.path.join(execPath,"Figure")
-        self._figurePolarPath        = os.path.join(self._figurePath,"Polar")
-        self._figureScatterPath      = os.path.join(self._figurePath,"Scatter")
-        self._figureHistogramPath    = os.path.join(self._figurePath,"Histogram")
-        self._figureScatterErrorPath = os.path.join(self._figurePath,"ScatterError")
+        self._figurePath                = os.path.join(execPath,"Figure")
+        self._figurePolarPath           = os.path.join(self._figurePath,"Polar")
+        self._figureScatterPath         = os.path.join(self._figurePath,"Scatter")
+        self._figureHistogramPath       = os.path.join(self._figurePath,"Histogram")
+        self._figureScatterErrorPath    = os.path.join(self._figurePath,"ScatterError")
+        self._figureColorMershErrorPath = os.path.join(self._figurePath,"ColorMershError")
         U.checkdirectory(self._figurePath)
         U.checkdirectory(self._figurePolarPath)
         U.checkdirectory(self._figureScatterPath)
         U.checkdirectory(self._figureHistogramPath)
         U.checkdirectory(self._figureScatterErrorPath)
+        U.checkdirectory(self._figureColorMershErrorPath)
 
         # Model path
         self._modelPath = os.path.join(execPath,"Model")
@@ -149,7 +151,7 @@ class ImitationModel(object):
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
-                                                    gamma = self.setting.train.scheduler.learning_rate_decay_factor)
+                                                    gamma     = self.setting.train.scheduler.learning_rate_decay_factor)
 
         # Loss Function
         self.weightLoss = torch.Tensor([self.setting.train.loss.lambda_steer, 
@@ -466,16 +468,18 @@ class ImitationModel(object):
             print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
         
         # Save figures
-        scatterErrorPath = os.path.join(self._figureScatterErrorPath,"ScatterError"+str(epoch+1)+".png")
-        histogramPath    = os.path.join(self._figureHistogramPath   ,   "Histogram"+str(epoch+1)+".png")
-        scatterPath      = os.path.join(self._figureScatterPath     ,     "Scatter"+str(epoch+1)+".png")
-        polarPath        = os.path.join(self._figurePolarPath       ,       "Polar"+str(epoch+1)+".png")
+        colorMershErrorPath = os.path.join(self._figureColorMershErrorPath,"ColorMershError"+str(epoch+1)+".png")
+        scatterErrorPath    = os.path.join(self._figureScatterErrorPath   ,   "ScatterError"+str(epoch+1)+".png")
+        histogramPath       = os.path.join(self._figureHistogramPath      ,      "Histogram"+str(epoch+1)+".png")
+        scatterPath         = os.path.join(self._figureScatterPath        ,        "Scatter"+str(epoch+1)+".png")
+        polarPath           = os.path.join(self._figurePolarPath          ,          "Polar"+str(epoch+1)+".png")
         F.saveHistogramSteer        (all_action[:,0],histogramPath)
         F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, scatterPath )
         F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command,   polarPath )
         
-        F.saveScatterError(all_steer,all_errSteer,all_command,scatterErrorPath)
-
+        F.   saveScatterError(all_steer,all_errSteer,all_command,   scatterErrorPath)
+        F.saveColorMershError(all_steer,all_errSteer,all_command,colorMershErrorPath)
+        
         return running_loss,metrics
     
 
