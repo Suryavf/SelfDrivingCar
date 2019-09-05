@@ -206,8 +206,8 @@ def saveColorMershError(steer,steerErr,command,path):
 
     x    = np.linspace(x_min,x_max,x_len )
     y    = np.linspace(y_min,y_max,y_len )
-    xnew = np.linspace(x_min,x_max,  500 )
-    ynew = np.linspace(y_min,y_max,  500 )
+    xnew = np.linspace(x_min,x_max,  800 )
+    ynew = np.linspace(y_min,y_max,  800 )
 
     cte = 2.4/(x_len)
 
