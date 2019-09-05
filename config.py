@@ -192,7 +192,7 @@ class _Optimizer_settings(object):
     def __init__(self):
         self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
-        self.beta_1        = 0.90   #0.9  #0.7 
+        self.beta_1        = 0.95   #0.9  #0.7 
         self.beta_2        = 0.999  #0.999#0.85
 
     def load(self,data):

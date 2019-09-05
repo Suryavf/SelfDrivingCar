@@ -198,18 +198,18 @@ def saveColorMershError(steer,steerErr,command,path):
     cmd = [0,1,3,2]
 
     # Length
-    x_len = 100
-    y_len = 50
-    limit = 10
+    limit =  5
+    x_len,y_len = (100,50)
     
-    x    = np.linspace( -1.2, 1.2,x_len )
-    y    = np.linspace( -0.1, 1.2,y_len )
-    xnew = np.linspace( -1.2, 1.2, 1000 )
-    ynew = np.linspace( -0.1, 1.2, 1000 )
+    x_min,x_max = (-1.20, 1.20)
+    y_min,y_max = (-0.01, 1.20)
 
-    rawMersh = list()
-    for _ in range(x_len): rawMersh.append( list() )
-    cte = 2/(x_len)
+    x    = np.linspace(x_min,x_max,x_len )
+    y    = np.linspace(y_min,y_max,y_len )
+    xnew = np.linspace(x_min,x_max,  500 )
+    ynew = np.linspace(y_min,y_max,  500 )
+
+    cte = 2.4/(x_len)
 
     idx = 0
     fig, axs = plt.subplots(2, 2)
@@ -224,14 +224,14 @@ def saveColorMershError(steer,steerErr,command,path):
             mersh = list()
             for _ in range(x_len): mersh.append( list() )
             for s,e in zip(st,err):
-                pst = int(np.floor( (s+1)/cte ))
+                pst = int(np.floor( (s+1.2)/cte ))
                 mersh[pst].append( e )
             
             # Create mersh
             for k in range(x_len):
                 vec = mersh[k]
                 if len(vec)>limit:
-                    vec , _ = np.histogram( vec, y_len )
+                    vec , _ = np.histogram( vec, y_len,range=(y_min,y_max) )
                     maxVec  = np.max( vec )
                     vec     = np.multiply( vec,(vec>limit))
                     mersh[k]= vec / maxVec
@@ -240,10 +240,12 @@ def saveColorMershError(steer,steerErr,command,path):
             mersh = np.array( mersh )
 
             # Smooth mersh
-            f = interp2d(x, y, mersh, kind='cubic')
+            f = interp2d(x, y, mersh.T, kind='cubic')
             mersh = f(xnew,ynew)
+            mersh = np.multiply(mersh , (mersh>0.01))
+            mersh = np.multiply(mersh , (mersh<  1 )) + np.multiply(np.ones(mersh.shape),(mersh>=1))
             Xn, Yn = np.meshgrid(xnew, ynew)
-
+            
             axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet')
             axs[i,j].set_xlabel("Steer (True)")
             axs[i,j].set_ylabel("Steer Error")
@@ -251,7 +253,7 @@ def saveColorMershError(steer,steerErr,command,path):
             idx += 1
 
     fig.tight_layout()
-    fig.set_size_inches(10, 10)
+    fig.set_size_inches(10,6.7)
     fig.savefig(path)
     plt.close('all')
     
