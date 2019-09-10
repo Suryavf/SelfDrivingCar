@@ -41,10 +41,8 @@ class ImitationModel(object):
         self._trainLoss = list()
         self._validLoss = list()
         self._metrics   = {}
-
-        # Paths
-        self._checkFoldersToSave()
-
+        self._epoch     = 0
+        
         # Nets
         if   self.setting.model == 'Basic':
             self.model = imL.BasicNet()
@@ -60,9 +58,13 @@ class ImitationModel(object):
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
         
-        # Save settings
-        self.  init .save( os.path.join(self._modelPath,   "init.json") )
-        self.setting.save( os.path.join(self._modelPath,"setting.json") )
+        if not self.init.is_loadedModel:
+            # Paths
+            self._checkFoldersToSave()
+
+            # Save settings
+            self.  init .save( os.path.join(self._modelPath,   "init.json") )
+            self.setting.save( os.path.join(self._modelPath,"setting.json") )
 
         self.optimizer  = None
         self.scheduler  = None
@@ -71,7 +73,7 @@ class ImitationModel(object):
         
         
     """ Check folders to save """
-    def _checkFoldersToSave(self):
+    def _checkFoldersToSave(self, name = None):
         # Data Path
         self. _validPath = self.setting.general.validPath
         self. _trainPath = self.setting.general.trainPath
@@ -79,7 +81,10 @@ class ImitationModel(object):
         # Root Path
         savedPath = self.setting.general.savedPath
         modelPath = os.path.join(savedPath,self.setting.model)
-        execPath  = os.path.join(modelPath,U.nameDirectory())
+        if name is not None:
+            execPath  = os.path.join(modelPath,  name  )
+        else:
+            execPath  = os.path.join(modelPath,U.nameDirectory())
         U.checkdirectory(savedPath)
         U.checkdirectory(modelPath)
         U.checkdirectory( execPath)
@@ -121,11 +126,23 @@ class ImitationModel(object):
 
     """ Load model """
     def load(self,path):
+        # Load
         checkpoint = torch.load(path)
-        
         self.model    .load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
+
+    def to_continue(self,name):
+        # Check paths
+        self._checkFoldersToSave(name)
+        path = U.lastModel(self._modelPath)
+
+        # Next epoch
+        self._epoch = int(path.partition('/Model/model')[2].partition('.')[0])
+        self._epoch = self._epoch + 1
+
+        # Load
+        self.load(path)
 
 
     """ Building """
@@ -134,7 +151,7 @@ class ImitationModel(object):
         self.model = self.model.to(self.device)
 
         # Optimizator
-        if  self.setting.train.optimizer.type == "Adam":
+        if   self.setting.train.optimizer.type ==  "Adam":
             optFun = optim.Adam
         elif self.setting.train.optimizer.type == "RAdam":
             optFun = RAdam
@@ -485,24 +502,28 @@ class ImitationModel(object):
 
     """ Train/Evaluation """
     def execute(self):
-        # Boolean conditions
+        # Parameters
         outputSpeed = self.setting.boolean.outputSpeed
+        n_epoch     = self.setting.train.n_epoch
 
+        # Plotting objects
         epochLoss  = F.save2PlotByStep(self._figurePath,"Loss","Train","Evaluation")
         epochSteer = F.savePlotByStep (self._figurePath,"Steer")
-        epochGas   = F.savePlotByStep (self._figurePath,"Gas")
+        epochGas   = F.savePlotByStep (self._figurePath,"Gas"  )
         epochBrake = F.savePlotByStep (self._figurePath,"Brake")
-        
-        valuesToSave = list()
-        n_epoch = self.setting.train.n_epoch
-        df = pd.DataFrame()
-
         if outputSpeed:
             epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
 
+        # Initialize
+        if self.init.is_loadedModel:
+            valuesToSave = U.loadValuesToSave( os.path.join(self._modelPath,"model.csv") )
+        else:
+            valuesToSave = list()
+        df = pd.DataFrame()
+
         # Loop over the dataset multiple times
-        for epoch in range(n_epoch):
-            print("\nEpoch",epoch+1,"-----------------------------------")
+        for epoch in range(self._epoch,n_epoch):
+            print("\nEpoch",epoch+1,"-"*40)
             
             # Train
             lossTrain = self._Train()
@@ -524,17 +545,47 @@ class ImitationModel(object):
             else:
                 valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
                 df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
-
+                
             # Save csv
-            df.to_csv(self._modelPath + "/model.csv")
+            df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
             self._state_add(     'epoch',                epoch + 1  )
             self._state_add('state_dict',self.    model.state_dict())
             self._state_add( 'scheduler',self.scheduler.state_dict())
             self._state_add( 'optimizer',self.optimizer.state_dict())
-            self._state_add('loss_train',                lossTrain  )
-            self._state_add('loss_valid',                lossValid  )
-            self._state_addMetrics(metr)
             self._state_save(epoch)
+    
+    
+    """ Plot generate"""
+    def plot(self,name):
+        # Parameters
+        outputSpeed = self.setting.boolean.outputSpeed
+
+        # Plotting objects
+        epochSteer = F.savePlotByStep (self._figurePath,"Steer")
+        epochGas   = F.savePlotByStep (self._figurePath,"Gas"  )
+        epochBrake = F.savePlotByStep (self._figurePath,"Brake")
+        if outputSpeed:
+            epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
+
+        # Check paths
+        self._checkFoldersToSave(name)
+        paths = U.modelList(self._modelPath)
+
+        # Loop paths
+        for epoch,path in enumerate(paths,0):
+            # Load
+            checkpoint = torch.load(path)
+            self.model.load_state_dict(checkpoint['state_dict'])
             
+            # Validation
+            _,metr = self._Validation(epoch)
+            
+            # Plotting
+            epochSteer.update(metr[0])
+            epochGas  .update(metr[1])
+            epochBrake.update(metr[2])
+            if outputSpeed:
+                epochSpeed.update(metr[3])
+

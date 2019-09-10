@@ -24,8 +24,12 @@ class Main():
         
     def load(self,path):
         self.model.load(path)
+    def to_continue(self,name):
+        self.model.to_continue(name)
     def train(self):
         self.model.execute()
+    def plot(self,name):
+        self.model.plot(name)
     def play (self):
         pass
     
@@ -48,7 +52,8 @@ if __name__ == "__main__":
     parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger")
     parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
 
-    parser.add_argument("--mode",default="train",type=str,help="Select execution mode: train,play")
+    parser.add_argument("--name",type=str,help="Code model.")
+    parser.add_argument("--mode",default="train",type=str,help="Select execution mode: train,continue,play,plot")
     args = parser.parse_args()
 
     # Setting  
@@ -85,10 +90,25 @@ if __name__ == "__main__":
     if args.modelpath is not None:
         main.load(args.modelpath)
 
+    # To continue train
+    if args.tocontinue is not None:
+        main.to_continue(args.tocontinue)
+
+    # Execute mode
     if   args.mode == "train":
         main.train()
     elif args.mode == "play":
         main.play()
+    elif args.mode == "continue":
+        if args.name is not None: 
+            main.to_continue(args.name)
+        else:
+            NameError('Undefined model. Please define with --name"')
+    elif args.mode == "plot":
+        if args.name is not None: 
+            main.plot(args.name)
+        else:
+            NameError('Undefined model. Please define with --name"')
     else:
         print("Valid execution modes: train,play")
         

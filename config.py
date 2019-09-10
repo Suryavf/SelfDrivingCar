@@ -33,6 +33,8 @@ class Init(object):
         self.device_name = 'cuda:0'
         self.num_workers =       8
         
+        self.is_loadedModel = False
+
         # Device
         self.device = torch.device(self.device_name)
 
@@ -192,8 +194,8 @@ class _Optimizer_settings(object):
     def __init__(self):
         self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
-        self.beta_1        = 0.95   #0.9  #0.7 
-        self.beta_2        = 0.999  #0.999#0.85
+        self.beta_1        = 0.95   #0.9   #0.7 
+        self.beta_2        = 0.999  #0.999 #0.85
 
     def load(self,data):
         self.type          = data[         "type"]

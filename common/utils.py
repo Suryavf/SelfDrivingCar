@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 from random import shuffle
+import pandas as pd
 import numpy as np
 import datetime
 import argparse
+import glob
 import os
 
 
@@ -226,3 +228,19 @@ class counter():
     def update(self):
         self.val+= 1
        
+
+def lastModel(modelPath):
+    path = glob.glob(modelPath+"/model*.pth")
+    return sorted(path, key=lambda x: int(x.partition('/Model/model')[2].partition('.')[0]))[-1]
+    
+def modelList(modelPath):
+    path = glob.glob(modelPath+"/model*.pth")
+    return sorted(path, key=lambda x: int(x.partition('/Model/model')[2].partition('.')[0]))
+
+def loadValuesToSave(path):
+    # Read
+    df = pd.read_csv(path)
+    # Delete unnamed columns
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    return[x for x in df[:].values]
+    
