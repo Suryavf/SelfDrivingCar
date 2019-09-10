@@ -25,12 +25,10 @@ class Main():
     def load(self,path):
         self.model.load(path)
     def to_continue(self,name):
-        self.model.init.is_loadedModel = True
         self.model.to_continue(name)
     def train(self):
         self.model.execute()
     def plot(self,name):
-        self.model.init.is_loadedModel = True
         self.model.plot(name)
     def play(self):
         pass
@@ -84,6 +82,10 @@ if __name__ == "__main__":
 
     # Print settings
     setting.print()
+
+    # Loaded modes
+    if args.mode in ['continue','plot']:
+        init.is_loadedModel = True
 
     # Main program
     main = Main(init,setting)
