@@ -330,6 +330,10 @@ class Setting(object):
         self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
+    def model_(self,model):
+        self.model = model
+        self.boolean = BooleanConditions(self.model)
+
     def load(self,path):
         with open(path) as json_file:
             data = json.load(json_file)

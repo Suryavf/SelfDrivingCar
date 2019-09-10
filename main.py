@@ -66,7 +66,7 @@ if __name__ == "__main__":
         setting.load( os.path.join(args.settingpath,"setting.json") )
     
     # Model
-    if args.model is not None: setting.model = args.model
+    if args.model is not None: setting.model_( args.model )
     
     # Path
     if args.trainpath  is not None: setting.general.trainPath = args.trainpath
