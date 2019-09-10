@@ -25,12 +25,14 @@ class Main():
     def load(self,path):
         self.model.load(path)
     def to_continue(self,name):
+        self.model.init.is_loadedModel = True
         self.model.to_continue(name)
     def train(self):
         self.model.execute()
     def plot(self,name):
+        self.model.init.is_loadedModel = True
         self.model.plot(name)
-    def play (self):
+    def play(self):
         pass
     
 
@@ -47,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--settingpath",type=str,help="Setting folder path")
     parser.add_argument("--n_epoch"    ,type=int,help="Number of epoch for train")
     parser.add_argument("--batch_size" ,type=int,help="Batch size for train")
-    parser.add_argument("--model"      ,type=str,help="End-to-End model")
+    parser.add_argument("--model"      ,type=str,help="End-to-End model: Basic, Multimodal, Codevilla18, Codevilla19, Kim2017")
 
     parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger")
     parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
@@ -90,10 +92,6 @@ if __name__ == "__main__":
     if args.modelpath is not None:
         main.load(args.modelpath)
 
-    # To continue train
-    if args.tocontinue is not None:
-        main.to_continue(args.tocontinue)
-
     # Execute mode
     if   args.mode == "train":
         main.train()
@@ -101,6 +99,7 @@ if __name__ == "__main__":
         main.play()
     elif args.mode == "continue":
         if args.name is not None: 
+            
             main.to_continue(args.name)
         else:
             NameError('Undefined model. Please define with --name"')

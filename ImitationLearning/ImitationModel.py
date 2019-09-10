@@ -488,12 +488,8 @@ class ImitationModel(object):
         colorMershErrorPath = os.path.join(self._figureColorMershErrorPath,"ColorMershError"+str(epoch+1)+".png")
         scatterErrorPath    = os.path.join(self._figureScatterErrorPath   ,   "ScatterError"+str(epoch+1)+".png")
         histogramPath       = os.path.join(self._figureHistogramPath      ,      "Histogram"+str(epoch+1)+".png")
-        scatterPath         = os.path.join(self._figureScatterPath        ,        "Scatter"+str(epoch+1)+".png")
-        polarPath           = os.path.join(self._figurePolarPath          ,          "Polar"+str(epoch+1)+".png")
-        F.saveHistogramSteer        (all_action[:,0],histogramPath)
-        F.saveScatterSteerSpeed     (all_action[:,0],all_speed,all_command, scatterPath )
-        F.saveScatterPolarSteerSpeed(all_action[:,0],all_speed,all_command,   polarPath )
         
+        F. saveHistogramSteer(all_action[:,0],histogramPath)
         F.   saveScatterError(all_steer,all_errSteer,all_command,   scatterErrorPath)
         F.saveColorMershError(all_steer,all_errSteer,all_command,colorMershErrorPath)
         
@@ -556,7 +552,7 @@ class ImitationModel(object):
             self._state_add( 'optimizer',self.optimizer.state_dict())
             self._state_save(epoch)
     
-    
+
     """ Plot generate"""
     def plot(self,name):
         # Parameters
@@ -575,6 +571,8 @@ class ImitationModel(object):
 
         # Loop paths
         for epoch,path in enumerate(paths,0):
+            print("\nEpoch",epoch+1,"-"*40)
+
             # Load
             checkpoint = torch.load(path)
             self.model.load_state_dict(checkpoint['state_dict'])
@@ -588,4 +586,4 @@ class ImitationModel(object):
             epochBrake.update(metr[2])
             if outputSpeed:
                 epochSpeed.update(metr[3])
-
+                

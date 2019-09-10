@@ -114,7 +114,7 @@ def saveHistogramSteerSpeed(steer,speed,path):
 def saveHistogramSteer(steer,path):
     fig, axs = plt.subplots(1, 1, sharey=True, tight_layout=True)
 
-    axs.hist(x=steer, bins=180)
+    axs.hist(x=steer, bins=180,range=(-1.3,1.3))
     axs.set_xlim(-1.3,1.3)
     axs.set_ylim(0,18000)
     axs.set_title("Steer")
@@ -198,8 +198,8 @@ def saveColorMershError(steer,steerErr,command,path):
     cmd = [0,1,3,2]
 
     # Length
-    limit =  5
-    x_len,y_len = (100,50)
+    limit =  2
+    x_len,y_len = (60,30)#(100,50)
     
     x_min,x_max = (-1.20, 1.20)
     y_min,y_max = (-0.01, 1.20)
@@ -230,23 +230,35 @@ def saveColorMershError(steer,steerErr,command,path):
             # Create mersh
             for k in range(x_len):
                 vec = mersh[k]
-                if len(vec)>limit:
+                if len(vec)>2:
+                    # Coefficient (values in plot range [0,1.2])
+                    coeff = np.sum( np.array(vec)<=1.2 ) / len(vec)
+
+                    # Getting histogram
                     vec , _ = np.histogram( vec, y_len,range=(y_min,y_max) )
                     maxVec  = np.max( vec )
-                    vec     = np.multiply( vec,(vec>limit))
-                    mersh[k]= vec / maxVec
+
+                    if maxVec < 1:
+                        mersh[k] = np.zeros(y_len)
+                    else:
+                        # Remove noise
+                        vec     = np.multiply( vec,(vec>1))
+                        # Normalization (respect to the maximum)
+                        mersh[k] = vec / maxVec
+                        # Normalization (respect to data in plot range)
+                        mersh[k] = coeff*mersh[k]
                 else:
                     mersh[k] = np.zeros(y_len)
             mersh = np.array( mersh )
 
             # Smooth mersh
-            f = interp2d(x, y, mersh.T, kind='cubic')
+            f = interp2d(x, y, mersh.T, kind='linear')
             mersh = f(xnew,ynew)
             mersh = np.multiply(mersh , (mersh>0.01))
             mersh = np.multiply(mersh , (mersh<  1 )) + np.multiply(np.ones(mersh.shape),(mersh>=1))
             Xn, Yn = np.meshgrid(xnew, ynew)
             
-            axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet')
+            axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet', vmin=0, vmax=1)
             axs[i,j].set_xlabel("Steer (True)")
             axs[i,j].set_ylabel("Steer Error")
             axs[i,j].set_title(hgl[idx])
