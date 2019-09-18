@@ -1,8 +1,10 @@
 from os      import listdir
 from os.path import isfile, join
 
-from scipy.interpolate import interp2d
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp2d
 from random import shuffle
 import numpy as np
 import datetime
@@ -262,7 +264,7 @@ def saveColorMershError(steer,steerErr,command,path):
             axs[i,j].set_xlabel("Steer (True)")
             axs[i,j].set_ylabel("Steer Error")
             axs[i,j].set_title(hgl[idx])
-            idx += 1
+            idx += 1 
 
     fig.tight_layout()
     fig.set_size_inches(10,6.7)

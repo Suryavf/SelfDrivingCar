@@ -6,6 +6,8 @@ from   torch.utils.data import Dataset,DataLoader
 import ImitationLearning.network.ImitationNet as imL
 import Attention.        network.AttentionNet as attn
 
+from IPython.core.debugger import set_trace
+
 import common.figures as F
 import common.  utils as U
 from common.RAdam  import RAdam
@@ -25,6 +27,19 @@ import os
 # =================
 torch.multiprocessing.set_sharing_strategy('file_system')
 # =================
+
+
+def cov(m, y=None):
+    #print("-----------")
+    m_exp = torch.mean(m, dim=1)
+    #print("m_exp:",m_exp)
+    x = m - m_exp[:, None]
+    #print("x.size(1):",x.size(1))
+    #print("-----------")
+    return 1 / (x.size(1) - 1) * x.mm(x.T)
+    
+
+
 
 class ImitationModel(object):
     """ Constructor """
@@ -179,7 +194,7 @@ class ImitationModel(object):
         if self.setting.boolean.speedRegression:
             self.lossFunc = self._weightedLossActSpeed
         else:
-            self.lossFunc = self._weightedLossAct
+            self.lossFunc = self._mahalanobisLossAct
 
 
     """ Loss Function """
@@ -189,6 +204,36 @@ class ImitationModel(object):
         loss = torch.mean(loss,0)
 
         return torch.sum(loss*self.weightLoss)
+    def _mahalanobisLossAct(self,x):
+        a_msr,a_pred = x
+        e = a_msr-a_pred
+        
+        x = torch.cat([a_msr,a_pred],0)
+        #print("................................")
+        #print(x)
+        #print(".......")
+        x = (x - torch.mean(x,0))/torch.std(x,0)
+
+        # Inverse covariance
+        covariance = cov(x.T) 
+        inv_cov    = torch.inverse(covariance)
+        #inv_cov    = inv_cov / torch.norm(inv_cov)
+        #print("x:",x.shape)
+        #print("V:",covariance)
+        #print("p:",inv_cov)
+
+        w = torch.mm(torch.mm(e,inv_cov),e.T)
+
+        #print("torch.mm(e,p):",torch.mm(e,inv_cov).shape)
+        #print("w:",w.shape)
+
+        D = torch.sqrt(torch.sum(w, axis = 1))
+        #print("D:",D.shape)
+
+        #set_trace()
+
+        return torch.mean(D)
+    
     def _weightedLossActSpeed(self,x):
         a_msr, a_pred, v_msr, v_pred = x
 
@@ -281,6 +326,7 @@ class ImitationModel(object):
         loader = DataLoader(Dataset(self.setting, train = True),
                                     batch_size  = self.setting.train.batch_size,
                                     num_workers = self.init.num_workers)
+        #loader.dataset.test_debug()
         t = tqdm(iter(loader), leave=False, total=len(loader))
         
         # Train
@@ -289,7 +335,7 @@ class ImitationModel(object):
             # Model execute
             pred = self._trainRoutine(data)
             loss = self.lossFunc(pred)
-            
+            print("loss:",loss)
             # zero the parameter gradients
             self.optimizer.zero_grad()
             self.model    .zero_grad()
@@ -555,6 +601,10 @@ class ImitationModel(object):
 
     """ Plot generate"""
     def plot(self,name):
+        # Check paths
+        self._checkFoldersToSave(name)
+        paths = U.modelList(self._modelPath)
+        
         # Parameters
         outputSpeed = self.setting.boolean.outputSpeed
 
@@ -564,10 +614,6 @@ class ImitationModel(object):
         epochBrake = F.savePlotByStep (self._figurePath,"Brake")
         if outputSpeed:
             epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
-
-        # Check paths
-        self._checkFoldersToSave(name)
-        paths = U.modelList(self._modelPath)
 
         # Loop paths
         for epoch,path in enumerate(paths,0):

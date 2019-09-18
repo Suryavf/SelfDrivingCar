@@ -100,8 +100,7 @@ if __name__ == "__main__":
     elif args.mode == "play":
         main.play()
     elif args.mode == "continue":
-        if args.name is not None: 
-            
+        if args.name is not None:
             main.to_continue(args.name)
         else:
             NameError('Undefined model. Please define with --name"')

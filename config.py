@@ -8,7 +8,7 @@ _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
 _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
-
+_temporalModelList   = ['Kim2017']
 
 class BooleanConditions(object):
     def __init__(self,model ):
@@ -18,6 +18,8 @@ class BooleanConditions(object):
         self.outputSpeed     = False    # Output speed
         self.speedRegression = False    # Speed regression
         
+        self.temporalModel   = False
+
         self.branches        = model in _branchesList
         self.multimodal      = model in _multimodalList
         self.inputSpeed      = model in _inputSpeedList

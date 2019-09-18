@@ -3,9 +3,10 @@ import random
 import numpy as np
 import torch
 import h5py
-from   torch.utils.data import Dataset
-from   torchvision      import transforms
-from   imgaug           import augmenters as iaa
+from   torch.utils.data   import Dataset
+from   torchvision        import transforms
+from   imgaug             import augmenters as iaa
+from   common.prioritized import PrioritizedSamples
 
 
 class RandomTransWrapper(object):
@@ -64,20 +65,23 @@ class RandomTransWrapper(object):
 """
 class CoRL2017Dataset(Dataset):
     def __init__(self, setting, train = True):
-
+        # Boolean
         self._isTrain      = train
         self._isBranches   = setting.boolean.branches
         self._includeSpeed = setting.boolean.multimodal or setting.boolean.speedRegression
         
+        # Settings
         self.setting = setting
         self.framePerFile = self.setting.general.framePerFile
 
+        # Files (paths)
         if train: path = setting.general.trainPath
         else    : path = setting.general.validPath
         self._files = glob.glob(path+'*.h5')
         self._files.sort()
         self._transform = None
         
+        # Data augmentation
         self._transformDataAug = transforms.RandomOrder([
                                     RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
                                                         p=0.09),
@@ -94,8 +98,15 @@ class CoRL2017Dataset(Dataset):
                                     RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
                                                         p=0.09),
                                     ])
-
+        
+        # Build data augmentation
         self.build()
+
+        # Priorized
+        #n = self.__len__()
+        #self.prioritized = PrioritizedSamples( n )
+        #self.exploration = True
+
 
     def build(self):
         if self._isTrain:
@@ -145,6 +156,7 @@ class CoRL2017Dataset(Dataset):
             else:
                 return img, out.reshape(-1)
 
+        
     def evaluationRoutine(self,img,target):
         max_steering = self.setting.preprocessing.max_steering
         max_speed    = self.setting.preprocessing.max_speed
