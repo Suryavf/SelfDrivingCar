@@ -11,7 +11,7 @@ _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
 
 class BooleanConditions(object):
-    def __init__(self,model ):
+    def __init__(self,model):
         self.branches        = False    # Conditional (branches)
         self.multimodal      = False    # Multimodal (image + speed)
         self.inputSpeed      = False    # Input speed

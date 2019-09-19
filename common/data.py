@@ -66,10 +66,11 @@ class RandomTransWrapper(object):
 class CoRL2017Dataset(Dataset):
     def __init__(self, setting, train = True):
         # Boolean
-        self._isTrain      = train
-        self._isBranches   = setting.boolean.branches
-        self._includeSpeed = setting.boolean.multimodal or setting.boolean.speedRegression
-        
+        self._isTrain         = train
+        self._isBranches      = setting.boolean.branches
+        self._includeSpeed    = setting.boolean.multimodal or setting.boolean.speedRegression
+        self._isTemporalModel = setting.boolean.temporalModel
+
         # Settings
         self.setting = setting
         self.framePerFile = self.setting.general.framePerFile
@@ -102,11 +103,20 @@ class CoRL2017Dataset(Dataset):
         # Build data augmentation
         self.build()
 
-        # Priorized
-        #n = self.__len__()
-        #self.prioritized = PrioritizedSamples( n )
-        #self.exploration = True
+        # Temporal models
+        self._id_sample    = 0
+        self._tempCount    = 0
+        self._sequence_len = setting.train.sequence_len 
+        self._pointer      = setting.train.sequence_len 
+        if self._isTemporalModel:
+            n = (self.framePerFile - self._sequence_len + 1) * len(self._files)
+        else:
+            n = self.framePerFile * len(self._files)
 
+        # Priorized
+        self. prioritized = PrioritizedSamples( n )
+        self._exploration = True
+        
 
     def build(self):
         if self._isTrain:
@@ -118,6 +128,9 @@ class CoRL2017Dataset(Dataset):
             self._transform = transforms.Compose([transforms.ToPILImage(),
                                                   transforms.Resize((92,196)),#(96,192)
                                                   transforms.ToTensor(),])
+
+    def exploration(self,o):
+        self._exploration = o
 
     def __len__(self):
         return self.framePerFile * len(self._files)
@@ -187,11 +200,62 @@ class CoRL2017Dataset(Dataset):
             out = target[:3]
             return img, command, speed, out.reshape(-1)
 
-    def __getitem__(self, idx):
-        data_idx  = idx // self.framePerFile
-        file_idx  = idx  % self.framePerFile
+    """ Data position for sampling
+        --------------------------
+        Priority memory:
+            - No temporal data: n_samples = n_files * framePerFile
+                                buffer: n_samples x [      1      frame]
+            - Temporal data:    n_samples = n_files *(framePerFile - sequence_len + 1)
+                                buffer: n_samples x [sequence_len frame]
+
+    """
+    def dataPosition(self,idx):
+        # Samples per file
+        if self._isTemporalModel:
+            samplesPerFile = self.framePerFile 
+        else:
+            samplesPerFile = self.framePerFile - self._sequence_len + 1
+
+        # Exploration mode
+        if self._exploration:
+            if self._isTemporalModel:  
+                # Position
+                if self._pointer < self._sequence_len - 1:    
+                    self._pointer += 1      # Next
+                else:
+                    self._pointer  = 0      # Reset
+                    self._id_sample+= 1
+                
+                # Index
+                idx = self._id_sample + self._pointer
+            else:
+                pass # Easy!
+                
+        # Priorized mode
+        else:
+            # Temporal Case
+            if self._isTemporalModel:  
+                # Position
+                if self._pointer < self._sequence_len - 1:    
+                    self._pointer += 1      # Next
+                else:
+                    self._id_sample = self.prioritized.sample()
+                    self._pointer  = 0      # Reset
+                # Index
+                idx = self._id_sample + self._pointer
+
+            # No Temporal Case
+            else:
+                idx = self.prioritized.sample()
+
+        data_idx  = idx // samplesPerFile
+        file_idx  = idx  % samplesPerFile
         file_name = self._files[data_idx]
 
+        return file_name, file_idx
+
+    def _getOneExample(self,file_name,file_idx):
+        # Read
         with h5py.File(file_name, 'r') as h5_file:
             # Image input
             img = np.array(h5_file['rgb'])[file_idx]
@@ -205,4 +269,25 @@ class CoRL2017Dataset(Dataset):
                 return self.  trainingRoutine(img,target)
             else:
                 return self.evaluationRoutine(img,target)
-                
+
+    def __getitem__(self, idx):
+        # Data position
+        file_name, file_idx = self.dataPosition(idx)
+
+        if self._isTemporalModel:
+            sample = None
+            # Get sample
+            for i in range(self._sequence_len):
+                # Get one example
+                s = self._getOneExample(file_name,file_idx)
+                # To sample (temporal)
+                if i == 0: sample = [list() for _ in range(len(s))]
+                for j, d in enumerate(s): sample[j].append( d )
+            # Stack list
+            for i, d in enumerate(sample):
+                sample[i] = np.stack(d)
+
+            return tuple(sample)
+        else:
+            return self._getOneExample(file_name,file_idx)
+
