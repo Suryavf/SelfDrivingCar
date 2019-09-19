@@ -200,6 +200,7 @@ class CoRL2017Dataset(Dataset):
             out = target[:3]
             return img, command, speed, out.reshape(-1)
 
+
     """ Data position for sampling
         --------------------------
         Priority memory:
@@ -216,37 +217,9 @@ class CoRL2017Dataset(Dataset):
         else:
             samplesPerFile = self.framePerFile - self._sequence_len + 1
 
-        # Exploration mode
-        if self._exploration:
-            if self._isTemporalModel:  
-                # Position
-                if self._pointer < self._sequence_len - 1:    
-                    self._pointer += 1      # Next
-                else:
-                    self._pointer  = 0      # Reset
-                    self._id_sample+= 1
-                
-                # Index
-                idx = self._id_sample + self._pointer
-            else:
-                pass # Easy!
-                
         # Priorized mode
-        else:
-            # Temporal Case
-            if self._isTemporalModel:  
-                # Position
-                if self._pointer < self._sequence_len - 1:    
-                    self._pointer += 1      # Next
-                else:
-                    self._id_sample = self.prioritized.sample()
-                    self._pointer  = 0      # Reset
-                # Index
-                idx = self._id_sample + self._pointer
-
-            # No Temporal Case
-            else:
-                idx = self.prioritized.sample()
+        if not self._exploration:
+            idx = self.prioritized.sample()
 
         data_idx  = idx // samplesPerFile
         file_idx  = idx  % samplesPerFile
@@ -270,16 +243,17 @@ class CoRL2017Dataset(Dataset):
             else:
                 return self.evaluationRoutine(img,target)
 
+
     def __getitem__(self, idx):
         # Data position
-        file_name, file_idx = self.dataPosition(idx)
+        file_name, idx = self.dataPosition(idx)
 
-        if self._isTemporalModel:
+        if self._isTemporalModel and self._isTrain:
             sample = None
             # Get sample
             for i in range(self._sequence_len):
                 # Get one example
-                s = self._getOneExample(file_name,file_idx)
+                s = self._getOneExample(file_name,idx+i)
                 # To sample (temporal)
                 if i == 0: sample = [list() for _ in range(len(s))]
                 for j, d in enumerate(s): sample[j].append( d )
@@ -289,5 +263,5 @@ class CoRL2017Dataset(Dataset):
 
             return tuple(sample)
         else:
-            return self._getOneExample(file_name,file_idx)
-
+            return self._getOneExample(file_name,idx)
+            

@@ -29,4 +29,4 @@ class Kim2017Net(nn.Module):
         x = self.encoder(img)
         y = self.decoder(x)
         return y
-
+        
