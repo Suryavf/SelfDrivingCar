@@ -80,13 +80,18 @@ class ImitationModel(object):
             # Save settings
             self.  init .save( os.path.join(self._modelPath,   "init.json") )
             self.setting.save( os.path.join(self._modelPath,"setting.json") )
-
+        
+        # Objects
         self.optimizer  = None
         self.scheduler  = None
         self.weightLoss = None
         self.lossFunc   = None
         
-        
+        self.loader = DataLoader (  Dataset(self.setting),
+                                    batch_size  = self.setting.train.batch_size,
+                                    num_workers = self.init.num_workers)
+
+
     """ Check folders to save """
     def _checkFoldersToSave(self, name = None):
         # Data Path
@@ -194,7 +199,7 @@ class ImitationModel(object):
         if self.setting.boolean.speedRegression:
             self.lossFunc = self._weightedLossActSpeed
         else:
-            self.lossFunc = self._mahalanobisLossAct
+            self.lossFunc = self._weightedLossAct
 
 
     """ Loss Function """
@@ -306,60 +311,6 @@ class ImitationModel(object):
             return a_msr, a_pred, v_msr, v_pred
 
 
-    """ Train function
-        --------------
-        Global train function
-            * Input: model     (nn.Module)
-                     optimizer (torch.optim)
-                     lossFunc  (function)
-                     path      (path)
-            * Output: total_loss (float) 
-    """
-    def _Train(self):
-        
-        # Acomulative loss
-        running_loss = 0.0
-        lossTrain   = U.averager()
-        stepView = self.setting.general.stepView
-
-        # Data Loader
-        loader = DataLoader(Dataset(self.setting, train = True),
-                                    batch_size  = self.setting.train.batch_size,
-                                    num_workers = self.init.num_workers)
-        #loader.dataset.test_debug()
-        t = tqdm(iter(loader), leave=False, total=len(loader))
-        
-        # Train
-        self.model.train()
-        for i, data in enumerate(t,0):
-            # Model execute
-            pred = self._trainRoutine(data)
-            loss = self.lossFunc(pred)
-            print("loss:",loss)
-            # zero the parameter gradients
-            self.optimizer.zero_grad()
-            self.model    .zero_grad()
-
-            loss.backward()
-            self.optimizer.step()
-            
-            # Print statistics
-            runtime_loss = loss.item()
-            running_loss += runtime_loss
-            if i % stepView == (stepView-1):   # print every stepView mini-batches
-                message = 'BatchTrain loss=%.7f'
-                t.set_description( message % ( running_loss/stepView ))
-                t.refresh()
-                running_loss = 0.0
-            lossTrain.update(runtime_loss)
-        t.close()
-        
-        lossTrain = lossTrain.val()
-        print("Epoch training loss:",lossTrain)
-
-        return lossTrain
-
-
     """ Validation Routine """
     def _validationRoutine(self,data):
         # Boolean conditions
@@ -435,6 +386,64 @@ class ImitationModel(object):
         return loss,err,steer,errSteer,a_pred,v_msr,command
 
 
+    """ Train function
+        --------------
+        Global train function
+            * Input: model     (nn.Module)
+                     optimizer (torch.optim)
+                     lossFunc  (function)
+                     path      (path)
+            * Output: total_loss (float) 
+    """
+    def _Train(self,exploration = False):
+        
+        # Acomulative loss
+        running_loss = 0.0
+        lossTrain   = U.averager()
+        stepView = self.setting.general.stepView
+
+        # Data Loader iterator
+        t = tqdm(iter(self.loader), leave=False, total=len(self.loader))
+        
+        self.model.train()
+        t.iterable.dataset.train()
+        
+        # Exploration mode
+        t.iterable.dataset.exploration( exploration )
+
+        # Train loop
+        for i, data in enumerate(t,0):
+            # Model execute
+            pred = self._trainRoutine(data)
+            loss = self.lossFunc(pred)
+            
+            # Update priority
+            t.iterable.dataset.update(loss.item())
+            
+            # zero the parameter gradients
+            self.optimizer.zero_grad()
+            self.model    .zero_grad()
+
+            loss.backward()
+            self.optimizer.step()
+            
+            # Print statistics
+            runtime_loss = loss.item()
+            running_loss += runtime_loss
+            if i % stepView == (stepView-1):   # print every stepView mini-batches
+                message = 'BatchTrain loss=%.7f'
+                t.set_description( message % ( running_loss/stepView ))
+                t.refresh()
+                running_loss = 0.0
+            lossTrain.update(runtime_loss)
+        t.close()
+        
+        lossTrain = lossTrain.val()
+        print("Epoch training loss:",lossTrain)
+
+        return lossTrain
+
+
     """ Validation function
         -------------------
         Global validation function
@@ -463,14 +472,14 @@ class ImitationModel(object):
         else:
             metrics = U.averager(3)   # Steer,Gas,Brake
 
-        # Data Loader
-        loader = DataLoader(Dataset(self.setting, train = False),
-                                    batch_size  = self.setting.train.batch_size,
-                                    num_workers = self.init.num_workers)
-        t = tqdm(iter(loader), leave=False, total=len(loader))
+        # Data Loader iterator
+        t = tqdm(iter(self.loader), leave=False, total=len(self.loader))
+        
+        self.model.eval()
+        t.iterable.dataset.eval()
+        t.iterable.dataset.exploration( False )
         
         # Model to evaluation
-        self.model.eval()
         with torch.no_grad():
             for i, data in enumerate(t,0):
                 # Model execute
@@ -568,7 +577,7 @@ class ImitationModel(object):
             print("\nEpoch",epoch+1,"-"*40)
             
             # Train
-            lossTrain = self._Train()
+            lossTrain = self._Train( exploration = (epoch==0) )
             self.scheduler.step()
             
             # Validation

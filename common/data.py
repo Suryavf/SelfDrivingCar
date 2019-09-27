@@ -64,7 +64,7 @@ class RandomTransWrapper(object):
 
 """
 class CoRL2017Dataset(Dataset):
-    def __init__(self, setting, train = True):
+    def __init__(self, setting, train = True, exploration = False):
         # Boolean
         self._isTrain         = train
         self._isBranches      = setting.boolean.branches
@@ -76,10 +76,15 @@ class CoRL2017Dataset(Dataset):
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        if train: path = setting.general.trainPath
-        else    : path = setting.general.validPath
-        self._files = glob.glob(path+'*.h5')
-        self._files.sort()
+        self.  trainingFiles = glob.glob(setting.general.trainPath+'*.h5')
+        self.validationFiles = glob.glob(setting.general.validPath+'*.h5')
+        self.  trainingFiles.sort()
+        self.validationFiles.sort()
+
+        if train: self.files = self.  trainingFiles
+        else    : self.files = self.validationFiles
+
+        # Objects
         self._transform = None
         
         # Data augmentation
@@ -103,20 +108,32 @@ class CoRL2017Dataset(Dataset):
         # Build data augmentation
         self.build()
 
+        # Last sample (update prorities)
+        self.lastSample = 0
+
         # Temporal models
         self._id_sample    = 0
         self._tempCount    = 0
+        self._stepWindow   = 5
         self._sequence_len = setting.train.sequence_len 
         self._pointer      = setting.train.sequence_len 
         if self._isTemporalModel:
-            n = (self.framePerFile - self._sequence_len + 1) * len(self._files)
+            n = (self.framePerFile - self._sequence_len + 1) * len(self.files)
         else:
-            n = self.framePerFile * len(self._files)
+            n = self.framePerFile * len(self.files)
 
         # Priorized
         self. prioritized = PrioritizedSamples( n )
-        self._exploration = True
-        
+        self._exploration = exploration
+
+    def train(self):
+        self.files = self.  trainingFiles
+        self._isTrain = True
+        self.build()
+    def eval(self):
+        self.files = self.validationFiles
+        self._isTrain = False
+        self.build()
 
     def build(self):
         if self._isTrain:
@@ -129,11 +146,18 @@ class CoRL2017Dataset(Dataset):
                                                   transforms.Resize((92,196)),#(96,192)
                                                   transforms.ToTensor(),])
 
-    def exploration(self,o):
-        self._exploration = o
+    def exploration(self,opt):
+        self._exploration = opt
+
+    def update(self,priority):
+        self.prioritized.update(self.lastSample,priority)
 
     def __len__(self):
-        return self.framePerFile * len(self._files)
+        if self._isTemporalModel:
+            samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
+        else:
+            samplesPerFile = self.framePerFile
+        return samplesPerFile * len(self.files)
 
     def trainingRoutine(self,img,target):
         max_steering = self.setting.preprocessing.max_steering
@@ -213,21 +237,26 @@ class CoRL2017Dataset(Dataset):
     def dataPosition(self,idx):
         # Samples per file
         if self._isTemporalModel:
-            samplesPerFile = self.framePerFile 
+            samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
         else:
-            samplesPerFile = self.framePerFile - self._sequence_len + 1
+            samplesPerFile = self.framePerFile
 
         # Priorized mode
         if not self._exploration:
-            idx = self.prioritized.sample()
+            idx,weight = self.prioritized.sample()
 
-        data_idx  = idx // samplesPerFile
-        file_idx  = idx  % samplesPerFile
-        file_name = self._files[data_idx]
+        # Save last sample
+        self.lastSample = idx
 
-        return file_name, file_idx
+        idx_file   = idx // samplesPerFile
+        idx_sample = idx  % samplesPerFile
+        
+        file_name = self.files[idx_file]
+        idx_frame = idx_sample * self._stepWindow
 
-    def _getOneExample(self,file_name,file_idx):
+        return file_name, idx_frame
+
+    def getOneExample(self,file_name,file_idx):
         # Read
         with h5py.File(file_name, 'r') as h5_file:
             # Image input
@@ -253,7 +282,7 @@ class CoRL2017Dataset(Dataset):
             # Get sample
             for i in range(self._sequence_len):
                 # Get one example
-                s = self._getOneExample(file_name,idx+i)
+                s = self.getOneExample(file_name,idx+i)
                 # To sample (temporal)
                 if i == 0: sample = [list() for _ in range(len(s))]
                 for j, d in enumerate(s): sample[j].append( d )
@@ -263,5 +292,5 @@ class CoRL2017Dataset(Dataset):
 
             return tuple(sample)
         else:
-            return self._getOneExample(file_name,idx)
+            return self.getOneExample(file_name,idx)
             

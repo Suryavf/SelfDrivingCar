@@ -25,6 +25,7 @@ class BooleanConditions(object):
         self.inputSpeed      = model in _inputSpeedList
         self.outputSpeed     = model in _outputSpeedList
         self.speedRegression = model in _speedRegressionList
+        self.temporalModel   = model in _temporalModelList
 
 
 class Init(object):
@@ -33,7 +34,7 @@ class Init(object):
         self.seed        =      -1
         self.device      =    None
         self.device_name = 'cuda:0'
-        self.num_workers =       8
+        self.num_workers =       1
         
         self.is_loadedModel = False
 
@@ -264,7 +265,7 @@ class Train_settings(object):
         self.scheduler = _Scheduler_settings()
 
         self.n_epoch      = 150
-        self.batch_size   = 120
+        self.batch_size   =   1
         self.sequence_len =  20
 
         self.dropout = 0.5
