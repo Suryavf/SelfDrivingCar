@@ -118,21 +118,24 @@ class CoRL2017Dataset(Dataset):
         self._sequence_len = setting.train.sequence_len 
         self._pointer      = setting.train.sequence_len 
         if self._isTemporalModel:
-            n = (self.framePerFile - self._sequence_len + 1) * len(self.files)
+            self.samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
         else:
-            n = self.framePerFile * len(self.files)
+            self.samplesPerFile = self.framePerFile
+        self.n_samples = self.samplesPerFile * len(self.files)
 
         # Priorized
-        self. prioritized = PrioritizedSamples( n )
+        self. prioritized = PrioritizedSamples( self.n_samples )
         self._exploration = exploration
 
     def train(self):
-        self.files = self.  trainingFiles
-        self._isTrain = True
+        self.files     = self.trainingFiles
+        self.n_samples = self.samplesPerFile * len(self.files)
+        self._isTrain  = True
         self.build()
     def eval(self):
-        self.files = self.validationFiles
-        self._isTrain = False
+        self.files     = self.validationFiles
+        self.n_samples = self.samplesPerFile * len(self.files)
+        self._isTrain  = False
         self.build()
 
     def build(self):
@@ -153,11 +156,7 @@ class CoRL2017Dataset(Dataset):
         self.prioritized.update(self.lastSample,priority)
 
     def __len__(self):
-        if self._isTemporalModel:
-            samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
-        else:
-            samplesPerFile = self.framePerFile
-        return samplesPerFile * len(self.files)
+        return self.samplesPerFile * len(self.files)
 
     def trainingRoutine(self,img,target):
         max_steering = self.setting.preprocessing.max_steering
@@ -240,7 +239,7 @@ class CoRL2017Dataset(Dataset):
             samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
         else:
             samplesPerFile = self.framePerFile
-
+        
         # Priorized mode
         if not self._exploration:
             idx,weight = self.prioritized.sample()
