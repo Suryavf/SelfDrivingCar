@@ -28,19 +28,6 @@ import os
 torch.multiprocessing.set_sharing_strategy('file_system')
 # =================
 
-
-def cov(m, y=None):
-    #print("-----------")
-    m_exp = torch.mean(m, dim=1)
-    #print("m_exp:",m_exp)
-    x = m - m_exp[:, None]
-    #print("x.size(1):",x.size(1))
-    #print("-----------")
-    return 1 / (x.size(1) - 1) * x.mm(x.T)
-    
-
-
-
 class ImitationModel(object):
     """ Constructor """
     def __init__(self,init,setting):
@@ -185,6 +172,10 @@ class ImitationModel(object):
                                     betas = (self.setting.train.optimizer.beta_1, 
                                              self.setting.train.optimizer.beta_2 ) )
 
+        # Exploration mode optimizator
+        self.exploration_optimizer = optim.SGD( self.model.parameters(), 
+                                                lr=self.setting.train.optimizer.learning_rate/1000 )
+        
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
@@ -209,36 +200,6 @@ class ImitationModel(object):
         loss = torch.mean(loss,0)
 
         return torch.sum(loss*self.weightLoss)
-    def _mahalanobisLossAct(self,x):
-        a_msr,a_pred = x
-        e = a_msr-a_pred
-        
-        x = torch.cat([a_msr,a_pred],0)
-        #print("................................")
-        #print(x)
-        #print(".......")
-        x = (x - torch.mean(x,0))/torch.std(x,0)
-
-        # Inverse covariance
-        covariance = cov(x.T) 
-        inv_cov    = torch.inverse(covariance)
-        #inv_cov    = inv_cov / torch.norm(inv_cov)
-        #print("x:",x.shape)
-        #print("V:",covariance)
-        #print("p:",inv_cov)
-
-        w = torch.mm(torch.mm(e,inv_cov),e.T)
-
-        #print("torch.mm(e,p):",torch.mm(e,inv_cov).shape)
-        #print("w:",w.shape)
-
-        D = torch.sqrt(torch.sum(w, axis = 1))
-        #print("D:",D.shape)
-
-        #set_trace()
-
-        return torch.mean(D)
-    
     def _weightedLossActSpeed(self,x):
         a_msr, a_pred, v_msr, v_pred = x
 
@@ -268,7 +229,7 @@ class ImitationModel(object):
             frame =  frame.to(self.device)
             a_msr = action.to(self.device)
             
-            output = self.model(frame)
+            output = self.model(frame.squeeze())
 
         elif     inputSpeed and not branches:
             frame, speed, action = data
@@ -304,7 +265,7 @@ class ImitationModel(object):
         # Output
         if not outputSpeed:
             a_pred = output
-            return a_msr, a_pred
+            return a_msr.squeeze(), a_pred.squeeze()
 
         else:
             a_pred,v_pred = output
@@ -397,46 +358,48 @@ class ImitationModel(object):
     """
     def _Train(self,exploration = False):
         
-        # Acomulative loss
+        # Settings
         running_loss = 0.0
-        lossTrain   = U.averager()
-        stepView = self.setting.general.stepView
+        lossTrain    = U.averager()
+        stepView     = self.setting.general.stepView
 
-        # Data Loader iterator
-        t = tqdm(iter(self.loader), leave=False, total=len(self.loader))
-        
+        # Train configure
         self.model.train()
-        t.iterable.dataset.train()
+        self.loader.dataset.train()
+        self.loader.dataset.exploration( exploration )
+
+        # Optimizer ( Exploration: SGD 
+        #             Train      : Adam )    
+        if exploration: optimizer = self.exploration_optimizer
+        else          : optimizer = self.optimizer
         
-        # Exploration mode
-        t.iterable.dataset.exploration( exploration )
-
         # Train loop
-        for i, data in enumerate(t,0):
-            # Model execute
-            pred = self._trainRoutine(data)
-            loss = self.lossFunc(pred)
-            
-            # Update priority
-            t.iterable.dataset.update(loss.item())
-            
-            # zero the parameter gradients
-            self.optimizer.zero_grad()
-            self.model    .zero_grad()
+        with tqdm(total=len(self.loader)) as pbar:
+            for i, data in enumerate(self.loader):
+                # Model execute
+                pred = self._trainRoutine(data)
+                loss = self.lossFunc(pred)
+                
+                # Update priority
+                self.loader.dataset.update(loss.item())
+                
+                # zero the parameter gradients
+                optimizer .zero_grad()
+                self.model.zero_grad()
 
-            loss.backward()
-            self.optimizer.step()
-            
-            # Print statistics
-            runtime_loss = loss.item()
-            running_loss += runtime_loss
-            if i % stepView == (stepView-1):   # print every stepView mini-batches
-                message = 'BatchTrain loss=%.7f'
-                t.set_description( message % ( running_loss/stepView ))
-                t.refresh()
-                running_loss = 0.0
-            lossTrain.update(runtime_loss)
-        t.close()
+                loss.backward()
+                optimizer.step()
+                
+                # Print statistics
+                runtime_loss = loss.item()
+                running_loss += runtime_loss
+                if i % stepView == (stepView-1):   # print every stepView mini-batches
+                    message = 'BatchTrain loss=%.7f'
+                    pbar.set_description( message % ( running_loss/stepView ))
+                    pbar.refresh()
+                    running_loss = 0.0
+                lossTrain.update(runtime_loss)
+                pbar.update(1)
         
         lossTrain = lossTrain.val()
         print("Epoch training loss:",lossTrain)
@@ -472,21 +435,18 @@ class ImitationModel(object):
         else:
             metrics = U.averager(3)   # Steer,Gas,Brake
 
-        # Data Loader iterator
-        t = tqdm(iter(self.loader), leave=False, total=len(self.loader))
-        
+        # Train configure
         self.model.eval()
-        t.iterable.dataset.eval()
-        t.iterable.dataset.exploration( False )
+        self.loader.dataset.eval()
+        self.loader.dataset.exploration( False )
         
         # Model to evaluation
-        with torch.no_grad():
-            for i, data in enumerate(t,0):
+        with torch.no_grad(), tqdm(total=len(self.loader)) as pbar:
+            for i, data in enumerate(self.loader):
                 # Model execute
                 loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
                 
-                if loss == -1:
-                    break
+                if loss == -1: break
                 
                 # Calculate the loss
                 runtime_loss  = loss.item()
@@ -506,11 +466,10 @@ class ImitationModel(object):
                 # Print statistics
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
                     message = 'BatchValid loss=%.7f'
-                    t.set_description( message % ( running_loss/stepView ))
-                    t.refresh()
+                    pbar.set_description( message % ( running_loss/stepView ))
+                    pbar.refresh()
                     running_loss = 0.0
-                t.update()
-            t.close()
+                pbar.update(1)
 
         # Loss/metrics
         metrics      =    metrics.mean
@@ -574,11 +533,13 @@ class ImitationModel(object):
 
         # Loop over the dataset multiple times
         for epoch in range(self._epoch,n_epoch):
-            print("\nEpoch",epoch+1,"-"*40)
+            if epoch == 0: print("\nExploration")
+            else:          print("\nEpoch",epoch,"-"*40)
             
             # Train
             lossTrain = self._Train( exploration = (epoch==0) )
-            self.scheduler.step()
+            if epoch == 0: continue
+            else:          self.scheduler.step()
             
             # Validation
             lossValid,metr = self._Validation(epoch)
@@ -601,7 +562,7 @@ class ImitationModel(object):
             df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
-            self._state_add(     'epoch',                epoch + 1  )
+            self._state_add(     'epoch',                    epoch  )
             self._state_add('state_dict',self.    model.state_dict())
             self._state_add( 'scheduler',self.scheduler.state_dict())
             self._state_add( 'optimizer',self.optimizer.state_dict())
