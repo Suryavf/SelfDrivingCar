@@ -74,8 +74,13 @@ class ImitationModel(object):
         self.weightLoss = None
         self.lossFunc   = None
         
+        if self.setting.boolean.temporalModel:
+            batch_size = int(self.setting.train.batch_size/self.setting.train.sequence_len)
+        else:
+            batch_size = self.setting.train.batch_size
+
         self.loader = DataLoader (  Dataset(self.setting),
-                                    batch_size  = self.setting.train.batch_size,
+                                    batch_size  = batch_size,
                                     num_workers = self.init.num_workers)
 
 
@@ -229,7 +234,7 @@ class ImitationModel(object):
             frame =  frame.to(self.device)
             a_msr = action.to(self.device)
             
-            output = self.model(frame.squeeze())
+            output = self.model(frame)
 
         elif     inputSpeed and not branches:
             frame, speed, action = data
@@ -265,11 +270,17 @@ class ImitationModel(object):
         # Output
         if not outputSpeed:
             a_pred = output
-            return a_msr.squeeze(), a_pred.squeeze()
+            if self.setting.boolean.temporalModel:
+                return a_msr.flatten(start_dim=0, end_dim=1), a_pred
+            else:
+                return a_msr, a_pred
 
         else:
             a_pred,v_pred = output
-            return a_msr, a_pred, v_msr, v_pred
+            if self.setting.boolean.temporalModel:
+                return a_msr.flatten(start_dim=0, end_dim=1), a_pred, v_msr.flatten(start_dim=0, end_dim=1), v_pred
+            else:
+                return a_msr, a_pred, v_msr, v_pred
 
 
     """ Validation Routine """

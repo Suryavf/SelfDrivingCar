@@ -10,23 +10,56 @@ _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
 
-class BooleanConditions(object):
-    def __init__(self,model):
-        self.branches        = False    # Conditional (branches)
-        self.multimodal      = False    # Multimodal (image + speed)
-        self.inputSpeed      = False    # Input speed
-        self.outputSpeed     = False    # Output speed
-        self.speedRegression = False    # Speed regression
+
+class Setting(object):
+    def __init__(self):
+        self.preprocessing = Preprocessing_settings()
+        self.evaluation    =    Evaluation_settings()
+        self.general       =       General_settings()
+        self.train         =         Train_settings()
         
-        self.temporalModel   = False
+        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.boolean = BooleanConditions(self.model)
 
-        self.branches        = model in _branchesList
-        self.multimodal      = model in _multimodalList
-        self.inputSpeed      = model in _inputSpeedList
-        self.outputSpeed     = model in _outputSpeedList
-        self.speedRegression = model in _speedRegressionList
-        self.temporalModel   = model in _temporalModelList
+    def model_(self,model):
+        self.model = model
+        self.boolean = BooleanConditions(self.model)
 
+    def load(self,path):
+        with open(path) as json_file:
+            data = json.load(json_file)
+
+            self.model = data["model"]
+            self.preprocessing.load(data["preprocessing"])
+            self.evaluation   .load(data[   "evaluation"])
+            self.general      .load(data[      "general"])
+            self.train        .load(data[        "train"])
+
+    def print(self):
+        print("="*80,"\n\n","\t"+self.model+" Model\n","\t"+"-"*64,"\n")
+        print("\tGeneral")
+        self.general.print()
+        print("\tPreprocessing")
+        self.preprocessing.print()
+        print("\tTrain")
+        self.train.print()
+        print("\tEvaluation")
+        self.evaluation.print()
+        print("="*80)
+
+    def save(self,path):
+        setting = {
+            "model": self.model,
+
+            "preprocessing": self.preprocessing.save(),
+            "evaluation"   : self.   evaluation.save(),
+            "general"      : self.      general.save(),
+            "train"        : self.        train.save()
+        }
+
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
+            
 
 class Init(object):
     def __init__(self):
@@ -265,7 +298,7 @@ class Train_settings(object):
         self.scheduler = _Scheduler_settings()
 
         self.n_epoch      = 150
-        self.batch_size   =   1
+        self.batch_size   = 120
         self.sequence_len =  20
 
         self.dropout = 0.5
@@ -323,56 +356,20 @@ class Evaluation_settings(object):
         }
 
 
-class Setting(object):
-    def __init__(self):
-        self.preprocessing = Preprocessing_settings()
-        self.evaluation    =    Evaluation_settings()
-        self.general       =       General_settings()
-        self.train         =         Train_settings()
+class BooleanConditions(object):
+    def __init__(self,model):
+        self.branches        = False    # Conditional (branches)
+        self.multimodal      = False    # Multimodal (image + speed)
+        self.inputSpeed      = False    # Input speed
+        self.outputSpeed     = False    # Output speed
+        self.speedRegression = False    # Speed regression
         
-        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
-        self.boolean = BooleanConditions(self.model)
+        self.temporalModel   = False
 
-    def model_(self,model):
-        self.model = model
-        self.boolean = BooleanConditions(self.model)
-
-    def load(self,path):
-        with open(path) as json_file:
-            data = json.load(json_file)
-
-            self.model = data["model"]
-            self.preprocessing.load(data["preprocessing"])
-            self.evaluation   .load(data[   "evaluation"])
-            self.general      .load(data[      "general"])
-            self.train        .load(data[        "train"])
-
-    def print(self):
-        print("="*80)
-        print("\n","\t"+self.model+" Model")
-        print("\t"+"-"*64,"\n")
-
-        print("\tGeneral")
-        self.general.print()
-        print("\tPreprocessing")
-        self.preprocessing.print()
-        print("\tTrain")
-        self.train.print()
-        print("\tEvaluation")
-        self.evaluation.print()
-
-        print("="*80)
-
-    def save(self,path):
-        setting = {
-            "model": self.model,
-
-            "preprocessing": self.preprocessing.save(),
-            "evaluation"   : self.   evaluation.save(),
-            "general"      : self.      general.save(),
-            "train"        : self.        train.save()
-        }
-
-        with open(path, "w") as write_file:
-            json.dump(setting, write_file, indent=4)
-            
+        self.branches        = model in _branchesList
+        self.multimodal      = model in _multimodalList
+        self.inputSpeed      = model in _inputSpeedList
+        self.outputSpeed     = model in _outputSpeedList
+        self.speedRegression = model in _speedRegressionList
+        self.temporalModel   = model in _temporalModelList
+        
