@@ -8,6 +8,8 @@ from   torchvision        import transforms
 from   imgaug             import augmenters as iaa
 from   common.prioritized import PrioritizedSamples
 
+from IPython.core.debugger import set_trace
+
 
 class RandomTransWrapper(object):
     def __init__(self, seq, p=0.5):
@@ -117,7 +119,7 @@ class CoRL2017Dataset(Dataset):
         self._stepWindow   = 5
         self._sequence_len = setting.train.sequence_len 
         self._pointer      = setting.train.sequence_len 
-        if self._isTemporalModel:
+        if self._isTemporalModel and self._isTrain:
             self.samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
         else:
             self.samplesPerFile = self.framePerFile
@@ -235,13 +237,13 @@ class CoRL2017Dataset(Dataset):
     """
     def dataPosition(self,idx):
         # Samples per file
-        if self._isTemporalModel:
+        if self._isTemporalModel and self._isTrain:
             samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
         else:
             samplesPerFile = self.framePerFile
         
         # Priorized mode
-        if not self._exploration:
+        if not self._exploration and self._isTrain:
             idx,weight = self.prioritized.sample()
 
         # Save last sample
@@ -251,8 +253,11 @@ class CoRL2017Dataset(Dataset):
         idx_sample = idx  % samplesPerFile
         
         file_name = self.files[idx_file]
-        idx_frame = idx_sample * self._stepWindow
-
+        if not self._exploration and self._isTrain:
+            idx_frame = idx_sample * self._stepWindow
+        else:
+            idx_frame = idx_sample
+        
         return file_name, idx_frame
 
     def getOneExample(self,file_name,file_idx):
@@ -270,7 +275,6 @@ class CoRL2017Dataset(Dataset):
                 return self.  trainingRoutine(img,target)
             else:
                 return self.evaluationRoutine(img,target)
-
 
     def __getitem__(self, idx):
         # Data position

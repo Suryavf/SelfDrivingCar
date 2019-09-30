@@ -79,9 +79,12 @@ class ImitationModel(object):
         else:
             batch_size = self.setting.train.batch_size
 
-        self.loader = DataLoader (  Dataset(self.setting),
-                                    batch_size  = batch_size,
-                                    num_workers = self.init.num_workers)
+        self.trainingloader   = DataLoader (  Dataset ( self.setting, train = True),
+                                                        batch_size  = batch_size,
+                                                        num_workers = self.init.num_workers)
+        self.validationloader = DataLoader (  Dataset ( self.setting, train = False),
+                                                        batch_size  = self.setting.train.batch_size,
+                                                        num_workers = self.init.num_workers)
 
 
     """ Check folders to save """
@@ -132,7 +135,7 @@ class ImitationModel(object):
         if self.setting.boolean.speedRegression:
             self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
-        path = self._modelPath + "/model" + str(epoch + 1) + ".pth"
+        path = self._modelPath + "/model" + str(epoch) + ".pth"
         torch.save(self._state,path)
 
 
@@ -305,7 +308,7 @@ class ImitationModel(object):
             a_msr   =   a_msr.to(self.device)
             command = command.to(self.device)
 
-        if frame.shape[0] != 120:
+        if frame.shape[0] != self.setting.train.batch_size:
             loss,err,steer,errSteer,a_pred,v_msr,command = (-1,-1,-1,-1,-1,-1,-1)
             return loss,err,steer,errSteer,a_pred,v_msr,command
         
@@ -376,8 +379,8 @@ class ImitationModel(object):
 
         # Train configure
         self.model.train()
-        self.loader.dataset.train()
-        self.loader.dataset.exploration( exploration )
+        self.trainingloader.dataset.train()
+        self.trainingloader.dataset.exploration( exploration )
 
         # Optimizer ( Exploration: SGD 
         #             Train      : Adam )    
@@ -385,14 +388,14 @@ class ImitationModel(object):
         else          : optimizer = self.optimizer
         
         # Train loop
-        with tqdm(total=len(self.loader)) as pbar:
-            for i, data in enumerate(self.loader):
+        with tqdm(total=len(self.trainingloader)) as pbar:
+            for i, data in enumerate(self.trainingloader):
                 # Model execute
                 pred = self._trainRoutine(data)
                 loss = self.lossFunc(pred)
                 
                 # Update priority
-                self.loader.dataset.update(loss.item())
+                self.trainingloader.dataset.update(loss.item())
                 
                 # zero the parameter gradients
                 optimizer .zero_grad()
@@ -448,12 +451,12 @@ class ImitationModel(object):
 
         # Train configure
         self.model.eval()
-        self.loader.dataset.eval()
-        self.loader.dataset.exploration( False )
+        self.validationloader.dataset.eval()
+        self.validationloader.dataset.exploration( False )
         
         # Model to evaluation
-        with torch.no_grad(), tqdm(total=len(self.loader)) as pbar:
-            for i, data in enumerate(self.loader):
+        with torch.no_grad(), tqdm(total=len(self.validationloader)) as pbar:
+            for i, data in enumerate(self.validationloader):
                 # Model execute
                 loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
                 
