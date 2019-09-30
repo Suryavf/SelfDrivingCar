@@ -158,7 +158,10 @@ class CoRL2017Dataset(Dataset):
         self.prioritized.update(self.lastSample,priority)
 
     def __len__(self):
-        return self.samplesPerFile * len(self.files)
+        if self._isTrain and not self._exploration:
+            return int( 0.3 * self.samplesPerFile * len(self.files) )
+        else:
+            return self.samplesPerFile * len(self.files)
 
     def trainingRoutine(self,img,target):
         max_steering = self.setting.preprocessing.max_steering

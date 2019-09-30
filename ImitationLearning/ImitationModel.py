@@ -237,6 +237,10 @@ class ImitationModel(object):
             frame =  frame.to(self.device)
             a_msr = action.to(self.device)
             
+            #if frame.shape[0] != self.setting.train.batch_size:
+            #    loss,err,steer,errSteer,a_pred,v_msr,command = (-1,-1,-1,-1,-1,-1,-1)
+            #    return loss,err,steer,errSteer,a_pred,v_msr,command
+
             output = self.model(frame)
 
         elif     inputSpeed and not branches:

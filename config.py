@@ -67,7 +67,7 @@ class Init(object):
         self.seed        =      -1
         self.device      =    None
         self.device_name = 'cuda:0'
-        self.num_workers =       8
+        self.num_workers =       4
         
         self.is_loadedModel = False
 
