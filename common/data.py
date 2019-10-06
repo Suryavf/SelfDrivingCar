@@ -1,6 +1,7 @@
 import glob
 import random
-import numpy as np
+import numpy  as np
+import pandas as pd
 import torch
 import h5py
 from   torch.utils.data   import Dataset
@@ -68,10 +69,10 @@ class RandomTransWrapper(object):
 class CoRL2017Dataset(Dataset):
     def __init__(self, setting, train = True, exploration = False):
         # Boolean
-        self._isTrain         = train
-        self._isBranches      = setting.boolean.branches
-        self._includeSpeed    = setting.boolean.multimodal or setting.boolean.speedRegression
-        self._isTemporalModel = setting.boolean.temporalModel
+        self.isTrain         = train
+        self.isBranches      = setting.boolean.branches
+        self.includeSpeed    = setting.boolean.multimodal or setting.boolean.speedRegression
+        self.isTemporalModel = setting.boolean.temporalModel
 
         # Settings
         self.setting = setting
@@ -87,10 +88,10 @@ class CoRL2017Dataset(Dataset):
         else    : self.files = self.validationFiles
 
         # Objects
-        self._transform = None
+        self.transform = None
         
         # Data augmentation
-        self._transformDataAug = transforms.RandomOrder([
+        self.transformDataAug = transforms.RandomOrder([
                                     RandomTransWrapper( seq=iaa.GaussianBlur((0, 1.5)),
                                                         p=0.09),
                                     RandomTransWrapper( seq=iaa.AdditiveGaussianNoise(loc=0,scale=(0.0, 0.05),per_channel=0.5),
@@ -109,7 +110,15 @@ class CoRL2017Dataset(Dataset):
         
         # Build data augmentation
         self.build()
+        
+        if self.isTemporalModel and self.isTrain:
+            self.sequence_len   = setting.train.sequence_len
+            self.slidingWindow  = 5 
+            self.samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
+        else:
+            self.samplesPerFile = self.framePerFile
 
+        """
         # Last sample (update prorities)
         self.lastSample = 0
 
@@ -119,184 +128,91 @@ class CoRL2017Dataset(Dataset):
         self._stepWindow   = 5
         self._sequence_len = setting.train.sequence_len 
         self._pointer      = setting.train.sequence_len 
-        if self._isTemporalModel and self._isTrain:
-            self.samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
-        else:
-            self.samplesPerFile = self.framePerFile
-        self.n_samples = self.samplesPerFile * len(self.files)
-
-        # Priorized
-        self. prioritized = PrioritizedSamples( self.n_samples )
-        self._exploration = exploration
-
-    def train(self):
-        self.files     = self.trainingFiles
-        self.n_samples = self.samplesPerFile * len(self.files)
-        self._isTrain  = True
-        self.build()
-    def eval(self):
-        self.files     = self.validationFiles
-        self.n_samples = self.samplesPerFile * len(self.files)
-        self._isTrain  = False
-        self.build()
+        
+        self.n_samples = 1200#self.samplesPerFile * len(self.files)
+        """
 
     def build(self):
-        if self._isTrain:
-            self._transform = transforms.Compose([  self._transformDataAug,
+        if self.isTrain:
+            self.transform = transforms.Compose([  self.transformDataAug,
                                                     transforms.ToPILImage(),
                                                     transforms.Resize((92,196)),#(96,192)
                                                     transforms.ToTensor()])
         else:
-            self._transform = transforms.Compose([transforms.ToPILImage(),
+            self.transform = transforms.Compose([ transforms.ToPILImage(),
                                                   transforms.Resize((92,196)),#(96,192)
                                                   transforms.ToTensor(),])
 
-    def exploration(self,opt):
-        self._exploration = opt
-
-    def update(self,priority):
-        self.prioritized.update(self.lastSample,priority)
-
-    def __len__(self):
-        if self._isTrain and not self._exploration:
-            return int( 0.3 * self.samplesPerFile * len(self.files) )
-        else:
-            return self.samplesPerFile * len(self.files)
-
-    def trainingRoutine(self,img,target):
-        max_steering = self.setting.preprocessing.max_steering
-        max_speed    = self.setting.preprocessing.max_speed
-
-        # Steering angle
-        target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
-            
-        if self._isBranches:
-            # Control output
-            command = int(target[24])-2
-            out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
-            out[command,:] = target[:3]
-
-            # Mask
-            mask = np.zeros((4, 3), dtype=np.float32)
-            mask[command,:] = 1
-
-            if self._includeSpeed:
-                # Speed input/output (max 90km/h)
-                speed = np.array([target[10]/max_speed,]).astype(np.float32)
-                return img, speed, out.reshape(-1), mask.reshape(-1)
-            else:
-                return img, out.reshape(-1), mask.reshape(-1)
-
-        else:
-            out = target[:3]
-
-            if self._includeSpeed:
-                # Speed input/output (max 90km/h)
-                speed = np.array([target[10]/max_speed,]).astype(np.float32)
-                return img, speed, out.reshape(-1)
-            else:
-                return img, out.reshape(-1)
-
-        
-    def evaluationRoutine(self,img,target):
-        max_steering = self.setting.preprocessing.max_steering
-        max_speed    = self.setting.preprocessing.max_speed
-
-        # Steering angle
-        target[0] = target[0]/max_steering   # Angle (max 1.2 rad)
-        
-        if self._isBranches:
-            # Control output
-            command = int(np.array(target[24]-2))
-            out = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
-            out[command,:] = target[:3]
-
-            # Mask
-            mask = np.zeros((4, 3), dtype=np.float32)
-            mask[command,:] = 1
-
-            # Speed input/output (max 90km/h)
-            speed = np.array([target[10]/max_speed,]).astype(np.float32)
-            return img, command, speed, out.reshape(-1), mask.reshape(-1)
-        else:
-            # Control output
-            command = np.array(target[24]-2)
-
-            # Speed input/output (max 90km/h)
-            speed = np.array([target[10]/max_speed,]).astype(np.float32)
-
-            out = target[:3]
-            return img, command, speed, out.reshape(-1)
-
-
-    """ Data position for sampling
-        --------------------------
-        Priority memory:
-            - No temporal data: n_samples = n_files * framePerFile
-                                buffer: n_samples x [      1      frame]
-            - Temporal data:    n_samples = n_files *(framePerFile - sequence_len + 1)
-                                buffer: n_samples x [sequence_len frame]
-
     """
-    def dataPosition(self,idx):
-        # Samples per file
-        if self._isTemporalModel and self._isTrain:
-            samplesPerFile = int( (self.framePerFile - self._sequence_len)/self._stepWindow + 1 )
+    def saveHistory(self,path):
+        if len(self.currentSamples) == 0:
+            print("len(self.currentSamples):",len(self.currentSamples))
+            print("vacio csv")
+            return
+        
+        self.samples.append( self.currentSamples )
+        self.currentSamples = list()
+
+        df = { 'Epoch'+str(i+1): data for i,data in enumerate(self.samples) }
+        df = pd.DataFrame(df)
+        df.to_csv(path, index=False) 
+    """
+    
+    def __len__(self):
+        return self.samplesPerFile * len(self.files)
+
+    def routine(self,img,target):
+        # Parameters
+        max_steering = self.setting.preprocessing.max_steering
+        max_speed    = self.setting.preprocessing.max_speed
+        inputs       = {}
+
+        # Command control 
+        command = int(target[24])-2
+        if not self.isTrain:
+            inputs['command'] = command
+
+        # Frame
+        inputs['frame'] = img
+
+        # Actions
+        target[0] = target[0]/max_steering   # Steering angle (max 1.2 rad)
+        if self.isBranches: 
+            actions = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
+            actions[command,:] = target[:3]
         else:
-            samplesPerFile = self.framePerFile
-        
-        # Priorized mode
-        if not self._exploration and self._isTrain:
-            idx,weight = self.prioritized.sample()
+            actions = target[:3]
+        inputs['actions'] = actions.reshape(-1)
 
-        # Save last sample
-        self.lastSample = idx
-
-        idx_file   = idx // samplesPerFile
-        idx_sample = idx  % samplesPerFile
+        # Mask
+        if self.isBranches:
+            mask = np.zeros((4, 3), dtype=np.float32)
+            mask[command,:] = 1
+            inputs[ 'mask' ] = mask.reshape(-1)
         
-        file_name = self.files[idx_file]
-        if not self._exploration and self._isTrain:
-            idx_frame = idx_sample * self._stepWindow
-        else:
-            idx_frame = idx_sample
-        
-        return file_name, idx_frame
+        # Speed input/output (max 90km/h)
+        if self.includeSpeed or not self.isTrain:
+            speed = np.array([target[10]/max_speed,]).astype(np.float32)
+            inputs['speed'] = speed
 
-    def getOneExample(self,file_name,file_idx):
+        return inputs
+
+
+    def __getitem__(self, idx):
+        # File / Frame
+        idx_file   = idx // self.samplesPerFile
+        idx_sample = idx  % self.samplesPerFile        
+        file_name  = self.files[idx_file]
+
         # Read
         with h5py.File(file_name, 'r') as h5_file:
             # Image input
-            img = np.array(h5_file['rgb'])[file_idx]
-            img = self._transform(img)
+            img = np.array(h5_file['rgb'])[idx_sample]
+            img = self.transform(img)
 
             # Target dataframe
-            target = np.array(h5_file['targets'])[file_idx]
+            target = np.array(h5_file['targets'])[idx_sample]
             target = target.astype(np.float32)
 
-            if self._isTrain:
-                return self.  trainingRoutine(img,target)
-            else:
-                return self.evaluationRoutine(img,target)
-
-    def __getitem__(self, idx):
-        # Data position
-        file_name, idx = self.dataPosition(idx)
-
-        if self._isTemporalModel and self._isTrain:
-            sample = None
-            # Get sample
-            for i in range(self._sequence_len):
-                # Get one example
-                s = self.getOneExample(file_name,idx+i)
-                # To sample (temporal)
-                if i == 0: sample = [list() for _ in range(len(s))]
-                for j, d in enumerate(s): sample[j].append( d )
-            # Stack list
-            for i, d in enumerate(sample):
-                sample[i] = np.stack(d)
-
-            return tuple(sample)
-        else:
-            return self.getOneExample(file_name,idx)
+            return self.routine(img,target) 
             

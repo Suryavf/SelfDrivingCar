@@ -127,13 +127,13 @@ class Kim2017(nn.Module):
         
     """ Forward """
     def forward(self,feature):
-        batch_size   = int(self.batch_size/self.sequence_len)
-        sequence_len = self.sequence_len
-        
         #
         # Training mode
         # -------------
         if self.training:
+            sequence_len = self.sequence_len
+            batch_size   = feature.shape[0]
+            batch_size   = int(batch_size/sequence_len)
             out = torch.zeros([sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
 
             # Fragment
@@ -170,7 +170,7 @@ class Kim2017(nn.Module):
                 # Save sequence out
                 out[k] = ut
             
-            return out.transpose(0,1).contiguous().view(self.batch_size,self.n_out)
+            return out.transpose(0,1).contiguous().view(batch_size*sequence_len,self.n_out)
             
             
         #
@@ -178,7 +178,8 @@ class Kim2017(nn.Module):
         # ---------------
         else:
             # Fragment
-            sequence = feature # [batch,L,D]
+            sequence   = feature # [batch,L,D]
+            batch_size = feature.shape[0]
 
             # Inicialize hidden state and cell state
             #   * hidden ~ [1,batch,H]
@@ -186,10 +187,10 @@ class Kim2017(nn.Module):
             hidden,cell = self.initializeLSTM(feature[0].unsqueeze(0))
             
             # Prediction container
-            pred = torch.zeros([self.batch_size,self.n_out]).to( torch.device('cuda:0') )
+            pred = torch.zeros([batch_size,self.n_out]).to( torch.device('cuda:0') )
 
             # Sequence loop
-            for k in range(self.batch_size):
+            for k in range(batch_size):
                 # One time
                 xt = sequence[k].unsqueeze(0)      # [1,L,D]
 

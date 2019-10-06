@@ -120,6 +120,12 @@ class General_settings(object):
         self.framePerFile   = 200
         self.stepView       =  10 # Print in Train
 
+        self.n_epoch      = 150
+        self.batch_size   = 120
+        self.sequence_len =  20
+
+        self.slidingWindow  = 5
+
         # Path files
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
@@ -130,6 +136,10 @@ class General_settings(object):
         self.framePerFile   = data[  "framePerFile"]
         self.framePerSecond = data["framePerSecond"]
         
+        self.n_epoch      = data[     "n_epoch"]
+        self.batch_size   = data[  "batch_size"]
+        self.sequence_len = data["sequence_len"]
+
         self.validPath = data["validPath"]
         self.trainPath = data["trainPath"]
         self.savedPath = data["savedPath"]
@@ -139,12 +149,20 @@ class General_settings(object):
         print("\t"*2,"Validation Path:\t",self.validPath)
         print("\t"*2,"Saved Path:\t\t"   ,self.savedPath)
         print("")
+        print("\t"*2,"Batch size:\t",  self.  batch_size)
+        print("\t"*2,"Sequence len:\t",self.sequence_len)
+        print("\t"*2,"Num. epochs:\t", self.     n_epoch)
+        print("")
 
     def save(self):
         return {
             "framePerSecond" : self.framePerSecond,
             "framePerFile"   : self.  framePerFile,
             "stepView"       : self.      stepView,
+            
+            "n_epoch"      : self.     n_epoch,
+            "batch_size"   : self.  batch_size,
+            "sequence_len" : self.sequence_len,
 
             "validPath" : self.validPath,
             "trainPath" : self.trainPath,
@@ -297,26 +315,16 @@ class Train_settings(object):
         self.optimizer = _Optimizer_settings()
         self.scheduler = _Scheduler_settings()
 
-        self.n_epoch      = 150
-        self.batch_size   = 120
-        self.sequence_len =  20
-
         self.dropout = 0.5
 
     def load(self,data):
-        self.n_epoch      = data[     "n_epoch"]
-        self.dropout      = data[     "dropout"]
-        self.batch_size   = data[  "batch_size"]
-        self.sequence_len = data["sequence_len"]
-
         self.scheduler.load(data["scheduler"])
         self.optimizer.load(data["optimizer"])
         self.loss     .load(data[     "loss"])
 
+        self.dropout   = data[     "dropout"]
+
     def print(self):
-        print("\t"*2,"Batch size:\t",  self.  batch_size)
-        print("\t"*2,"Sequence len:\t",self.sequence_len)
-        print("\t"*2,"Num. epochs:\t", self.     n_epoch)
         print("\t"*2,"Dropout:\t", self.dropout)
         print("")
         print("\t"*2,self.loss.type+" loss")
@@ -329,9 +337,6 @@ class Train_settings(object):
     def save(self):
         return {
             "dropout"      : self.     dropout,
-            "n_epoch"      : self.     n_epoch,
-            "batch_size"   : self.  batch_size,
-            "sequence_len" : self.sequence_len,
             
             "scheduler" : self.scheduler.save(),
             "optimizer" : self.optimizer.save(),

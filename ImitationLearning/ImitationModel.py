@@ -10,13 +10,17 @@ from IPython.core.debugger import set_trace
 
 import common.figures as F
 import common.  utils as U
-from common.RAdam  import RAdam
-from common.Ranger import Ranger
-from common.data  import CoRL2017Dataset as Dataset
+from   common.RAdam       import RAdam
+from   common.Ranger      import Ranger
+from   common.data        import CoRL2017Dataset as Dataset
+from   common.prioritized import PrioritizedSamples
 
+
+from   itertools import zip_longest
 from   tqdm import tqdm
 import pandas as pd
 import numpy  as np
+import glob
 import os
 
 # Solution DataLoader bug
@@ -39,23 +43,14 @@ class ImitationModel(object):
         self.device = self.init.device
 
         # Internal parameters
-        self._state     = {}
-        self._trainLoss = list()
-        self._validLoss = list()
-        self._metrics   = {}
-        self._epoch     = 0
+        self.epoch = 0
         
         # Nets
-        if   self.setting.model == 'Basic':
-            self.model = imL.BasicNet()
-        elif self.setting.model == 'Multimodal':
-            self.model = imL.MultimodalNet()
-        elif self.setting.model == 'Codevilla18': 
-            self.model = imL.Codevilla18Net()
-        elif self.setting.model == 'Codevilla19':
-            self.model = imL.Codevilla19Net()
-        elif self.setting.model == 'Kim2017':
-            self.model = attn.Kim2017Net()
+        if   self.setting.model == 'Basic'      : self.model =  imL.      BasicNet()
+        elif self.setting.model == 'Multimodal' : self.model =  imL. MultimodalNet()
+        elif self.setting.model == 'Codevilla18': self.model =  imL.Codevilla18Net()
+        elif self.setting.model == 'Codevilla19': self.model =  imL.Codevilla19Net()
+        elif self.setting.model == 'Kim2017'    : self.model = attn.    Kim2017Net()
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
@@ -74,17 +69,25 @@ class ImitationModel(object):
         self.weightLoss = None
         self.lossFunc   = None
         
-        if self.setting.boolean.temporalModel:
-            batch_size = int(self.setting.train.batch_size/self.setting.train.sequence_len)
-        else:
-            batch_size = self.setting.train.batch_size
+        # Path files
+        self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+        self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
 
-        self.trainingloader   = DataLoader (  Dataset ( self.setting, train = True),
-                                                        batch_size  = batch_size,
-                                                        num_workers = self.init.num_workers)
-        self.validationloader = DataLoader (  Dataset ( self.setting, train = False),
-                                                        batch_size  = self.setting.train.batch_size,
-                                                        num_workers = self.init.num_workers)
+        # Prioritized sampling
+        framePerFile = self.setting.general.framePerFile
+        sequence_len = self.setting.  train.sequence_len 
+
+        self.slidingWindow           = self.setting.general.slidingWindow
+        self.samplesByTrainingFile   = framePerFile
+        self.samplesByValidationFile = framePerFile
+        if self.setting.boolean.temporalModel:
+            self.samplesByTrainingFile = int( (framePerFile - sequence_len)/self.slidingWindow + 1 )
+
+        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile )
+
+        # Datasets
+        self.trainDataset = Dataset(self.setting,train= True)
+        self.validDataset = Dataset(self.setting,train=False)
 
 
     """ Check folders to save """
@@ -153,8 +156,8 @@ class ImitationModel(object):
         path = U.lastModel(self._modelPath)
 
         # Next epoch
-        self._epoch = int(path.partition('/Model/model')[2].partition('.')[0])
-        self._epoch = self._epoch + 1
+        self.epoch = int(path.partition('/Model/model')[2].partition('.')[0])
+        self.epoch = self.epoch + 1
 
         # Load
         self.load(path)
@@ -182,7 +185,7 @@ class ImitationModel(object):
 
         # Exploration mode optimizator
         self.exploration_optimizer = optim.SGD( self.model.parameters(), 
-                                                lr=self.setting.train.optimizer.learning_rate/1000 )
+                                                lr=self.setting.train.optimizer.learning_rate/100000 )
         
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
@@ -190,11 +193,13 @@ class ImitationModel(object):
                                                     gamma     = self.setting.train.scheduler.learning_rate_decay_factor)
 
         # Loss Function
-        self.weightLoss = torch.Tensor([self.setting.train.loss.lambda_steer, 
-                                        self.setting.train.loss.lambda_gas  , 
-                                        self.setting.train.loss.lambda_brake]).float().cuda(self.device) 
+        self.weightLoss = np.array([self.setting.train.loss.lambda_steer, 
+                                    self.setting.train.loss.lambda_gas  , 
+                                    self.setting.train.loss.lambda_brake]).reshape(3,1)
         if self.setting.boolean.branches:
-            self.weightLoss = torch.cat( [self.weightLoss for _ in range(4)] )
+            self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
+        self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device) 
+
         if self.setting.boolean.speedRegression:
             self.lossFunc = self._weightedLossActSpeed
         else:
@@ -202,28 +207,53 @@ class ImitationModel(object):
 
 
     """ Loss Function """
-    def _weightedLossAct(self,x):
-        a_msr,a_pred = x
-        loss = torch.abs(a_msr - a_pred)
-        loss = torch.mean(loss,0)
+    def _weightedLossAct(self,measure,prediction,weight=None):
+        loss = torch.abs(measure['actions'] - prediction['actions'])
+        loss = loss.dot(self.weightLoss)
+        if weight is not None:
+            weight.reshape(1,self.setting.train.sequence_len)
+            pass
+        else:
+            return torch.mean(loss)
 
-        return torch.sum(loss*self.weightLoss)
-    def _weightedLossActSpeed(self,x):
-        a_msr, a_pred, v_msr, v_pred = x
 
-        actionLoss = torch.abs (a_msr - a_pred)
-        actionLoss = torch.mean(actionLoss,0)
-        actionLoss = torch.sum (actionLoss*self.weightLoss)
-
-        speedLoss = torch.abs(v_msr -v_pred)
-        speedLoss = torch.mean(speedLoss)
-
+        prediction['loss'] = loss
+    def _weightedLossActSpeed(self,measure,prediction):
+        actions = torch.abs(measure['actions'] - prediction['actions'])
+        actions = actions.dot(self.weightLoss)
+        speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
+        
         lambda_action = self.setting.train.loss.lambda_action
         lambda_speed  = self.setting.train.loss.lambda_speed
-        return actionLoss * lambda_action  +  speedLoss * lambda_speed
+        loss = lambda_action*actions + lambda_speed*speed
+        prediction['loss'] = loss
 
+
+    """ Generate ID list """
+    def _generateIDlist(self,n_samples,prioritized=False,sequence=False):
+        # IDs/weights
+        if prioritized:
+            IDs = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
+            IDs = IDs.T
+            IDs = IDs[0]
+            weights = IDs[1]
+        else:
+            IDs = np.array( range(n_samples) )
+        # Temporal sliding window
+        IDs = IDs*self.slidingWindow
+        
+        # Sequence
+        if sequence:
+            sequence_len = self.setting.train.sequence_len
+            IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
+            IDs = np.concatenate(IDs)
+
+        if prioritized: return IDs,weights 
+        else:           return IDs
+        
 
     """ Train Routine """
+    """
     def _trainRoutine(self,data):
 
         # Boolean conditions
@@ -237,10 +267,6 @@ class ImitationModel(object):
             frame =  frame.to(self.device)
             a_msr = action.to(self.device)
             
-            #if frame.shape[0] != self.setting.train.batch_size:
-            #    loss,err,steer,errSteer,a_pred,v_msr,command = (-1,-1,-1,-1,-1,-1,-1)
-            #    return loss,err,steer,errSteer,a_pred,v_msr,command
-
             output = self.model(frame)
 
         elif     inputSpeed and not branches:
@@ -288,7 +314,7 @@ class ImitationModel(object):
                 return a_msr.flatten(start_dim=0, end_dim=1), a_pred, v_msr.flatten(start_dim=0, end_dim=1), v_pred
             else:
                 return a_msr, a_pred, v_msr, v_pred
-
+    """
 
     """ Validation Routine """
     def _validationRoutine(self,data):
@@ -331,10 +357,10 @@ class ImitationModel(object):
         # Loss
         if not self.setting.boolean.outputSpeed:
             a_pred = output
-            loss = self.lossFunc( (a_msr,a_pred) )
+            loss = self.lossFunc( (a_msr,a_pred),1 )
         else:
             a_pred,v_pred = output
-            loss = self.lossFunc( (a_msr, a_pred, v_msr, v_pred) )
+            loss = self.lossFunc( (a_msr, a_pred, v_msr, v_pred),1 )
 
         # Error
         err = torch.abs(a_msr - a_pred)
@@ -364,6 +390,55 @@ class ImitationModel(object):
 
         return loss,err,steer,errSteer,a_pred,v_msr,command
 
+    def _stack(self,dataset,IDs):
+        group = [ dataset[i] for i in IDs ]
+        batch = {}
+        for key in group[0]:
+            batch[key] = np.stack([data[key] for data in group])
+        return batch
+    
+    def _transfer2device(self,batch):
+        inputs    = ['frame','actions','speed','command','mask']
+        dev_batch = {}
+
+        for ko in inputs:
+            if ko in batch:
+                dev_batch[ko] = batch[ko].to(self.device)
+        return dev_batch
+
+    """ Exploration function
+        --------------------
+        Global train function
+            *  Input: None
+            * Output: total_loss (float) 
+    """
+    def _Exploration(self):
+        # Parameters
+        n_samples    = len(self.trainingFiles)*self.samplesByTrainingFile
+        batch_size   = self.setting.general.batch_size
+        sequence_len = self.setting.general.sequence_len
+        batch_size   = batch_size/sequence_len
+
+        # ID list
+        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
+
+        with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
+            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+                # Batch
+                batch     = self._stack(self.trainDataset,batchID)
+                dev_batch = self._transfer2device(batch)
+
+                # Model
+                dev_pred  = self.model(dev_batch)
+                self.lossFunc(dev_batch,dev_pred)
+                
+                # Update priority
+
+
+
+                pbar.update()
+            pbar.close()
+
 
     """ Train function
         --------------
@@ -388,18 +463,26 @@ class ImitationModel(object):
 
         # Optimizer ( Exploration: SGD 
         #             Train      : Adam )    
-        if exploration: optimizer = self.exploration_optimizer
+        if exploration: optimizer = self.optimizer
         else          : optimizer = self.optimizer
         
         # Train loop
         with tqdm(total=len(self.trainingloader)) as pbar:
-            for i, data in enumerate(self.trainingloader):
+            for i, _data in enumerate(self.trainingloader):
                 # Model execute
-                pred = self._trainRoutine(data)
-                loss = self.lossFunc(pred)
+                data, idx= _data
+
+                print("idx:",idx)
+
+                set_trace()
+                
+                pred   = self._trainRoutine(data)
+                weight = self.trainingloader.dataset.weight()
+                weight = torch.tensor(weight).to(self.device)
+                loss   = self.lossFunc(pred,weight)
                 
                 # Update priority
-                self.trainingloader.dataset.update(loss.item())
+                #self.trainingloader.dataset.update(loss.item())
                 
                 # zero the parameter gradients
                 optimizer .zero_grad()
@@ -421,6 +504,9 @@ class ImitationModel(object):
         
         lossTrain = lossTrain.val()
         print("Epoch training loss:",lossTrain)
+
+        if not exploration:
+            self.trainingloader.dataset.saveHistory(os.path.join(self._modelPath,"samples.csv"))
 
         return lossTrain
 
@@ -517,9 +603,9 @@ class ImitationModel(object):
             print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
         
         # Save figures
-        colorMershErrorPath = os.path.join(self._figureColorMershErrorPath,"ColorMershError"+str(epoch+1)+".png")
-        scatterErrorPath    = os.path.join(self._figureScatterErrorPath   ,   "ScatterError"+str(epoch+1)+".png")
-        histogramPath       = os.path.join(self._figureHistogramPath      ,      "Histogram"+str(epoch+1)+".png")
+        colorMershErrorPath = os.path.join(self._figureColorMershErrorPath,"ColorMershError"+str(epoch)+".png")
+        scatterErrorPath    = os.path.join(self._figureScatterErrorPath   ,   "ScatterError"+str(epoch)+".png")
+        histogramPath       = os.path.join(self._figureHistogramPath      ,      "Histogram"+str(epoch)+".png")
         
         F. saveHistogramSteer(all_action[:,0],histogramPath)
         F.   saveScatterError(all_steer,all_errSteer,all_command,   scatterErrorPath)
@@ -550,7 +636,7 @@ class ImitationModel(object):
         df = pd.DataFrame()
 
         # Loop over the dataset multiple times
-        for epoch in range(self._epoch,n_epoch):
+        for epoch in range(self.epoch,n_epoch):
             if epoch == 0: print("\nExploration")
             else:          print("\nEpoch",epoch,"-"*40)
             
@@ -605,7 +691,7 @@ class ImitationModel(object):
 
         # Loop paths
         for epoch,path in enumerate(paths,0):
-            print("\nEpoch",epoch+1,"-"*40)
+            print("\nEpoch",epoch,"-"*40)
 
             # Load
             checkpoint = torch.load(path)

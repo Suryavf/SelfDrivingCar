@@ -1,7 +1,7 @@
 import numpy as np
 
 class PrioritizedSamples(object):
-    def __init__(self,n,alpha=1.0,beta=0.0):
+    def __init__(self,n,alpha=1.0,beta=0.9):
         self.n_samples = n
         self.n_leaf    = int(2**np.ceil(np.log2(n)))
         self.n_nodes   = 2*self.n_leaf - 1

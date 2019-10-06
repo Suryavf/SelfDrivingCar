@@ -19,14 +19,13 @@ class Kim2017Net(nn.Module):
     """ Constructor """
     def __init__(self):
         super(Kim2017Net, self).__init__()
-
         # Modules
         self.encoder = enco.CNN5()
         self.decoder = deco.Kim2017(3)
     
     """ Forward """
-    def forward(self,img):
-        x = self.encoder(img)
+    def forward(self,batch):
+        x = self.encoder(batch['frame'])
         y = self.decoder(x)
-        return y
+        return {'action': y}
         

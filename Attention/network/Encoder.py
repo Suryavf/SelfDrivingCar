@@ -33,8 +33,8 @@ class CNN5(nn.Module):
         self.R = 5760 # self.L*self.D
         self.H = 1024 # hidden_size
         self.M = 1024 # hidden_size
-        self.sequence_len =  20
-        self.batch_size   = 120
+        self.sequence_len =   20
+        self.batch_size   =  120
         
         # Layers
         self.net = nn.Sequential(
@@ -60,6 +60,6 @@ class CNN5(nn.Module):
     """ Forward """
     def forward(self,img):
         xt = self.net(img)                          # [batch,D,h,w]
-        xt = xt.view(self.batch_size,self.D,self.L) # [batch,D,L]
+        xt = xt.flatten(start_dim=2, end_dim=3)     # [batch,D,L]
         return xt.transpose(1, 2)                   # [batch,L,D]
     
