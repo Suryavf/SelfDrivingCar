@@ -74,14 +74,14 @@ class ImitationModel(object):
         self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
 
         # Prioritized sampling
-        framePerFile = self.setting.general.framePerFile
-        sequence_len = self.setting.  train.sequence_len 
+        self.framePerFile = self.setting.general.framePerFile
+        self.sequence_len = self.setting.general.sequence_len 
 
         self.slidingWindow           = self.setting.general.slidingWindow
-        self.samplesByTrainingFile   = framePerFile
-        self.samplesByValidationFile = framePerFile
+        self.samplesByTrainingFile   = self.framePerFile
+        self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
-            self.samplesByTrainingFile = int( (framePerFile - sequence_len)/self.slidingWindow + 1 )
+            self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
 
         self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile )
 
@@ -211,22 +211,41 @@ class ImitationModel(object):
         loss = torch.abs(measure['actions'] - prediction['actions'])
         loss = loss.dot(self.weightLoss)
         if weight is not None:
-            weight.reshape(1,self.setting.train.sequence_len)
-            pass
-        else:
-            return torch.mean(loss)
-
-
+            # One wight to one sample
+            weight = weight.reshape(1,-1)
+            ones   = np.ones([self.setting.train.sequence_len,1])
+            weight = ones.dot(weight).reshape([-1,1],order='F')
+            weight = torch.from_numpy(weight).to(self.device)
+            
+            loss = loss.mul(weight)
+        
         prediction['loss'] = loss
-    def _weightedLossActSpeed(self,measure,prediction):
-        actions = torch.abs(measure['actions'] - prediction['actions'])
-        actions = actions.dot(self.weightLoss)
+        return torch.mean(loss)
+
+    def _weightedLossActSpeed(self,measure,prediction,weight=None):
+        # Action loss
+        action = torch.abs(measure['actions'] - prediction['actions'])
+        action = action.dot(self.weightLoss)
+
+        # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
         
+        # Total loss
         lambda_action = self.setting.train.loss.lambda_action
         lambda_speed  = self.setting.train.loss.lambda_speed
-        loss = lambda_action*actions + lambda_speed*speed
+        loss = lambda_action*action + lambda_speed*speed
+
+        if weight is not None:
+            # One wight to one sample
+            weight = weight.reshape(1,-1)
+            ones   = np.ones([self.setting.train.sequence_len,1])
+            weight = ones.dot(weight).reshape([-1,1],order='F')
+            weight = torch.from_numpy(weight).to(self.device)
+            
+            loss = loss.mul(weight)
+
         prediction['loss'] = loss
+        return torch.mean(loss)
 
 
     """ Generate ID list """
@@ -406,6 +425,21 @@ class ImitationModel(object):
                 dev_batch[ko] = batch[ko].to(self.device)
         return dev_batch
 
+    def _updatePriority(self,prediction,batchID):
+        # Index to update
+        IDs = batchID.reshape(-1)
+        IDs = [int(IDs[i]/self.slidingWindow) for i in range(0,len(IDs),self.sequence_len)]
+
+        # Losses to update
+        losses = prediction['loss']
+        losses = losses.view(-1,self.sequence_len).mean(1)
+        losses = losses.data.cpu().numpy()
+
+        # Update priority
+        for idx,p in zip(IDs,losses):
+            self.samplePriority.update(idx,p)
+
+
     """ Exploration function
         --------------------
         Global train function
@@ -417,7 +451,12 @@ class ImitationModel(object):
         n_samples    = len(self.trainingFiles)*self.samplesByTrainingFile
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
+        stepView     = self.setting.general.stepView
         batch_size   = batch_size/sequence_len
+
+        # Loss
+        lossExp      = U.averager()
+        running_loss = 0
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
@@ -429,13 +468,21 @@ class ImitationModel(object):
                 dev_batch = self._transfer2device(batch)
 
                 # Model
-                dev_pred  = self.model(dev_batch)
-                self.lossFunc(dev_batch,dev_pred)
+                dev_pred = self.model(dev_batch)
+                dev_loss = self.lossFunc(dev_batch,dev_pred)
                 
                 # Update priority
-
-
-
+                self._updatePriority(dev_pred,batchID)
+                
+                # Print statistics
+                runtime_loss = dev_loss.item()
+                running_loss += runtime_loss
+                if i % stepView == (stepView-1):   # print every stepView mini-batches
+                    message = 'BatchExploration loss=%.7f'
+                    pbar.set_description( message % ( running_loss/stepView ))
+                    pbar.refresh()
+                    running_loss = 0.0
+                lossExp.update(runtime_loss)
                 pbar.update()
             pbar.close()
 
