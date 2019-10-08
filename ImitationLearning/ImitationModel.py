@@ -71,8 +71,33 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Path files
-        self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
-        self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        # self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+        # self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        self.  trainingFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03667.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03709.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03760.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03819.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03867.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03908.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03973.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04016.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04064.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04644.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04864.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_05809.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06017.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06150.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06393.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06528.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06844.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06907.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06951.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04007.h5']
+        self.validationFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00005.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00084.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00146.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00247.h5',
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00345.h5']
 
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
@@ -207,7 +232,7 @@ class ImitationModel(object):
     """ Loss Function """
     def _weightedLossAct(self,measure,prediction,weight=None):
         loss = torch.abs(measure['actions'] - prediction['actions'])
-        loss = loss.dot(self.weightLoss)
+        loss = loss.matmul(self.weightLoss)
         if weight is not None:
             # One wight to one sample
             weight = weight.reshape(1,-1)
@@ -258,15 +283,16 @@ class ImitationModel(object):
             IDs = np.array( range(n_samples) )
         # Temporal sliding window
         IDs = IDs*self.slidingWindow
+        IDs = IDs.astype(int)
         
         # Sequence
         if sequence:
-            sequence_len = self.setting.train.sequence_len
+            sequence_len = self.setting.general.sequence_len
             IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
             IDs = np.concatenate(IDs)
 
-        if prioritized: return IDs,weights 
-        else:           return IDs
+        if prioritized: return IDs.astype(int),weights 
+        else:           return IDs.astype(int)
         
 
     """ Validation metrics """
@@ -311,7 +337,7 @@ class ImitationModel(object):
         group = [ dataset[i] for i in IDs ]
         batch = {}
         for key in group[0]:
-            batch[key] = np.stack([data[key] for data in group])
+            batch[key] = torch.from_numpy( np.stack([data[key] for data in group]) )
         return batch
     
     def _transfer2device(self,batch):
@@ -325,7 +351,7 @@ class ImitationModel(object):
 
     def _updatePriority(self,prediction,batchID):
         # Index to update
-        IDs = batchID.reshape(-1)
+        IDs = np.array(batchID) # batchID.reshape(-1)
         IDs = [int(IDs[i]/self.slidingWindow) for i in range(0,len(IDs),self.sequence_len)]
 
         # Losses to update
@@ -350,7 +376,7 @@ class ImitationModel(object):
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
-        batch_size   = batch_size/sequence_len
+        batch_size   = int(batch_size/sequence_len)
 
         # Loss
         running_loss = 0
@@ -358,12 +384,13 @@ class ImitationModel(object):
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
-
+        
         # Exploration loop
         self.model.eval()
         with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
-            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * (batch_size*sequence_len) )):
                 # Batch
+                batchID   = [x for x in batchID if x is not None] # Clear
                 batch     = self._stack(self.trainDataset,batchID)
                 dev_batch = self._transfer2device(batch)
 
@@ -409,13 +436,19 @@ class ImitationModel(object):
         lossTrain    = U.averager()
 
         # ID list
-        IDs = self._generateIDlist(n_samples,prioritized=True,sequence=True)
+        IDs,weights = self._generateIDlist(n_samples,prioritized=True,sequence=True)
         
+        # for i, batchID in enumerate(zip_longest(*(iter(IDs),) * (batch_size*sequence_len) )):
+        # for a in zip_longest( *(iter(IDs),)*(batch_size) , *(iter(weights),)*(batch_size) ): 
+        #    print(a)
+
+
         # Train loop
         self.model.train()
         with tqdm(total=int(n_samples/batch_size)) as pbar:
-            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+            for i, batchID in enumerate(zip_longest(*(iter(IDs),iter(weights)) * (batch_size*sequence_len))):
                 # Batch
+                batchID   = [x for x in batchID if x is not None] # Clear
                 batch     = self._stack(self.trainDataset,batchID)
                 dev_batch = self._transfer2device(batch)
 
@@ -481,6 +514,7 @@ class ImitationModel(object):
         with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
             for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
                 # Batch
+                batchID   = [x for x in batchID if x is not None] # Clear
                 batch     = self._stack(self.trainDataset,batchID)
                 dev_batch = self._transfer2device(batch)
 
@@ -531,7 +565,7 @@ class ImitationModel(object):
     """ Train/Evaluation """
     def execute(self):
         # Parameters
-        n_epoch     = self.setting.train.n_epoch
+        n_epoch     = self.setting.general.n_epoch
         
         # Initialize
         if self.init.is_loadedModel:

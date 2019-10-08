@@ -27,5 +27,5 @@ class Kim2017Net(nn.Module):
     def forward(self,batch):
         x = self.encoder(batch['frame'])
         y = self.decoder(x)
-        return {'action': y}
+        return {'actions': y}
         

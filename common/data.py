@@ -106,7 +106,7 @@ class CoRL2017Dataset(Dataset):
         self.build()
         
         if self.isTemporalModel and self.isTrain:
-            self.sequence_len   = setting.train.sequence_len
+            self.sequence_len   = setting.general.sequence_len
             self.slidingWindow  = 5 
             self.samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
         else:
@@ -166,10 +166,10 @@ class CoRL2017Dataset(Dataset):
 
     def __getitem__(self, idx):
         # File / Frame
-        idx_file   = idx // self.samplesPerFile
-        idx_sample = idx  % self.samplesPerFile        
+        idx_file   = idx // self.framePerFile
+        idx_sample = idx  % self.framePerFile
         file_name  = self.files[idx_file]
-
+        
         # Read
         with h5py.File(file_name, 'r') as h5_file:
             # Image input

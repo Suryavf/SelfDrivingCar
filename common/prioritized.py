@@ -66,5 +66,5 @@ class PrioritizedSamples(object):
         
         # Index in data
         idx = idx - (self.n_samples - 1)
-        return idx,weight
+        return int(idx),weight
         
