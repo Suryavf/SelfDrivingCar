@@ -67,7 +67,7 @@ class RandomTransWrapper(object):
 
 """
 class CoRL2017Dataset(Dataset):
-    def __init__(self, setting, train = True, exploration = False):
+    def __init__(self, setting, files, train = True):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
@@ -79,13 +79,7 @@ class CoRL2017Dataset(Dataset):
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.  trainingFiles = glob.glob(setting.general.trainPath+'*.h5')
-        self.validationFiles = glob.glob(setting.general.validPath+'*.h5')
-        self.  trainingFiles.sort()
-        self.validationFiles.sort()
-
-        if train: self.files = self.  trainingFiles
-        else    : self.files = self.validationFiles
+        self.files = files
 
         # Objects
         self.transform = None

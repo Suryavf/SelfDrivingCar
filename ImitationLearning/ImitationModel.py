@@ -87,8 +87,8 @@ class ImitationModel(object):
         self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile )
 
         # Datasets
-        self.trainDataset = Dataset(self.setting,train= True)
-        self.validDataset = Dataset(self.setting,train=False)
+        self.trainDataset = Dataset(setting,self.  trainingFiles,train= True)
+        self.validDataset = Dataset(setting,self.validationFiles,train=False)
 
 
     """ Check folders to save """
@@ -531,7 +531,6 @@ class ImitationModel(object):
     """ Train/Evaluation """
     def execute(self):
         # Parameters
-        outputSpeed = self.setting.boolean.outputSpeed
         n_epoch     = self.setting.train.n_epoch
         
         # Initialize
