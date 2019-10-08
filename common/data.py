@@ -118,19 +118,6 @@ class CoRL2017Dataset(Dataset):
         else:
             self.samplesPerFile = self.framePerFile
 
-        """
-        # Last sample (update prorities)
-        self.lastSample = 0
-
-        # Temporal models
-        self._id_sample    = 0
-        self._tempCount    = 0
-        self._stepWindow   = 5
-        self._sequence_len = setting.train.sequence_len 
-        self._pointer      = setting.train.sequence_len 
-        
-        self.n_samples = 1200#self.samplesPerFile * len(self.files)
-        """
 
     def build(self):
         if self.isTrain:
@@ -143,21 +130,6 @@ class CoRL2017Dataset(Dataset):
                                                   transforms.Resize((92,196)),#(96,192)
                                                   transforms.ToTensor(),])
 
-    """
-    def saveHistory(self,path):
-        if len(self.currentSamples) == 0:
-            print("len(self.currentSamples):",len(self.currentSamples))
-            print("vacio csv")
-            return
-        
-        self.samples.append( self.currentSamples )
-        self.currentSamples = list()
-
-        df = { 'Epoch'+str(i+1): data for i,data in enumerate(self.samples) }
-        df = pd.DataFrame(df)
-        df.to_csv(path, index=False) 
-    """
-    
     def __len__(self):
         return self.samplesPerFile * len(self.files)
 

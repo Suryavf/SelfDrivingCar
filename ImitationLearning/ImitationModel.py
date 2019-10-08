@@ -108,18 +108,15 @@ class ImitationModel(object):
         U.checkdirectory( execPath)
 
         # Figures Path
-        self._figurePath                = os.path.join(execPath,"Figure")
-        self._figurePolarPath           = os.path.join(self._figurePath,"Polar")
-        self._figureScatterPath         = os.path.join(self._figurePath,"Scatter")
-        self._figureHistogramPath       = os.path.join(self._figurePath,"Histogram")
-        self._figureScatterErrorPath    = os.path.join(self._figurePath,"ScatterError")
-        self._figureColorMershErrorPath = os.path.join(self._figurePath,"ColorMershError")
+        self._figurePath           = os.path.join(execPath,"Figure")
+        self._figureSteerErrorPath = os.path.join(self._figurePath,"SteerError")
+        self._figureGasErrorPath   = os.path.join(self._figurePath,  "GasError")
+        self._figureBrakeErrorPath = os.path.join(self._figurePath,"BrakeError")
+
         U.checkdirectory(self._figurePath)
-        U.checkdirectory(self._figurePolarPath)
-        U.checkdirectory(self._figureScatterPath)
-        U.checkdirectory(self._figureHistogramPath)
-        U.checkdirectory(self._figureScatterErrorPath)
-        U.checkdirectory(self._figureColorMershErrorPath)
+        U.checkdirectory(self._figureSteerErrorPath)
+        U.checkdirectory(self._figureGasErrorPath  )
+        U.checkdirectory(self._figureBrakeErrorPath)
 
         # Model path
         self._modelPath = os.path.join(execPath,"Model")
@@ -271,143 +268,43 @@ class ImitationModel(object):
         else:           return IDs
         
 
-    """ Train Routine """
-    """
-    def _trainRoutine(self,data):
+    """ Validation metrics """
+    def _metrics(self,measure,prediction):
+        # Parameters
+        max_steering = self.setting.preprocessing.max_steering
 
-        # Boolean conditions
-        branches    = self.setting.boolean.   branches
-        inputSpeed  = self.setting.boolean. inputSpeed
-        outputSpeed = self.setting.boolean.outputSpeed
-
-        # Input
-        if   not inputSpeed and not branches:
-            frame, action = data
-            frame =  frame.to(self.device)
-            a_msr = action.to(self.device)
-            
-            output = self.model(frame)
-
-        elif     inputSpeed and not branches:
-            frame, speed, action = data
-
-            frame =  frame.to(self.device)
-            v_msr =  speed.to(self.device)
-            a_msr = action.to(self.device)
-
-            output = self.model(frame,v_msr)
-
-        elif not inputSpeed and     branches:
-            frame, action, mask = data
-
-            mask  =   mask.to(self.device)
-            frame =  frame.to(self.device)
-            a_msr = action.to(self.device)
-
-            output = self.model(frame,mask)
-
-        elif     inputSpeed and     branches:
-            frame, speed, action, mask = data
-
-            mask  =   mask.to(self.device)
-            frame =  frame.to(self.device)
-            v_msr =  speed.to(self.device)
-            a_msr = action.to(self.device)
-            
-            output = self.model(frame,v_msr,mask)
-
-        else:
-            raise NameError('ERROR 404: Model no found')
-
-        # Output
-        if not outputSpeed:
-            a_pred = output
-            if self.setting.boolean.temporalModel:
-                return a_msr.flatten(start_dim=0, end_dim=1), a_pred
-            else:
-                return a_msr, a_pred
-
-        else:
-            a_pred,v_pred = output
-            if self.setting.boolean.temporalModel:
-                return a_msr.flatten(start_dim=0, end_dim=1), a_pred, v_msr.flatten(start_dim=0, end_dim=1), v_pred
-            else:
-                return a_msr, a_pred, v_msr, v_pred
-    """
-
-    """ Validation Routine """
-    def _validationRoutine(self,data):
-        # Boolean conditions
-        branches    = self.setting.boolean.  branches
-        inputSpeed  = self.setting.boolean.inputSpeed
-
-        # Input
-        if self.setting.boolean.branches:
-            frame, command, v_msr, a_msr, mask = data
-            mask    =    mask.to(self.device)
-            frame   =   frame.to(self.device)
-            v_msr   =   v_msr.to(self.device)
-            a_msr   =   a_msr.to(self.device)
-            command = command.to(self.device)
-
-        else:
-            frame, command, v_msr, a_msr = data
-            frame   =   frame.to(self.device)
-            v_msr   =   v_msr.to(self.device)
-            a_msr   =   a_msr.to(self.device)
-            command = command.to(self.device)
-
-        if frame.shape[0] != self.setting.train.batch_size:
-            loss,err,steer,errSteer,a_pred,v_msr,command = (-1,-1,-1,-1,-1,-1,-1)
-            return loss,err,steer,errSteer,a_pred,v_msr,command
-        
-        # Model
-        if   not inputSpeed and not branches:
-            output = self.model(frame)
-        elif     inputSpeed and not branches:
-            output = self.model(frame,v_msr)
-        elif not inputSpeed and     branches:
-            output = self.model(frame,mask)
-        elif     inputSpeed and     branches:
-            output = self.model(frame,v_msr,mask)
-        else:
-            raise NameError('ERROR 404: Model no found')
-
-        # Loss
-        if not self.setting.boolean.outputSpeed:
-            a_pred = output
-            loss = self.lossFunc( (a_msr,a_pred),1 )
-        else:
-            a_pred,v_pred = output
-            loss = self.lossFunc( (a_msr, a_pred, v_msr, v_pred),1 )
+        # Measurements
+        dev_Steer = measure[:,0] * max_steering
+        dev_Gas   = measure[:,1]
+        dev_Brake = measure[:,2]
 
         # Error
-        err = torch.abs(a_msr - a_pred)
-        if self.setting.boolean.branches:
-            err = err.view(-1,4,3)
-            err = err.sum(1)
-        errSteer = err[:,0]
-        err = torch.mean(err,0)
-        if self.setting.boolean.outputSpeed:
-            error = torch.zeros(4)
-            error[:3] = err
-            verr = torch.abs(v_msr - v_pred)
-            verr = torch.mean(verr)
-            error[3] = verr
-            err = error
+        dev_err = torch.abs(measure['actions'] - prediction['actions'])
+        dev_SteerErr = dev_err[:,0] * max_steering
+        dev_GasErr   = dev_err[:,1]
+        dev_BrakeErr = dev_err[:,2]
 
-        # Action
-        if self.setting.boolean.branches:
-            a_pred = a_pred.view(-1,4,3)
-            a_pred = a_pred.sum(1)
+        # Metrics
+        metrics = dict()
+        metrics['SteerError'] = dev_SteerErr.data.cpu().numpy()
+        metrics[  'GasError'] = dev_GasErr  .data.cpu().numpy()
+        metrics['BrakeError'] = dev_BrakeErr.data.cpu().numpy()
 
-        # Steering
-        if self.setting.boolean.branches:
-            a_msr = a_msr.view(-1,4,3)
-            a_msr = a_msr.sum(1)
-        steer = a_msr[:,0]
+        metrics['Steer'] = dev_Steer.data.cpu().numpy()
+        metrics[  'Gas'] = dev_Gas  .data.cpu().numpy()
+        metrics['Brake'] = dev_Brake.data.cpu().numpy()
+        
+        # Mean
+        steerMean = np.mean(metrics['Steer'])
+        gasMean   = np.mean(metrics['Gas'  ])
+        brakeMean = np.mean(metrics['Brake'])
+        metricsMean = np.array([steerMean,gasMean,brakeMean])
 
-        return loss,err,steer,errSteer,a_pred,v_msr,command
+        # Command control
+        metrics['Command'] = measure['command']
+
+        return metrics,metricsMean
+
 
     def _stack(self,dataset,IDs):
         group = [ dataset[i] for i in IDs ]
@@ -566,25 +463,17 @@ class ImitationModel(object):
         n_samples    = len(self.validationFiles)*self.samplesByValidationFile
         batch_size   = self.setting.general.batch_size
         stepView     = self.setting.general.stepView
-        max_speed    = self.setting.preprocessing.max_speed
-        max_steering = self.setting.preprocessing.max_steering
-        speedReg     = self.setting.boolean.speedRegression
 
         # Loss
-        all_speed    = list()
-        all_steer    = list()
-        all_action   = list()
-        all_command  = list()
-        all_errSteer = list()
         running_loss = 0
         lossValid    = U.averager()
         
+        # Metrics [Steer,Gas,Brake]
+        avgMetrics = U.averager(3)
+        metrics    = U.BigDict ( )
+
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
-
-        # Metrics
-        if speedReg: metrics = U.averager(4)   # Steer,Gas,Brake,Speed
-        else       : metrics = U.averager(3)   # Steer,Gas,Brake
         
         # Model to evaluation
         self.model.eval()
@@ -598,26 +487,16 @@ class ImitationModel(object):
                 dev_pred = self.model(dev_batch)
                 dev_loss = self.lossFunc(dev_batch,dev_pred)
 
-                # Model execute
-                # loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
-                
-
+                # Metrics
+                metr, mean = self._metrics(dev_batch,dev_pred)
+                metrics.update(metr)
+                avgMetrics.update(mean)    
 
                 # Calculate the loss
                 runtime_loss  = dev_loss.item()
                 running_loss += runtime_loss
                 lossValid.update(runtime_loss)
                 
-                # Metrics
-                # metrics.update(err.data.cpu().numpy())
-
-                # Save values
-                # all_speed   .append(    v_msr.data.cpu().numpy() )
-                # all_steer   .append(    steer.data.cpu().numpy() )
-                # all_action  .append(   a_pred.data.cpu().numpy() )
-                # all_command .append(  command.data.cpu().numpy() )
-                # all_errSteer.append( errSteer.data.cpu().numpy() )
-
                 # Print statistics
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
                     message = 'BatchValid loss=%.7f'
@@ -628,41 +507,23 @@ class ImitationModel(object):
             pbar.close()
 
         # Loss/metrics
-        metrics      =    metrics.mean
+        metrics      = metrics.resume()
+        avgMetrics   = avgMetrics.mean
         running_loss = lossValid.val()
         
-        # Concatenate List
-        all_errSteer = np.concatenate(all_errSteer,0)
-        all_command  = np.concatenate(all_command ,0)
-        all_action   = np.concatenate(all_action  ,0)
-        all_steer    = np.concatenate(all_steer   ,0)
-        all_speed    = np.concatenate(all_speed   ,0)
-
-        # To real values
-        metrics   [  0] = metrics   [  0] * max_steering
-        all_action[:,0] = all_action[:,0] * max_steering
-        all_errSteer    = all_errSteer    * max_steering
-        all_steer       = all_steer       * max_steering
-        all_speed       = all_speed       * max_speed
-        if speedReg:
-            metrics [3] = metrics[3]      * max_speed
-
         # Print results
         print("Validation loss:",running_loss)
-        if self.setting.boolean.speedRegression:
-            print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2],"\tSpeed:",metrics[3])
-        else:
-            print("Steer:",metrics[0],"\tGas:",metrics[1],"\tBrake:",metrics[2])
+        print("Steer:",avgMetrics[0],"\tGas:",avgMetrics[1],"\tBrake:",avgMetrics[2])
         
         # Save figures
-        colorMershErrorPath = os.path.join(self._figureColorMershErrorPath,"ColorMershError"+str(epoch)+".png")
-        scatterErrorPath    = os.path.join(self._figureScatterErrorPath   ,   "ScatterError"+str(epoch)+".png")
-        histogramPath       = os.path.join(self._figureHistogramPath      ,      "Histogram"+str(epoch)+".png")
+        SteerErrorPath = os.path.join(self._figureSteerErrorPath,"SteerErrorPath"+str(epoch)+".png")
+        GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
+        BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
-        F. saveHistogramSteer(all_action[:,0],histogramPath)
-        F.   saveScatterError(all_steer,all_errSteer,all_command,   scatterErrorPath)
-        F.saveColorMershError(all_steer,all_errSteer,all_command,colorMershErrorPath)
-        
+        F.saveColorMershError(metrics['Steer'],metrics['SteerError'],metrics['Command'],SteerErrorPath)
+        F.saveColorMershError(metrics['Gas'  ],metrics[  'GasError'],metrics['Command'],  GasErrorPath)
+        F.saveColorMershError(metrics['Brake'],metrics['BrakeError'],metrics['Command'],BrakeErrorPath)
+
         return running_loss,metrics
     
 
@@ -693,9 +554,8 @@ class ImitationModel(object):
             else:          print("\nEpoch",epoch,"-"*40)
             
             # Train
-            lossTrain = self._Train( exploration = (epoch==0) )
-            if epoch == 0: continue
-            else:          self.scheduler.step()
+            lossTrain = self._Train()
+            self.scheduler.step()
             
             # Validation
             lossValid,metr = self._Validation(epoch)

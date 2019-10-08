@@ -228,6 +228,16 @@ class counter():
     def update(self):
         self.val+= 1
        
+class BigDict():
+    def __init__(self):
+        self.dictList = list()
+    def update(self,dict_):
+        self.dictList.append(dict_)
+    def resume(self):
+        batch = {}
+        for key in self.dictList[0]:
+            batch[key] = np.stack([data[key] for data in self.dictList])
+        return batch
 
 def lastModel(modelPath):
     path = glob.glob(modelPath+"/model*.pth")
@@ -236,10 +246,7 @@ def lastModel(modelPath):
 def modelList(modelPath):
     path = glob.glob(modelPath+"/model*.pth")
     return sorted(path, key=lambda x: int(x.partition('/Model/model')[2].partition('.')[0]))
-    x = 0 
-    while(x < 10000000000000):
-        print("Laura <3 ", end="")
-        x+=1
+
 def loadValuesToSave(path):
     # Read
     df = pd.read_csv(path)
