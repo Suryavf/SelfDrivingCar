@@ -2,6 +2,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from   torch.utils.data import Dataset,DataLoader
+from   torch.utils.tensorboard import SummaryWriter
 
 import ImitationLearning.network.ImitationNet as imL
 import Attention.        network.AttentionNet as attn
@@ -43,7 +44,7 @@ class ImitationModel(object):
         self.device = self.init.device
 
         # Internal parameters
-        self.epoch = 0
+        self.epoch = 1
         
         # Nets
         if   self.setting.model == 'Basic'      : self.model =  imL.      BasicNet()
@@ -524,7 +525,7 @@ class ImitationModel(object):
         F.saveColorMershError(metrics['Gas'  ],metrics[  'GasError'],metrics['Command'],  GasErrorPath)
         F.saveColorMershError(metrics['Brake'],metrics['BrakeError'],metrics['Command'],BrakeErrorPath)
 
-        return running_loss,metrics
+        return running_loss,avgMetrics
     
 
     """ Train/Evaluation """
@@ -532,26 +533,22 @@ class ImitationModel(object):
         # Parameters
         outputSpeed = self.setting.boolean.outputSpeed
         n_epoch     = self.setting.train.n_epoch
-
-        # Plotting objects
-        epochLoss  = F.save2PlotByStep(self._figurePath,"Loss","Train","Evaluation")
-        epochSteer = F.savePlotByStep (self._figurePath,"Steer")
-        epochGas   = F.savePlotByStep (self._figurePath,"Gas"  )
-        epochBrake = F.savePlotByStep (self._figurePath,"Brake")
-        if outputSpeed:
-            epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
-
+        
         # Initialize
         if self.init.is_loadedModel:
             valuesToSave = U.loadValuesToSave( os.path.join(self._modelPath,"model.csv") )
         else:
             valuesToSave = list()
         df = pd.DataFrame()
+        tb = SummaryWriter()
+
+        # Exploration
+        print("\nExploration")
+        self._Exploration()
 
         # Loop over the dataset multiple times
         for epoch in range(self.epoch,n_epoch):
-            if epoch == 0: print("\nExploration")
-            else:          print("\nEpoch",epoch,"-"*40)
+            print("\nEpoch",epoch,"-"*40)
             
             # Train
             lossTrain = self._Train()
@@ -560,28 +557,21 @@ class ImitationModel(object):
             # Validation
             lossValid,metr = self._Validation(epoch)
             
-            epochLoss. update(lossTrain,lossValid)
-            epochSteer.update(metr[0])
-            epochGas  .update(metr[1])
-            epochBrake.update(metr[2])
-            if outputSpeed:
-                epochSpeed.update(metr[3])
-
-            if outputSpeed:
-                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2],metr[3]) )
-                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake','Speed'])
-            else:
-                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
-                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
-                
-            # Save csv
+            # Save values metrics
+            tb.add_scalar('Loss/Train', lossTrain, epoch)
+            tb.add_scalar('Loss/Valid', lossValid, epoch)
+            tb.add_scalar('MAE/Steer' , metr[0]  , epoch)
+            tb.add_scalar('MAE/Gas'   , metr[1]  , epoch)
+            tb.add_scalar('MAE/Brake' , metr[2]  , epoch)
+            valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
+            df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
             df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
-            self._state_add(     'epoch',                    epoch  )
-            self._state_add('state_dict',self.    model.state_dict())
-            self._state_add( 'scheduler',self.scheduler.state_dict())
-            self._state_add( 'optimizer',self.optimizer.state_dict())
+            self._state_add (     'epoch',                    epoch  )
+            self._state_add ('state_dict',self.    model.state_dict())
+            self._state_add ( 'scheduler',self.scheduler.state_dict())
+            self._state_add ( 'optimizer',self.optimizer.state_dict())
             self._state_save(epoch)
     
 
