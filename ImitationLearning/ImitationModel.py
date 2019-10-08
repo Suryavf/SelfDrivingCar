@@ -455,12 +455,14 @@ class ImitationModel(object):
         batch_size   = batch_size/sequence_len
 
         # Loss
-        lossExp      = U.averager()
         running_loss = 0
+        lossExp      = U.averager()
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
 
+        # Exploration loop
+        self.model.eval()
         with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
             for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
                 # Batch
@@ -478,7 +480,7 @@ class ImitationModel(object):
                 runtime_loss = dev_loss.item()
                 running_loss += runtime_loss
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
-                    message = 'BatchExploration loss=%.7f'
+                    message = 'BatchExplo loss=%.7f'
                     pbar.set_description( message % ( running_loss/stepView ))
                     pbar.refresh()
                     running_loss = 0.0
@@ -496,50 +498,45 @@ class ImitationModel(object):
                      path      (path)
             * Output: total_loss (float) 
     """
-    def _Train(self,exploration = False):
-        
-        # Settings
-        running_loss = 0.0
-        lossTrain    = U.averager()
+    def _Train(self):
+        # Parameters
+        n_samples    = len(self.trainingFiles)*self.samplesByTrainingFile
+        batch_size   = self.setting.general.batch_size
+        sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
+        batch_size   = batch_size/sequence_len
 
-        # Train configure
-        self.model.train()
-        self.trainingloader.dataset.train()
-        self.trainingloader.dataset.exploration( exploration )
+        # Loss
+        running_loss = 0
+        lossTrain    = U.averager()
 
-        # Optimizer ( Exploration: SGD 
-        #             Train      : Adam )    
-        if exploration: optimizer = self.optimizer
-        else          : optimizer = self.optimizer
+        # ID list
+        IDs = self._generateIDlist(n_samples,prioritized=True,sequence=True)
         
         # Train loop
-        with tqdm(total=len(self.trainingloader)) as pbar:
-            for i, _data in enumerate(self.trainingloader):
-                # Model execute
-                data, idx= _data
+        self.model.train()
+        with tqdm(total=int(n_samples/batch_size)) as pbar:
+            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+                # Batch
+                batch     = self._stack(self.trainDataset,batchID)
+                dev_batch = self._transfer2device(batch)
 
-                print("idx:",idx)
-
-                set_trace()
-                
-                pred   = self._trainRoutine(data)
-                weight = self.trainingloader.dataset.weight()
-                weight = torch.tensor(weight).to(self.device)
-                loss   = self.lossFunc(pred,weight)
+                # Model
+                dev_pred = self.model(dev_batch)
+                dev_loss = self.lossFunc(dev_batch,dev_pred)
                 
                 # Update priority
-                #self.trainingloader.dataset.update(loss.item())
-                
+                self._updatePriority(dev_pred,batchID)
+
                 # zero the parameter gradients
-                optimizer .zero_grad()
+                self.optimizer .zero_grad()
                 self.model.zero_grad()
 
-                loss.backward()
-                optimizer.step()
+                dev_loss.backward()
+                self.optimizer.step()
                 
                 # Print statistics
-                runtime_loss = loss.item()
+                runtime_loss = dev_loss.item()
                 running_loss += runtime_loss
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
                     message = 'BatchTrain loss=%.7f'
@@ -547,13 +544,11 @@ class ImitationModel(object):
                     pbar.refresh()
                     running_loss = 0.0
                 lossTrain.update(runtime_loss)
-                pbar.update(1)
-        
+                pbar.update()
+            pbar.close()
+
         lossTrain = lossTrain.val()
         print("Epoch training loss:",lossTrain)
-
-        if not exploration:
-            self.trainingloader.dataset.saveHistory(os.path.join(self._modelPath,"samples.csv"))
 
         return lossTrain
 
@@ -567,52 +562,61 @@ class ImitationModel(object):
             * Output: total_loss (float) 
     """
     def _Validation(self,epoch):
-        # Acomulative loss
-        running_loss = 0.0
+        # Parameters
+        n_samples    = len(self.validationFiles)*self.samplesByValidationFile
+        batch_size   = self.setting.general.batch_size
+        stepView     = self.setting.general.stepView
+        max_speed    = self.setting.preprocessing.max_speed
+        max_steering = self.setting.preprocessing.max_steering
+        speedReg     = self.setting.boolean.speedRegression
+
+        # Loss
         all_speed    = list()
         all_steer    = list()
         all_action   = list()
         all_command  = list()
         all_errSteer = list()
-        lossValid = U.averager()
-        stepView  = self.setting.general.stepView
+        running_loss = 0
+        lossValid    = U.averager()
         
-        max_speed    = self.setting.preprocessing.max_speed
-        max_steering = self.setting.preprocessing.max_steering
+        # ID list
+        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
 
         # Metrics
-        if self.setting.boolean.speedRegression:
-            metrics = U.averager(4)   # Steer,Gas,Brake,Speed
-        else:
-            metrics = U.averager(3)   # Steer,Gas,Brake
-
-        # Train configure
-        self.model.eval()
-        self.validationloader.dataset.eval()
-        self.validationloader.dataset.exploration( False )
+        if speedReg: metrics = U.averager(4)   # Steer,Gas,Brake,Speed
+        else       : metrics = U.averager(3)   # Steer,Gas,Brake
         
         # Model to evaluation
-        with torch.no_grad(), tqdm(total=len(self.validationloader)) as pbar:
-            for i, data in enumerate(self.validationloader):
+        self.model.eval()
+        with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
+            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+                # Batch
+                batch     = self._stack(self.trainDataset,batchID)
+                dev_batch = self._transfer2device(batch)
+
+                # Model
+                dev_pred = self.model(dev_batch)
+                dev_loss = self.lossFunc(dev_batch,dev_pred)
+
                 # Model execute
-                loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
+                # loss,err,steer,errSteer,a_pred,v_msr,command= self._validationRoutine(data)
                 
-                if loss == -1: break
-                
+
+
                 # Calculate the loss
-                runtime_loss  = loss.item()
+                runtime_loss  = dev_loss.item()
                 running_loss += runtime_loss
                 lossValid.update(runtime_loss)
                 
                 # Metrics
-                metrics.update(err.data.cpu().numpy())
+                # metrics.update(err.data.cpu().numpy())
 
                 # Save values
-                all_speed   .append(    v_msr.data.cpu().numpy() )
-                all_steer   .append(    steer.data.cpu().numpy() )
-                all_action  .append(   a_pred.data.cpu().numpy() )
-                all_command .append(  command.data.cpu().numpy() )
-                all_errSteer.append( errSteer.data.cpu().numpy() )
+                # all_speed   .append(    v_msr.data.cpu().numpy() )
+                # all_steer   .append(    steer.data.cpu().numpy() )
+                # all_action  .append(   a_pred.data.cpu().numpy() )
+                # all_command .append(  command.data.cpu().numpy() )
+                # all_errSteer.append( errSteer.data.cpu().numpy() )
 
                 # Print statistics
                 if i % stepView == (stepView-1):   # print every stepView mini-batches
@@ -620,7 +624,8 @@ class ImitationModel(object):
                     pbar.set_description( message % ( running_loss/stepView ))
                     pbar.refresh()
                     running_loss = 0.0
-                pbar.update(1)
+                pbar.update()
+            pbar.close()
 
         # Loss/metrics
         metrics      =    metrics.mean
@@ -639,7 +644,7 @@ class ImitationModel(object):
         all_errSteer    = all_errSteer    * max_steering
         all_steer       = all_steer       * max_steering
         all_speed       = all_speed       * max_speed
-        if self.setting.boolean.speedRegression:
+        if speedReg:
             metrics [3] = metrics[3]      * max_speed
 
         # Print results
