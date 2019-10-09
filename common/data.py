@@ -66,7 +66,7 @@ class RandomTransWrapper(object):
     10. Speed,       (-15.157238960266113, 82.66552734375)
 
 """
-class CoRL2017Dataset(Dataset):
+class CoRL2017Dataset(object):
     def __init__(self, setting, files, train = True):
         # Boolean
         self.isTrain         = train
@@ -182,3 +182,23 @@ class CoRL2017Dataset(Dataset):
 
             return self.routine(img,target) 
             
+class GeneralDataset(Dataset):
+    def __init__(self, dataset, IDs, weights = None):
+        self.dataset = dataset
+        self.    IDs = IDs
+        self.weights = weights
+
+    def __len__(self):
+        return self.IDs.size
+    
+    def __getitem__(self,_idx):
+        idx  = self.   IDs[_idx]
+        data = self.dataset[idx]
+
+        if self.weights is not None:
+            #print("_idx:",_idx,"\nidx:",idx,"\nweights:",self.weights)
+            #print("_idx:",_idx,"self.weights[_idx]:",self.weights[_idx])
+            return data,idx,self.weights[_idx]
+        else:
+            return data,idx
+                        

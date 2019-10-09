@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-from   torch.utils.data import Dataset,DataLoader
+from   torch.utils.data import DataLoader
 from   torch.utils.tensorboard import SummaryWriter
 
 import ImitationLearning.network.ImitationNet as imL
@@ -13,7 +13,8 @@ import common.figures as F
 import common.  utils as U
 from   common.RAdam       import RAdam
 from   common.Ranger      import Ranger
-from   common.data        import CoRL2017Dataset as Dataset
+from   common.data        import CoRL2017Dataset
+from   common.data        import  GeneralDataset as Dataset
 from   common.prioritized import PrioritizedSamples
 
 
@@ -112,8 +113,8 @@ class ImitationModel(object):
         self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile )
 
         # Datasets
-        self.trainDataset = Dataset(setting,self.  trainingFiles,train= True)
-        self.validDataset = Dataset(setting,self.validationFiles,train=False)
+        self.trainDataset = CoRL2017Dataset(setting,self.  trainingFiles,train= True)
+        self.validDataset = CoRL2017Dataset(setting,self.validationFiles,train=False)
 
 
     """ Check folders to save """
@@ -235,10 +236,8 @@ class ImitationModel(object):
         loss = loss.matmul(self.weightLoss)
         if weight is not None:
             # One wight to one sample
-            weight = weight.reshape(1,-1)
-            ones   = np.ones([self.setting.train.sequence_len,1])
-            weight = ones.dot(weight).reshape([-1,1],order='F')
-            weight = torch.from_numpy(weight).to(self.device)
+            weight = weight.reshape(-1,1)
+            weight = weight.to(self.device)
             
             loss = loss.mul(weight)
         
@@ -275,10 +274,10 @@ class ImitationModel(object):
     def _generateIDlist(self,n_samples,prioritized=False,sequence=False):
         # IDs/weights
         if prioritized:
-            IDs = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
-            IDs = IDs.T
-            IDs = IDs[0]
-            weights = IDs[1]
+            val = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
+            val = val.T
+            IDs = val[0]
+            weights = val[1]
         else:
             IDs = np.array( range(n_samples) )
         # Temporal sliding window
@@ -290,6 +289,10 @@ class ImitationModel(object):
             sequence_len = self.setting.general.sequence_len
             IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
             IDs = np.concatenate(IDs)
+
+            if prioritized:
+                weights = [ w*np.ones(sequence_len) for w in weights ]
+                weights = np.concatenate(weights)
 
         if prioritized: return IDs.astype(int),weights 
         else:           return IDs.astype(int)
@@ -384,14 +387,16 @@ class ImitationModel(object):
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
-        
+        loader = DataLoader(Dataset(self.trainDataset,IDs),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers)
+
         # Exploration loop
         self.model.eval()
-        with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
-            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * (batch_size*sequence_len) )):
+        with torch.no_grad(), tqdm(total=len(loader)) as pbar:
+            for i, sample in enumerate(loader):
                 # Batch
-                batchID   = [x for x in batchID if x is not None] # Clear
-                batch     = self._stack(self.trainDataset,batchID)
+                batch,batchID = sample
                 dev_batch = self._transfer2device(batch)
 
                 # Model
@@ -437,24 +442,21 @@ class ImitationModel(object):
 
         # ID list
         IDs,weights = self._generateIDlist(n_samples,prioritized=True,sequence=True)
+        loader = DataLoader(Dataset(self.trainDataset,IDs,weights),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers)
         
-        # for i, batchID in enumerate(zip_longest(*(iter(IDs),) * (batch_size*sequence_len) )):
-        # for a in zip_longest( *(iter(IDs),)*(batch_size) , *(iter(weights),)*(batch_size) ): 
-        #    print(a)
-
-
         # Train loop
         self.model.train()
-        with tqdm(total=int(n_samples/batch_size)) as pbar:
-            for i, batchID in enumerate(zip_longest(*(iter(IDs),iter(weights)) * (batch_size*sequence_len))):
+        with tqdm(total=len(loader)) as pbar:
+            for i, sample in enumerate(loader):
                 # Batch
-                batchID   = [x for x in batchID if x is not None] # Clear
-                batch     = self._stack(self.trainDataset,batchID)
+                batch,batchID,weight = sample
                 dev_batch = self._transfer2device(batch)
 
                 # Model
                 dev_pred = self.model(dev_batch)
-                dev_loss = self.lossFunc(dev_batch,dev_pred)
+                dev_loss = self.lossFunc(dev_batch,dev_pred,weight)
                 
                 # Update priority
                 self._updatePriority(dev_pred,batchID)
@@ -495,7 +497,6 @@ class ImitationModel(object):
     def _Validation(self,epoch):
         # Parameters
         n_samples    = len(self.validationFiles)*self.samplesByValidationFile
-        batch_size   = self.setting.general.batch_size
         stepView     = self.setting.general.stepView
 
         # Loss
@@ -508,14 +509,16 @@ class ImitationModel(object):
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
+        loader = DataLoader(Dataset(self.validDataset,IDs),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers)
         
         # Model to evaluation
         self.model.eval()
-        with torch.no_grad(), tqdm(total=int(n_samples/batch_size)) as pbar:
-            for i, batchID in enumerate(zip_longest(*(iter(IDs),) * batch_size)):
+        with torch.no_grad(), tqdm(total=len(loader)) as pbar:
+            for i, sample in enumerate(loader):
                 # Batch
-                batchID   = [x for x in batchID if x is not None] # Clear
-                batch     = self._stack(self.trainDataset,batchID)
+                batch,_ = sample
                 dev_batch = self._transfer2device(batch)
 
                 # Model
