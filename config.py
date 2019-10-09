@@ -118,7 +118,7 @@ class General_settings(object):
     def __init__(self):
         self.framePerSecond =  10
         self.framePerFile   = 200
-        self.stepView       =  10 # Print in Train
+        self.stepView       =   5 # Print in Train
 
         self.n_epoch      = 150
         self.batch_size   = 120

@@ -195,22 +195,23 @@ class save2PlotByStep():
 
     Return: files list
 """
-def saveColorMershError(steer,steerErr,command,path):
+def saveColorMershError(steer,steerErr,command,path,dom=(-1.20, 1.20),resolution=30):
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
 
     # Length
-    x_len,y_len = (60,30)#(100,50)
+    x_len,y_len = (2*resolution,resolution)#(100,50)
+    ref = max(abs(dom[0]),abs(dom[1]))
     
-    x_min,x_max = (-1.20, 1.20)
-    y_min,y_max = (-0.01, 1.20)
+    x_min,x_max = dom
+    y_min,y_max = (-ref/100, ref)
 
     x    = np.linspace(x_min,x_max,x_len )
     y    = np.linspace(y_min,y_max,y_len )
     xnew = np.linspace(x_min,x_max,  800 )
     ynew = np.linspace(y_min,y_max,  800 )
 
-    cte = 2.4/(x_len)
+    cte = (dom[1]-dom[0])/(x_len)
 
     idx = 0
     fig, axs = plt.subplots(2, 2)
