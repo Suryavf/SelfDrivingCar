@@ -45,7 +45,9 @@ class ImitationModel(object):
         self.device = self.init.device
 
         # Internal parameters
-        self.epoch = 1
+        self.samplesID = {}
+        self._state    = {}
+        self. epoch    = 1
         
         # Nets
         if   self.setting.model == 'Basic'      : self.model =  imL.      BasicNet()
@@ -72,8 +74,9 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Path files
-        # self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
-        # self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+        self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        """
         self.  trainingFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03667.h5',
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03709.h5',
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03760.h5',
@@ -99,7 +102,7 @@ class ImitationModel(object):
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00146.h5',
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00247.h5',
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00345.h5']
-
+        """
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
         self.sequence_len = self.setting.general.sequence_len 
@@ -126,10 +129,9 @@ class ImitationModel(object):
         # Root Path
         savedPath = self.setting.general.savedPath
         modelPath = os.path.join(savedPath,self.setting.model)
-        if name is not None:
-            execPath  = os.path.join(modelPath,  name  )
-        else:
-            execPath  = os.path.join(modelPath,U.nameDirectory())
+        if name is not None: self.codename = name
+        else               : self.codename = U.nameDirectory()
+        execPath  = os.path.join(modelPath,self.codename )
         U.checkdirectory(savedPath)
         U.checkdirectory(modelPath)
         U.checkdirectory( execPath)
@@ -280,12 +282,13 @@ class ImitationModel(object):
             weights = val[1]
         else:
             IDs = np.array( range(n_samples) )
-        # Temporal sliding window
-        IDs = IDs*self.slidingWindow
-        IDs = IDs.astype(int)
         
         # Sequence
         if sequence:
+            # Temporal sliding window
+            IDs = IDs*self.slidingWindow
+            IDs = IDs.astype(int)
+
             sequence_len = self.setting.general.sequence_len
             IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
             IDs = np.concatenate(IDs)
@@ -304,9 +307,9 @@ class ImitationModel(object):
         max_steering = self.setting.preprocessing.max_steering
 
         # Measurements
-        dev_Steer = measure[:,0] * max_steering
-        dev_Gas   = measure[:,1]
-        dev_Brake = measure[:,2]
+        dev_Steer = measure['actions'][:,0] * max_steering
+        dev_Gas   = measure['actions'][:,1]
+        dev_Brake = measure['actions'][:,2]
 
         # Error
         dev_err = torch.abs(measure['actions'] - prediction['actions'])
@@ -325,13 +328,13 @@ class ImitationModel(object):
         metrics['Brake'] = dev_Brake.data.cpu().numpy()
         
         # Mean
-        steerMean = np.mean(metrics['Steer'])
-        gasMean   = np.mean(metrics['Gas'  ])
-        brakeMean = np.mean(metrics['Brake'])
+        steerMean = np.mean(metrics['SteerError'])
+        gasMean   = np.mean(metrics[  'GasError'])
+        brakeMean = np.mean(metrics['BrakeError'])
         metricsMean = np.array([steerMean,gasMean,brakeMean])
 
         # Command control
-        metrics['Command'] = measure['command']
+        metrics['Command'] = measure['command'].data.cpu().numpy()
 
         return metrics,metricsMean
 
@@ -415,7 +418,8 @@ class ImitationModel(object):
                     pbar.refresh()
                     running_loss = 0.0
                 lossExp.update(runtime_loss)
-                pbar.update()
+                pbar. update()
+                pbar.refresh()
             pbar.close()
 
 
@@ -428,9 +432,9 @@ class ImitationModel(object):
                      path      (path)
             * Output: total_loss (float) 
     """
-    def _Train(self):
+    def _Train(self,epoch):
         # Parameters
-        n_samples    = len(self.trainingFiles)*self.samplesByTrainingFile
+        n_samples    = int(len(self.trainingFiles)*self.samplesByTrainingFile*0.3)
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
@@ -446,6 +450,11 @@ class ImitationModel(object):
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
         
+        # Save samples ID
+        self.samplesID['Epoch'+str(epoch)] = IDs
+        df = pd.DataFrame(self.samplesID)
+        df.to_csv( os.path.join(self._modelPath,"samples.csv") )
+
         # Train loop
         self.model.train()
         with tqdm(total=len(loader)) as pbar:
@@ -477,7 +486,8 @@ class ImitationModel(object):
                     pbar.refresh()
                     running_loss = 0.0
                 lossTrain.update(runtime_loss)
-                pbar.update()
+                pbar. update()
+                pbar.refresh()
             pbar.close()
 
         lossTrain = lossTrain.val()
@@ -541,7 +551,8 @@ class ImitationModel(object):
                     pbar.set_description( message % ( running_loss/stepView ))
                     pbar.refresh()
                     running_loss = 0.0
-                pbar.update()
+                pbar. update()
+                pbar.refresh()
             pbar.close()
 
         # Loss/metrics
@@ -576,7 +587,7 @@ class ImitationModel(object):
         else:
             valuesToSave = list()
         df = pd.DataFrame()
-        tb = SummaryWriter()
+        tb = SummaryWriter('runs/'+self.setting.model+'/'+self.codename )
 
         # Exploration
         print("\nExploration")
@@ -587,7 +598,7 @@ class ImitationModel(object):
             print("\nEpoch",epoch,"-"*40)
             
             # Train
-            lossTrain = self._Train()
+            lossTrain = self._Train(epoch)
             self.scheduler.step()
             
             # Validation

@@ -235,8 +235,9 @@ class BigDict():
         self.dictList.append(dict_)
     def resume(self):
         batch = {}
+        #print(self.dictList[0])
         for key in self.dictList[0]:
-            batch[key] = np.stack([data[key] for data in self.dictList])
+            batch[key] = np.concatenate([data[key] for data in self.dictList])
         return batch
 
 def lastModel(modelPath):

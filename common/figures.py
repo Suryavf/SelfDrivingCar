@@ -200,7 +200,6 @@ def saveColorMershError(steer,steerErr,command,path):
     cmd = [0,1,3,2]
 
     # Length
-    limit =  2
     x_len,y_len = (60,30)#(100,50)
     
     x_min,x_max = (-1.20, 1.20)
