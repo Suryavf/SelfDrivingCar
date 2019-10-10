@@ -229,7 +229,6 @@ def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,
             for _ in range(x_len): mersh.append( list() )
             for s,e in zip(st,err):
                 pst = int(np.floor( (s-x_min)/x_cte ))
-                #print('x_len:',x_len,'\tpst:',pst,'\ts:',s)
                 mersh[pst].append( e )
             
             # Create mersh

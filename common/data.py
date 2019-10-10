@@ -115,7 +115,7 @@ class CoRL2017Dataset(object):
 
     def build(self):
         if self.isTrain:
-            self.transform = transforms.Compose([  self.transformDataAug,
+            self.transform = transforms.Compose([   self.transformDataAug,
                                                     transforms.ToPILImage(),
                                                     transforms.Resize((92,196)),#(96,192)
                                                     transforms.ToTensor()])

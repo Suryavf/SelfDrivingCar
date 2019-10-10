@@ -74,7 +74,6 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Path files
-        """
         self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
         self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
         """
@@ -103,7 +102,7 @@ class ImitationModel(object):
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00146.h5',	
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00247.h5',	
                                 '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00345.h5']
-        
+        """
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
         self.sequence_len = self.setting.general.sequence_len 
@@ -113,8 +112,7 @@ class ImitationModel(object):
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
             self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-
-        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile )
+        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile, alpha=1.0,beta=0.9 )
 
         # Datasets
         self.trainDataset = CoRL2017Dataset(setting,self.  trainingFiles,train= True)
@@ -575,10 +573,10 @@ class ImitationModel(object):
                                 metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
         F.saveColorMershError(  metrics['Gas'],
                                 metrics['GasError'],
-                                metrics['Command'],  GasErrorPath,dom=( 0.00, 1.00))
+                                metrics['Command'],  GasErrorPath,dom=( 0.00, 1.20))
         F.saveColorMershError(  metrics['Brake'],
                                 metrics['BrakeError'],
-                                metrics['Command'],BrakeErrorPath,dom=( 0.00, 1.00))
+                                metrics['Command'],BrakeErrorPath,dom=( 0.00, 1.20))
         return running_loss,avgMetrics
     
 
