@@ -195,38 +195,41 @@ class save2PlotByStep():
 
     Return: files list
 """
-def saveColorMershError(steer,steerErr,command,path,dom=(-1.20, 1.20),resolution=30):
+def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,name='Steer'):
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
-
-    # Length
-    x_len,y_len = (2*resolution,resolution)#(100,50)
-    ref = max(abs(dom[0]),abs(dom[1]))
     
-    x_min,x_max = dom
-    y_min,y_max = (-ref/100, ref)
+    if dom[0] == 0: mirror = False
+    else          : mirror = True
+    
+    # Length  
+    if mirror: x_len,y_len = (2*resolution,resolution)
+    else     : x_len,y_len = (  resolution,resolution)
+    
+    x_min,x_max =   dom
+    y_min,y_max = (-dom[1]/100, dom[1])
 
     x    = np.linspace(x_min,x_max,x_len )
     y    = np.linspace(y_min,y_max,y_len )
     xnew = np.linspace(x_min,x_max,  800 )
     ynew = np.linspace(y_min,y_max,  800 )
 
-    cte = (dom[1]-dom[0])/(x_len)
+    e = 0.0001
+    x_cte = (x_max-x_min)/(x_len) + e
 
     idx = 0
     fig, axs = plt.subplots(2, 2)
     for i in range(2):
         for j in range(2):
             # Select command
-            c = cmd[idx]
-
-            st  = steer   [command==c]
-            err = steerErr[command==c]
+            st  = msr   [command==cmd[idx]]
+            err = msrErr[command==cmd[idx]]
 
             mersh = list()
             for _ in range(x_len): mersh.append( list() )
             for s,e in zip(st,err):
-                pst = int(np.floor( (s+1.2)/cte ))
+                pst = int(np.floor( (s-x_min)/x_cte ))
+                #print('x_len:',x_len,'\tpst:',pst,'\ts:',s)
                 mersh[pst].append( e )
             
             # Create mersh
@@ -234,7 +237,7 @@ def saveColorMershError(steer,steerErr,command,path,dom=(-1.20, 1.20),resolution
                 vec = mersh[k]
                 if len(vec)>2:
                     # Coefficient (values in plot range [0,1.2])
-                    coeff = np.sum( np.array(vec)<=1.2 ) / len(vec)
+                    coeff = np.sum( np.array(vec)<=x_max ) / len(vec)
 
                     # Getting histogram
                     vec , _ = np.histogram( vec, y_len,range=(y_min,y_max) )
@@ -261,8 +264,8 @@ def saveColorMershError(steer,steerErr,command,path,dom=(-1.20, 1.20),resolution
             Xn, Yn = np.meshgrid(xnew, ynew)
             
             axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet', vmin=0, vmax=1)
-            axs[i,j].set_xlabel("Steer (True)")
-            axs[i,j].set_ylabel("Steer Error")
+            axs[i,j].set_xlabel(name+" (True)")
+            axs[i,j].set_ylabel(name+" Error")
             axs[i,j].set_title(hgl[idx])
             idx += 1 
 

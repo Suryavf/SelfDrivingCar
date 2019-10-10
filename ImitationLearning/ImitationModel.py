@@ -74,8 +74,35 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Path files
+        """
         self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
         self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        """
+        self.  trainingFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03667.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03709.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03760.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03819.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03867.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03908.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03973.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04016.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04064.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04644.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04864.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_05809.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06017.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06150.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06393.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06528.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06844.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06907.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06951.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04007.h5']	
+        self.validationFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00005.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00084.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00146.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00247.h5',	
+                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00345.h5']
         
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
@@ -545,14 +572,13 @@ class ImitationModel(object):
         
         F.saveColorMershError(  metrics['Steer'],
                                 metrics['SteerError'],
-                                metrics['Command'],SteerErrorPath,range=(-1.20, 1.20))
+                                metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
         F.saveColorMershError(  metrics['Gas'],
                                 metrics['GasError'],
-                                metrics['Command'],  GasErrorPath,range=(0.0, 1.0))
+                                metrics['Command'],  GasErrorPath,dom=( 0.00, 1.00))
         F.saveColorMershError(  metrics['Brake'],
                                 metrics['BrakeError'],
-                                metrics['Command'],BrakeErrorPath,range=(0.0, 1.0))
-
+                                metrics['Command'],BrakeErrorPath,dom=( 0.00, 1.00))
         return running_loss,avgMetrics
     
 
