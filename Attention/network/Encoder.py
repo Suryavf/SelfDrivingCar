@@ -62,4 +62,4 @@ class CNN5(nn.Module):
         xt = self.net(img)                          # [batch,D,h,w]
         xt = xt.flatten(start_dim=2, end_dim=3)     # [batch,D,L]
         return xt.transpose(1, 2)                   # [batch,L,D]
-    
+        

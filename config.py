@@ -9,7 +9,8 @@ _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
-
+_CNN5BackboneList    = ['Kim2017']
+_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19']
 
 class Setting(object):
     def __init__(self):
@@ -219,7 +220,7 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 100
+        self.learning_rate_decay_steps  = 10
         self.learning_rate_decay_factor = 0.5
 
     def load(self,data):
@@ -246,7 +247,7 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "Adam" # Adam, RAdam, Ranger
+        self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
         self.beta_1        = 0.7   #0.9   #0.7 
         self.beta_2        = 0.85  #0.999 #0.85
@@ -378,3 +379,10 @@ class BooleanConditions(object):
         self.speedRegression = model in _speedRegressionList
         self.temporalModel   = model in _temporalModelList
         
+        if   model in _CNN5BackboneList:
+            self.backbone = 'CNN5'
+        elif model in _ResNetBackboneList:
+            self.backbone = 'ResNet'
+        else:
+            self.backbone = ''
+            

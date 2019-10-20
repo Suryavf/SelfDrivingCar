@@ -114,15 +114,14 @@ class CoRL2017Dataset(object):
 
 
     def build(self):
-        if self.isTrain:
-            self.transform = transforms.Compose([   self.transformDataAug,
-                                                    transforms.ToPILImage(),
-                                                    transforms.Resize((92,196)),#(96,192)
-                                                    transforms.ToTensor()])
-        else:
-            self.transform = transforms.Compose([ transforms.ToPILImage(),
-                                                  transforms.Resize((92,196)),#(96,192)
-                                                  transforms.ToTensor(),])
+        trans = list()
+        if   self.isTrain: trans.append(self.transformDataAug)
+        trans.append(transforms.ToPILImage())
+        if   self.setting.boolean.backbone ==   'CNN5': trans.append(transforms.Resize((92,196)))
+        elif self.setting.boolean.backbone == 'ResNet': trans.append(transforms.Resize((96,192)))
+        trans.append(transforms.ToTensor())
+        self.transform = transforms.Compose(trans)
+
 
     def __len__(self):
         return self.samplesPerFile * len(self.files)
@@ -182,6 +181,7 @@ class CoRL2017Dataset(object):
 
             return self.routine(img,target) 
             
+
 class GeneralDataset(Dataset):
     def __init__(self, dataset, IDs, weights = None):
         self.dataset = dataset
