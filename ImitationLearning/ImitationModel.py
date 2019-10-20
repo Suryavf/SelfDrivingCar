@@ -76,33 +76,7 @@ class ImitationModel(object):
         # Path files
         self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
         self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
-        """
-        self.  trainingFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03667.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03709.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03760.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03819.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03867.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03908.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_03973.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04016.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04064.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04644.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04864.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_05809.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06017.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06150.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06393.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06528.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06844.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06907.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_06951.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqTrain/data_04007.h5']	
-        self.validationFiles = ['/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00005.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00084.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00146.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00247.h5',	
-                                '/home/victor/SelfDrivingCar/data/h5file/SeqVal/data_00345.h5']
-        """
+        
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
         self.sequence_len = self.setting.general.sequence_len 
@@ -395,7 +369,7 @@ class ImitationModel(object):
 
         # Exploration loop
         self.model.eval()
-        with torch.no_grad(), tqdm(total=len(loader)) as pbar:
+        with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
                 batch,batchID = sample
@@ -456,7 +430,7 @@ class ImitationModel(object):
 
         # Train loop
         self.model.train()
-        with tqdm(total=len(loader)) as pbar:
+        with tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
                 batch,batchID,weight = sample
@@ -470,8 +444,8 @@ class ImitationModel(object):
                 self._updatePriority(dev_pred,batchID)
 
                 # zero the parameter gradients
-                self.optimizer .zero_grad()
-                self.model.zero_grad()
+                self.optimizer.zero_grad()
+                self.model    .zero_grad()
 
                 dev_loss.backward()
                 self.optimizer.step()
@@ -524,7 +498,7 @@ class ImitationModel(object):
         
         # Model to evaluation
         self.model.eval()
-        with torch.no_grad(), tqdm(total=len(loader)) as pbar:
+        with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
                 batch,_ = sample

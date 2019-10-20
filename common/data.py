@@ -196,8 +196,6 @@ class GeneralDataset(Dataset):
         data = self.dataset[idx]
 
         if self.weights is not None:
-            #print("_idx:",_idx,"\nidx:",idx,"\nweights:",self.weights)
-            #print("_idx:",_idx,"self.weights[_idx]:",self.weights[_idx])
             return data,idx,self.weights[_idx]
         else:
             return data,idx
