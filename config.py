@@ -16,6 +16,7 @@ class Setting(object):
     def __init__(self):
         self.preprocessing = Preprocessing_settings()
         self.evaluation    =    Evaluation_settings()
+        self.sampling      =      Sampling_settings()
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
@@ -33,6 +34,7 @@ class Setting(object):
             self.model = data["model"]
             self.preprocessing.load(data["preprocessing"])
             self.evaluation   .load(data[   "evaluation"])
+            self.sampling     .load(data[     "sampling"])
             self.general      .load(data[      "general"])
             self.train        .load(data[        "train"])
 
@@ -40,6 +42,8 @@ class Setting(object):
         print("="*80,"\n\n","\t"+self.model+" Model\n","\t"+"-"*64,"\n")
         print("\tGeneral")
         self.general.print()
+        print("\tPriorized sampling")
+        self.sampling.print()
         print("\tPreprocessing")
         self.preprocessing.print()
         print("\tTrain")
@@ -54,6 +58,7 @@ class Setting(object):
 
             "preprocessing": self.preprocessing.save(),
             "evaluation"   : self.   evaluation.save(),
+            "sampling"     : self.     sampling.save(),
             "general"      : self.      general.save(),
             "train"        : self.        train.save()
         }
@@ -168,6 +173,26 @@ class General_settings(object):
             "validPath" : self.validPath,
             "trainPath" : self.trainPath,
             "savedPath" : self.savedPath
+        }
+
+
+class Sampling_settings(object):
+    def __init__(self):
+        self.alpha = 1.0
+        self. beta = 1.0
+        
+    def load(self,data):
+        self.alpha = data["alpha"]
+        self.beta  = data[ "beta"]
+
+    def print(self):
+        print("\t"*2,"Alpha:\t",self.alpha)
+        print("\t"*2,"Beta: \t",self. beta)
+
+    def save(self):
+        return {
+            "alpha" : self.alpha,
+            "beta"  : self. beta
         }
 
 

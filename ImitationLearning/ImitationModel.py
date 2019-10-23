@@ -86,7 +86,7 @@ class ImitationModel(object):
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
             self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile, alpha=1.0,beta=0.9 )
+        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile, alpha=1.0,beta=1.0 )
 
         # Datasets
         self.trainDataset = CoRL2017Dataset(setting,self.  trainingFiles,train= True)
@@ -182,10 +182,6 @@ class ImitationModel(object):
                                     betas = (self.setting.train.optimizer.beta_1, 
                                              self.setting.train.optimizer.beta_2 ) )
 
-        # Exploration mode optimizator
-        self.exploration_optimizer = optim.SGD( self.model.parameters(), 
-                                                lr=self.setting.train.optimizer.learning_rate/100000 )
-        
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
@@ -362,7 +358,10 @@ class ImitationModel(object):
         lossExp      = U.averager()
 
         # ID list
-        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=True)
+        prioritized = False
+        sequence    = self.setting.boolean.temporalModel
+        
+        IDs = self._generateIDlist(n_samples,prioritized=prioritized,sequence=sequence)
         loader = DataLoader(Dataset(self.trainDataset,IDs),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
@@ -418,7 +417,10 @@ class ImitationModel(object):
         lossTrain    = U.averager()
 
         # ID list
-        IDs,weights = self._generateIDlist(n_samples,prioritized=True,sequence=True)
+        prioritized = True
+        sequence    = self.setting.boolean.temporalModel
+        
+        IDs,weights = self._generateIDlist(n_samples,prioritized=prioritized,sequence=sequence)
         loader = DataLoader(Dataset(self.trainDataset,IDs,weights),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
