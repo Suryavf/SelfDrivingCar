@@ -19,7 +19,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.model   = "Basic" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
     def model_(self,model):
@@ -247,7 +247,7 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "RAdam" # Adam, RAdam, Ranger
+        self.type          = "Adam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
         self.beta_1        = 0.7   #0.9   #0.7 
         self.beta_2        = 0.85  #0.999 #0.85

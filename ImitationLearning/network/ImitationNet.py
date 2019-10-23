@@ -145,8 +145,8 @@ class BasicNet(nn.Module):
         xavierInit(self._fully)
         xavierInit(self._out  )
 
-    def forward(self,x):
-        x = self._perception(x)
+    def forward(self,batch):
+        x = self._perception(batch['frame'])
         x = F.dropout(x, p=0.5, training=self.training)
 
         x = self._fully(x)
@@ -154,7 +154,7 @@ class BasicNet(nn.Module):
 
         y_pred = self._out(x)
 
-        return y_pred
+        return {'actions': y_pred}
 
 
 """ Multimodal Network for regression
@@ -189,9 +189,9 @@ class MultimodalNet(nn.Module):
         self._control      .apply(xavierInit)
         xavierInit(self._jointLayer)
     
-    def forward(self,img,vm):
-        percp = self._perception   (img)
-        speed = self._measuredSpeed( vm)
+    def forward(self,batch):
+        percp = self._perception   (batch['frame'])
+        speed = self._measuredSpeed(batch['speed'])
 
         joint  = torch.cat( (percp,speed), dim=1  )
         signal = F.relu(self._jointLayer(joint))
@@ -199,7 +199,7 @@ class MultimodalNet(nn.Module):
 
         y_pred = self._control(signal)
 
-        return y_pred
+        return {'actions': y_pred}
 
 
 """ Codevilla 2018 Network
@@ -236,9 +236,9 @@ class Codevilla18Net(nn.Module):
         self._measuredSpeed.apply(xavierInit)
         xavierInit(self._jointLayer)
     
-    def forward(self,img,vm,mask):
-        percp = self._perception   (img)
-        speed = self._measuredSpeed( vm)
+    def forward(self,batch):
+        percp = self._perception   (batch['frame'])
+        speed = self._measuredSpeed(batch['speed'])
         
         joint  = torch.cat( (percp,speed), dim=1  )
         signal = F.relu(self._jointLayer(joint))
@@ -246,8 +246,9 @@ class Codevilla18Net(nn.Module):
         
         # Branches
         y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
-        
-        return y_pred*mask
+        y_pred = y_pred*batch['mask']
+
+        return {'actions': y_pred}
 
 
 """ Codevilla 2019 Network
@@ -285,9 +286,9 @@ class Codevilla19Net(nn.Module):
         self._measuredSpeed.apply(xavierInit)
         xavierInit(self._jointLayer)
     
-    def forward(self,img,vm,mask):
-        percp = self._perception   (img)
-        speed = self._measuredSpeed( vm)
+    def forward(self,batch):
+        percp = self._perception   (batch['frame'])
+        speed = self._measuredSpeed(batch['speed'])
         
         # Actions prediction
         joint  = torch.cat( (percp,speed), dim=1  )
@@ -299,8 +300,8 @@ class Codevilla19Net(nn.Module):
         
         # Branches
         y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
-        y_pred = y_pred*mask
+        y_pred = y_pred*batch['mask']
         
         
-        return y_pred*mask,v_pred
-            
+        return {'actions': y_pred, 'speed': v_pred}
+        
