@@ -135,7 +135,7 @@ class General_settings(object):
         # Path files
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
-        self.savedPath = "/media/victor/Datos/Saved/"
+        self.savedPath = "/media/victor/TOSHIBA EXT/Tesis/Saved/"#"/media/victor/Datos/Saved/"
 
     def load(self,data):
         self.stepView       = data[      "stepView"]

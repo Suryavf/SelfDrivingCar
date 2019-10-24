@@ -604,35 +604,34 @@ class ImitationModel(object):
 
     """ Plot generate"""
     def plot(self,name):
+        # Parameters
+        n_epoch     = self.setting.general.n_epoch
+
         # Check paths
         self._checkFoldersToSave(name)
         paths = U.modelList(self._modelPath)
         
-        # Parameters
-        outputSpeed = self.setting.boolean.outputSpeed
-
-        # Plotting objects
-        epochSteer = F.savePlotByStep (self._figurePath,"Steer")
-        epochGas   = F.savePlotByStep (self._figurePath,"Gas"  )
-        epochBrake = F.savePlotByStep (self._figurePath,"Brake")
-        if outputSpeed:
-            epochSpeed = F.savePlotByStep(self._figurePath,"Speed")
+        # Initialize
+        valuesToSave = list()
+        df = pd.DataFrame()
 
         # Loop paths
-        for epoch,path in enumerate(paths,0):
+        i = 0
+        for epoch in range(self.epoch,n_epoch):
             print("\nEpoch",epoch,"-"*40)
 
             # Load
-            checkpoint = torch.load(path)
+            checkpoint = torch.load(paths[i])
             self.model.load_state_dict(checkpoint['state_dict'])
             
             # Validation
             _,metr = self._Validation(epoch)
             
-            # Plotting
-            epochSteer.update(metr[0])
-            epochGas  .update(metr[1])
-            epochBrake.update(metr[2])
-            if outputSpeed:
-                epochSpeed.update(metr[3])
-                
+            # Save values metrics
+            valuesToSave.append( (metr[0],metr[1],metr[2]) )
+            df = pd.DataFrame(valuesToSave, columns = ['Steer','Gas','Brake'])
+            i = i+1
+
+        # Save metrics (csv)
+        df.to_csv(self._modelPath + "/metrics.csv", index=False)  
+        
