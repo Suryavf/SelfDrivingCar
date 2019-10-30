@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
-from ImitationLearning.network.ResNet import resnet34 as ResNet
+from   StateOfArt.ImitationLearning.ResNet import resnet34 as ResNet
 
 """ Xavier initialization
     ---------------------

@@ -1,11 +1,18 @@
+import os
+import glob
+from   tqdm import tqdm
+
+import pandas as pd
+import numpy  as np
+
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-from   torch.utils.data import DataLoader
+from   torch.utils.data        import DataLoader
 from   torch.utils.tensorboard import SummaryWriter
 
-import ImitationLearning.network.ImitationNet as imL
-import Attention.        network.AttentionNet as attn
+import StateOfArt.ImitationLearning.ImitationNet as imL
+import StateOfArt.        Attention.AttentionNet as attn
 
 from IPython.core.debugger import set_trace
 
@@ -16,14 +23,6 @@ from   common.Ranger      import Ranger
 from   common.data        import CoRL2017Dataset
 from   common.data        import  GeneralDataset as Dataset
 from   common.prioritized import PrioritizedSamples
-
-
-from   itertools import zip_longest
-from   tqdm import tqdm
-import pandas as pd
-import numpy  as np
-import glob
-import os
 
 # Solution DataLoader bug
 # Ref: https://github.com/pytorch/pytorch/issues/973
@@ -604,9 +603,6 @@ class ImitationModel(object):
 
     """ Plot generate"""
     def plot(self,name):
-        # Parameters
-        n_epoch     = self.setting.general.n_epoch
-
         # Check paths
         self._checkFoldersToSave(name)
         paths = U.modelList(self._modelPath)

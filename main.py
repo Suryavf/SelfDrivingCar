@@ -12,10 +12,10 @@ class Main():
     """ Constructor """
     def __init__(self,init,setting):
         self.model   = None
-
+        
         # Define seed
         init.set_seed()
-        
+                    
         if setting.model in _imitationLearningList:
             self.model = ImitationModel(init,setting)
         else:

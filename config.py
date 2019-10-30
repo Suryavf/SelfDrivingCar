@@ -1,7 +1,7 @@
 import random
+import json
 import numpy as np
 import torch
-import json
 
 _branchesList        = ['Codevilla18','Codevilla19']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
@@ -188,6 +188,7 @@ class Sampling_settings(object):
     def print(self):
         print("\t"*2,"Alpha:\t",self.alpha)
         print("\t"*2,"Beta: \t",self. beta)
+        print("")
 
     def save(self):
         return {

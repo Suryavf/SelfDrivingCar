@@ -1,10 +1,6 @@
-import json
-import torch
 import torch.nn as nn
-
-import Attention.network.Decoder as deco
-import Attention.network.Encoder as enco
-
+import StateOfArt.Attention.Decoder as deco
+import StateOfArt.Attention.Encoder as enco
 
 """ Visual Attention Network
     ------------------------
