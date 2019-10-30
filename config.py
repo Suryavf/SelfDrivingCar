@@ -20,7 +20,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Basic" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
     def model_(self,model):
@@ -126,7 +126,7 @@ class General_settings(object):
         self.framePerFile   = 200
         self.stepView       =   5 # Print in Train
 
-        self.n_epoch      = 150
+        self.n_epoch      = 400
         self.batch_size   = 120
         self.sequence_len =  20
 
@@ -135,7 +135,7 @@ class General_settings(object):
         # Path files
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
-        self.savedPath = "/media/victor/TOSHIBA EXT/Tesis/Saved/"#"/media/victor/Datos/Saved/"
+        self.savedPath = "/media/victor/Datos/Saved/"#"/media/victor/TOSHIBA EXT/Tesis/Saved/"#"/media/victor/Datos/Saved/"
 
     def load(self,data):
         self.stepView       = data[      "stepView"]
@@ -272,10 +272,10 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "Adam" # Adam, RAdam, Ranger
+        self.type          = "RAdam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
-        self.beta_1        = 0.7   #0.9   #0.7 
-        self.beta_2        = 0.85  #0.999 #0.85
+        self.beta_1        = 0.9   #0.9   #0.7 
+        self.beta_2        = 0.999  #0.999 #0.85
 
     def load(self,data):
         self.type          = data[         "type"]

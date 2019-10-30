@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 from ImitationLearning.network.ResNet import resnet34 as ResNet
 
-
 """ Xavier initialization
     ---------------------
     Args:
@@ -247,7 +246,7 @@ class Codevilla18Net(nn.Module):
         # Branches
         y_pred = torch.cat( [out(signal) for out in self._branches], dim=1)
         y_pred = y_pred*batch['mask']
-
+        
         return {'actions': y_pred}
 
 

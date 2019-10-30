@@ -218,7 +218,7 @@ class ImitationModel(object):
     def _weightedLossActSpeed(self,measure,prediction,weight=None):
         # Action loss
         action = torch.abs(measure['actions'] - prediction['actions'])
-        action = action.dot(self.weightLoss)
+        action = action.matmul(self.weightLoss)
 
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
@@ -617,7 +617,8 @@ class ImitationModel(object):
 
         # Loop paths
         i = 0
-        for epoch in range(self.epoch,n_epoch):
+        for epoch in range(len(paths)):
+            epoch = epoch + 1
             print("\nEpoch",epoch,"-"*40)
 
             # Load
@@ -632,6 +633,6 @@ class ImitationModel(object):
             df = pd.DataFrame(valuesToSave, columns = ['Steer','Gas','Brake'])
             i = i+1
 
-        # Save metrics (csv)
-        df.to_csv(self._modelPath + "/metrics.csv", index=False)  
-        
+            # Save metrics (csv)
+            df.to_csv(self._modelPath + "/metrics.csv", index=False)  
+
