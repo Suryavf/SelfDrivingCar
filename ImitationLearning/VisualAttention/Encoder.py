@@ -18,7 +18,7 @@ class CNN5(nn.Module):
         # Layers
         self.conv1 = nn.Conv2d( 3, 24, kernel_size=5, stride=2)
         self.conv2 = nn.Conv2d(24, 36, kernel_size=5, stride=2)
-        self.conv3 = nn.Conv2d(36, 48, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(36, 48, kernel_size=3, stride=2)
         self.conv4 = nn.Conv2d(48, 64, kernel_size=3, stride=1)
         self.conv5 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
@@ -31,11 +31,11 @@ class CNN5(nn.Module):
         self.ReLU = nn.ReLU()
         
         # Initialize
-        torch.nn.init.xavier_uniform(self.conv1.weight)
-        torch.nn.init.xavier_uniform(self.conv2.weight)
-        torch.nn.init.xavier_uniform(self.conv3.weight)
-        torch.nn.init.xavier_uniform(self.conv4.weight)
-        torch.nn.init.xavier_uniform(self.conv5.weight)
+        torch.nn.init.xavier_uniform_(self.conv1.weight)
+        torch.nn.init.xavier_uniform_(self.conv2.weight)
+        torch.nn.init.xavier_uniform_(self.conv3.weight)
+        torch.nn.init.xavier_uniform_(self.conv4.weight)
+        torch.nn.init.xavier_uniform_(self.conv5.weight)
         self.batchN1.reset_parameters()
         self.batchN2.reset_parameters()
         self.batchN3.reset_parameters()

@@ -6,7 +6,7 @@ from common.utils import str2bool
 #from ReinforcementLearning.dqnAgent import DQNAgent
 from ImitationLearning.ImitationModel import ImitationModel
 
-_imitationLearningList = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017']
+_imitationLearningList = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017','Experimental']
 
 class Main():
     """ Constructor """
@@ -15,7 +15,7 @@ class Main():
         
         # Define seed
         init.set_seed()
-                    
+
         if setting.model in _imitationLearningList:
             self.model = ImitationModel(init,setting)
         else:

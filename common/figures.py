@@ -1,14 +1,15 @@
-from os      import listdir
-from os.path import isfile, join
+import os
+from   os      import listdir
+from   os.path import isfile, join
+import datetime
 
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import matplotlib.pyplot    as plt
+import matplotlib.animation as animation 
 from scipy.interpolate import interp2d
 from random import shuffle
-import numpy as np
-import datetime
-import os
 
 
 """ Save plot
@@ -272,4 +273,15 @@ def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,
     fig.set_size_inches(10,6.7)
     fig.savefig(path)
     plt.close('all')
+    
+
+def saveHistAnimation(data):
+    def update_hist(num): 
+        plt.cla() 
+        plt.hist(data[num],bins=500) 
+        plt.ylim(0,2800) 
+
+    fig = plt.figure() 
+    ani = animation.FuncAnimation(fig, update_hist, data.shape[0], fargs=(data, ) ) 
+    ani.save("samples.mp4")  
     

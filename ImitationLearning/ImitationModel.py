@@ -13,6 +13,7 @@ from   torch.utils.tensorboard import SummaryWriter
 
 import StateOfArt.ImitationLearning.ImitationNet as imL
 import StateOfArt.        Attention.AttentionNet as attn
+import ImitationLearning.VisualAttention.Model   as exper
 
 from IPython.core.debugger import set_trace
 
@@ -49,11 +50,12 @@ class ImitationModel(object):
         self. epoch    = 1
         
         # Nets
-        if   self.setting.model == 'Basic'      : self.model =  imL.      BasicNet()
-        elif self.setting.model == 'Multimodal' : self.model =  imL. MultimodalNet()
-        elif self.setting.model == 'Codevilla18': self.model =  imL.Codevilla18Net()
-        elif self.setting.model == 'Codevilla19': self.model =  imL.Codevilla19Net()
-        elif self.setting.model == 'Kim2017'    : self.model = attn.    Kim2017Net()
+        if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
+        elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
+        elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
+        elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
+        elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
+        elif self.setting.model == 'Experimental': self.model = exper. Experimental()
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
