@@ -16,11 +16,11 @@ class CNN5(nn.Module):
         super(CNN5, self).__init__()
         
         # Layers
-        self.conv1 = nn.Conv2d( 3, 24, kernel_size=5, stride=2)
-        self.conv2 = nn.Conv2d(24, 36, kernel_size=5, stride=2)
-        self.conv3 = nn.Conv2d(36, 48, kernel_size=3, stride=2)
-        self.conv4 = nn.Conv2d(48, 64, kernel_size=3, stride=1)
-        self.conv5 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.conv1 = nn.Conv2d( 3, 24, kernel_size=5, stride=2, bias=False)
+        self.conv2 = nn.Conv2d(24, 36, kernel_size=5, stride=2, bias=False)
+        self.conv3 = nn.Conv2d(36, 48, kernel_size=3, stride=2, bias=False)
+        self.conv4 = nn.Conv2d(48, 64, kernel_size=3, stride=1, bias=False)
+        self.conv5 = nn.Conv2d(64, 64, kernel_size=3, stride=1, bias=False)
 
         self.batchN1 = nn.BatchNorm2d(24)
         self.batchN2 = nn.BatchNorm2d(36)
@@ -68,8 +68,8 @@ class CNN5(nn.Module):
         # Layer 5
         x = self.  conv5(x)
         x = self.batchN5(x)
-        x = self.   ReLU(x)                       # [batch,D,h,w]
+        x = self.   ReLU(x)                     # [batch,D,h,w]
         
-        x = x.flatten(start_dim=2, end_dim=3)     # [batch,D,L]
-        return x.transpose(1, 2)                  # [batch,L,D]
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        return x.transpose(1, 2)                # [batch,L,D]
         
