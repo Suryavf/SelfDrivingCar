@@ -152,20 +152,20 @@ class Atten4(nn.Module):
         # Declare layers
         self.w1 = nn.Linear(self.H,self.D,bias= True)
         self.w2 = nn.Linear(self.D,self.D,bias=False)
+        self.sigmoid = nn.Sigmoid()
         
         # Initialization
         torch.nn.init.xavier_uniform_(self.w1.weight)
         torch.nn.init.xavier_uniform_(self.w2.weight)
-        self.softmax1 = nn.Softmax(dim=2)
         self.softmax2 = nn.Softmax(dim=1)
     
     """ Forward """
     def forward(self,feature,hidden):
         # Category pertinence
-        pi =   self.w1(hidden) # [1,batch,H]*[H,D] = [1,batch,D]
-        pi =   self.w2(  pi  ) # [1,batch,D]*[D,D] = [1,batch,D]
+        pi =  self. w1(hidden) # [1,batch,H]*[H,D] = [1,batch,D]
+        pi =  self.sigmoid(pi)
+        pi =  self. w2(  pi  ) # [1,batch,D]*[D,D] = [1,batch,D]
         pi    .transpose_(0,1) # [1,batch,D] -> [batch,1,D]
-        pi = self.softmax1(pi) # [batch,1,D]
         
         attn = feature * pi        # [batch,L,D]x[batch,1,D]  = [batch,L,D]
         attn = torch.mean(attn,2,keepdim=True) # [batch,L,D] -> [batch,L,1]

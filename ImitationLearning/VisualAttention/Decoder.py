@@ -196,12 +196,8 @@ class DualDecoder(nn.Module):
         
         # Declare layers
         self.attn = AttentionNet
-        self.lstm1 = nn.LSTM(  input_size = self.R,
-                              hidden_size = self.H,
-                               num_layers =      1)
-        self.lstm2 = nn.LSTM(  input_size = self.H,
-                              hidden_size = self.H,
-                               num_layers =      1)
+        self.lstm1 = nn.LSTM( input_size = self.R, hidden_size = self.H, num_layers = 1)
+        self.lstm2 = nn.LSTM( input_size = self.H, hidden_size = self.H, num_layers = 1)
         
         self.Wh = nn.Linear(self.H,self.M    ,bias=True )
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
@@ -246,95 +242,65 @@ class DualDecoder(nn.Module):
             # (h,c) ~ [num_layers, batch, hidden_size]
             return hidden.contiguous(),cell.contiguous()
         
+
     """ Forward """
     def forward(self,feature):
-        #
-        # Training mode
-        # -------------
+        # Parameters
+        if self.training: batch_size = int(feature.shape[0]/self.sequence_len)
+        else            : batch_size =     feature.shape[0]
+        
+        # Data
         if self.training:
-            sequence_len = self.sequence_len
-            batch_size   = feature.shape[0]
-            batch_size   = int(batch_size/sequence_len)
-            out = torch.zeros([sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
-
-            # Fragment
-            sequence = feature.view( batch_size,sequence_len,self.L,self.D )
-            sequence.transpose_(0,1)    # [sequence,batch,L,D]
-
-            # Inicialize hidden state and cell state
-            #   * hidden ~ [1,batch,H]
-            #   * cell   ~ [1,batch,H]
-            hidden,cell = self.initializeLSTM(sequence[0])
-
-            # Sequence loop
-            for k in range(sequence_len):
-                # One time
-                xt = sequence[k]        # [batch,L,D]
-                
-                # Visual Attention
-                alpha = self.attn(xt,hidden)                # [batch,L,1]
-                visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
-                visual = visual.reshape(batch_size,self.R)  # [batch,R]
-                visual = visual.unsqueeze(0)                # [1,batch,R]
-                
-                # LSTM
-                #  * yt     ~ [sequence,batch,H]
-                #  * hidden ~ [ layers ,batch,H]
-                #  * cell   ~ [ layers ,batch,H]
-                yt,(hidden,cell) = self.lstm1(visual,(hidden,cell))
-                yt,(hidden,cell) = self.lstm2(visual,(hidden,cell))
-                
-                # Control
-                ut = self.Wh(hidden) + self.Wy(visual)               # [1,batch,M]
-                ut = F.dropout(ut, p=0.5, training=self.training)
-                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-                
-                # Save sequence out
-                out[k] = ut
-            
-            return out.transpose(0,1).contiguous().view(batch_size*sequence_len,self.n_out)
-            
-            
-        #
-        # Evaluation mode
-        # ---------------
+            sequence = feature.view( batch_size,self.sequence_len,self.L,self.D )
+            sequence.transpose_(0,1)        # [sequence,batch,L,D]
+            xt = sequence[0]                # Input to inicialize LSTM 
         else:
-            # Fragment
-            sequence   = feature # [batch,L,D]
-            batch_size = feature.shape[0]
+            sequence = feature              # [batch,L,D]
+            xt = sequence[0].unsqueeze(0)   # Input to inicialize LSTM 
 
-            # Inicialize hidden state and cell state
-            #   * hidden ~ [1,batch,H]
-            #   * cell   ~ [1,batch,H]
-            hidden,cell = self.initializeLSTM(feature[0].unsqueeze(0))
-            
-            # Prediction container
+        # Inicialize hidden state and cell state
+        #   * hidden ~ [1,batch,H]
+        #   * cell   ~ [1,batch,H]
+        hidden,cell = self.initializeLSTM(xt)
+
+        # Prediction container
+        if self.training:
+            pred = torch.zeros([self.sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
+        else:
             pred = torch.zeros([batch_size,self.n_out]).to( torch.device('cuda:0') )
 
-            # Sequence loop
-            for k in range(batch_size):
-                # One time
-                xt = sequence[k].unsqueeze(0)      # [1,L,D]
+        # Sequence loop
+        n_range  = self.sequence_len if self.training else batch_size
+        n_visual =        batch_size if self.training else     1
+        for k in range(n_range):
+            # One time
+            if self.training: xt = sequence[k]              # [batch,L,D]
+            else            : xt = sequence[k].unsqueeze(0) # [  1  ,L,D]
+            
+            # Visual Attention
+            alpha = self.attn(xt,hidden)                # [batch,L,1]
+            visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
+            
+            visual = visual.reshape(n_visual,self.R)    # [batch,R]
+            visual = visual.unsqueeze(0)                # [1,batch,R]
 
-                # Visual Attention
-                alpha = self.attn(xt,hidden)       # [batch,L,1]
-                visual = xt * alpha                # [batch,L,D]x[batch,L,1] = [batch,L,D]
-                
-                visual = visual.reshape(1,self.R)  # [1,R]
-                visual = visual.unsqueeze(0)       # [1,1,R]
+            # LSTM
+            #  * yt     ~ [sequence,batch,H]
+            #  * hidden ~ [ layers ,batch,H]
+            #  * cell   ~ [ layers ,batch,H]
+            _,(hidden,cell) = self.lstm1(visual,(h_out ,cell))
+            _,(h_out ,cell) = self.lstm2(visual,(hidden,cell))
+            
+            # Control
+            ut = self.Wh(h_out) + self.Wy(visual)               # [1,batch,M]
+            ut = F.dropout(ut, p=0.5, training=self.training)
+            ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
 
-                # LSTM
-                #  * yt     ~ [sequence,batch,H]
-                #  * hidden ~ [ layers ,batch,H]
-                #  * cell   ~ [ layers ,batch,H]
-                yt,(hidden,cell) = self.lstm(visual,(hidden,cell))
+            # Save sequence out
+            pred[k] = ut
 
-                # Control
-                ut = self.Wh(hidden) + self.Wy(visual)           # [1,batch,M]
-                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-                
-                # Save sequence out
-                pred[k] = ut
-
+        if self.training:
+            return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
+        else:
             return pred
-
+            
