@@ -18,7 +18,7 @@ class Experimental(nn.Module):
     def __init__(self):
         super(Experimental, self).__init__()
         # Modules
-        self.attention = attn.Atten2()
+        self.attention = attn.Atten4()
 
         self.encoder = E.CNN5()
         self.decoder = D.BasicDecoder(self.attention)

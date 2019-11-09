@@ -128,7 +128,6 @@ class BasicDecoder(nn.Module):
             
             return out.transpose(0,1).contiguous().view(batch_size*sequence_len,self.n_out)
             
-            
         #
         # Evaluation mode
         # ---------------
@@ -250,13 +249,12 @@ class DualDecoder(nn.Module):
         else            : batch_size =     feature.shape[0]
         
         # Data
-        if self.training:
-            sequence = feature.view( batch_size,self.sequence_len,self.L,self.D )
-            sequence.transpose_(0,1)        # [sequence,batch,L,D]
-            xt = sequence[0]                # Input to inicialize LSTM 
-        else:
-            sequence = feature              # [batch,L,D]
-            xt = sequence[0].unsqueeze(0)   # Input to inicialize LSTM 
+        if self.training: sequence = feature.view(batch_size,self.sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
+        else            : sequence = feature  # [batch,L,D]
+        
+        # Input to inicialize LSTM 
+        if self.training: xt = sequence[0]
+        else            : xt = sequence[0].unsqueeze(0)
 
         # Inicialize hidden state and cell state
         #   * hidden ~ [1,batch,H]
@@ -299,8 +297,6 @@ class DualDecoder(nn.Module):
             # Save sequence out
             pred[k] = ut
 
-        if self.training:
-            return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
-        else:
-            return pred
-            
+        if self.training: return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
+        else            : return pred
+        

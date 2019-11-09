@@ -246,8 +246,8 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 100
-        self.learning_rate_decay_factor = 0.5
+        self.learning_rate_decay_steps  = 50
+        self.learning_rate_decay_factor = 0.1
 
     def load(self,data):
         self.available = data["available"]
