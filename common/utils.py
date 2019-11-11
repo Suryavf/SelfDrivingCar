@@ -1,12 +1,11 @@
-import matplotlib.pyplot as plt
+import os
+import glob
+import argparse
+import datetime
 from random import shuffle
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import datetime
-import argparse
-import glob
-import os
-
 
 """ Cooked files list
     -----------------

@@ -26,6 +26,7 @@ class Main():
         self.model.load(path)
     def to_continue(self,name):
         self.model.to_continue(name)
+        self.model.execute()
     def train(self):
         self.model.execute()
     def plot(self,name):

@@ -21,7 +21,7 @@ class Experimental(nn.Module):
         self.attention = attn.Atten4()
 
         self.encoder = E.CNN5()
-        self.decoder = D.BasicDecoder(self.attention)
+        self.decoder = D.DualDecoder(self.attention)
     
     """ Forward """
     def forward(self,batch):

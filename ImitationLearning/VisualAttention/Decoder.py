@@ -195,25 +195,27 @@ class DualDecoder(nn.Module):
         
         # Declare layers
         self.attn = AttentionNet
-        self.lstm1 = nn.LSTM( input_size = self.R, hidden_size = self.H, num_layers = 1)
-        self.lstm2 = nn.LSTM( input_size = self.H, hidden_size = self.H, num_layers = 1)
+        self.lstm = nn.LSTM( input_size=self.R, hidden_size=self.H, num_layers=2 )
         
         self.Wh = nn.Linear(self.H,self.M    ,bias=True )
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
         self.Wu = nn.Linear(self.M,self.n_out,bias=True )
         
-        self.init_Wh   = nn.Linear(self.D,self.H,bias=True )
-        self.init_Wc   = nn.Linear(self.D,self.H,bias=True )
+        self.init_Wh1  = nn.Linear(self.D,self.H,bias=True )
+        self.init_Wh2  = nn.Linear(self.H,self.H,bias=True )
+        self.init_Wc1  = nn.Linear(self.D,self.H,bias=True )
+        self.init_Wc2  = nn.Linear(self.H,self.H,bias=True )
         self.init_tanh = nn.Tanh()
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.     Wh.weight)
         torch.nn.init.xavier_uniform_(self.     Wy.weight)
         torch.nn.init.xavier_uniform_(self.     Wu.weight)
-        torch.nn.init.xavier_uniform_(self.init_Wh.weight)
-        torch.nn.init.xavier_uniform_(self.init_Wc.weight)
-        self.lstm1.reset_parameters()
-        self.lstm2.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.init_Wh1.weight)
+        torch.nn.init.xavier_uniform_(self.init_Wh2.weight)
+        torch.nn.init.xavier_uniform_(self.init_Wc1.weight)
+        torch.nn.init.xavier_uniform_(self.init_Wc2.weight)
+        self.lstm.reset_parameters()
         
         
     """ Initialize LSTM: hidden state and cell state
@@ -230,16 +232,21 @@ class DualDecoder(nn.Module):
             # Mean features
             feature = torch.mean(feature,1) # [batch,L,D] -> [batch,D]
             
-            hidden = self.init_Wh(feature)  # [batch,D]*[D,H] -> [batch,H]
-            hidden = self.init_tanh(hidden) # [batch,H]
-            hidden = hidden.unsqueeze(0)    # [1,batch,H]
+            hidden1 = self.init_Wh1 (feature) # [batch,D]*[D,H] -> [batch,H]
+            hidden1 = self.init_tanh(hidden1) # [batch,H]
+            hidden2 = self.init_Wh2 (hidden1) # [batch,H]*[H,H] -> [batch,H]
+            hidden2 = self.init_tanh(hidden2) # [batch,H]
 
-            cell = self.init_Wc(feature)    # [batch,D]*[D,H] -> [batch,H]
-            cell = self.init_tanh(cell)     # [batch,H]
-            cell = cell.unsqueeze(0)        # [1,batch,H]
+            cell1 = self.init_Wc1 (feature)   # [batch,D]*[D,H] -> [batch,H]
+            cell1 = self.init_tanh( cell1 )   # [batch,H]
+            cell2 = self.init_Wc2 ( cell1 )   # [batch,H]*[H,H] -> [batch,H]
+            cell2 = self.init_tanh( cell2 )   # [batch,H]
+
+            hidden = torch.stack([hidden1,hidden2], dim=0).contiguous() # [2,batch,H]
+            cell   = torch.stack([  cell1,  cell2], dim=0).contiguous() # [2,batch,H]
 
             # (h,c) ~ [num_layers, batch, hidden_size]
-            return hidden.contiguous(),cell.contiguous()
+            return hidden,cell
         
 
     """ Forward """
@@ -276,7 +283,7 @@ class DualDecoder(nn.Module):
             else            : xt = sequence[k].unsqueeze(0) # [  1  ,L,D]
             
             # Visual Attention
-            alpha = self.attn(xt,hidden)                # [batch,L,1]
+            alpha = self.attn(xt,hidden[1].unsqueeze(0))# [batch,L,1]
             visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
             
             visual = visual.reshape(n_visual,self.R)    # [batch,R]
@@ -286,13 +293,12 @@ class DualDecoder(nn.Module):
             #  * yt     ~ [sequence,batch,H]
             #  * hidden ~ [ layers ,batch,H]
             #  * cell   ~ [ layers ,batch,H]
-            _,(hidden,cell) = self.lstm1(visual,(h_out ,cell))
-            _,(h_out ,cell) = self.lstm2(visual,(hidden,cell))
+            _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            ut = self.Wh(h_out) + self.Wy(visual)               # [1,batch,M]
+            ut = self.Wh(hidden[0].unsqueeze(0)) + self.Wy(visual) # [1,batch,M]
             ut = F.dropout(ut, p=0.5, training=self.training)
-            ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
+            ut = self.Wu(ut)            # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
 
             # Save sequence out
             pred[k] = ut
