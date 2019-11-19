@@ -13,14 +13,14 @@ import torch.nn as nn
 """
 class Atten1(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,cube_size, n_hidden):
         super(Atten1, self).__init__()
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
 
@@ -53,14 +53,14 @@ class Atten1(nn.Module):
 """
 class Atten2(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,cube_size, n_hidden):
         super(Atten2, self).__init__()
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
 
@@ -98,14 +98,14 @@ class Atten2(nn.Module):
 """
 class Atten3(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,cube_size, n_hidden):
         super(Atten3, self).__init__()
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
 
@@ -138,14 +138,14 @@ class Atten3(nn.Module):
 """
 class Atten4(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self, cube_size, n_hidden):
         super(Atten4, self).__init__()
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
 

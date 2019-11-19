@@ -42,6 +42,10 @@ class CNN5(nn.Module):
         self.batchN4.reset_parameters()
         self.batchN5.reset_parameters()
 
+    def cube(self,in_size):
+        x = int( (in_size[0]/4-13)/2 )
+        y = int( (in_size[1]/4-13)/2 )
+        return( x,y,64 )
 
     """ Forward """
     def forward(self,x):

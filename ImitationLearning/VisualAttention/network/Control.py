@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 """ Sum Hidden Feature
     ------------------
@@ -12,18 +13,18 @@ import torch.nn as nn
 """
 class SumHiddenFeature(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self, cube_size, n_hidden):
         super(SumHiddenFeature, self).__init__()
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.n_out = 3
 
         # Declare layers
-        self.Wh = nn.Linear(self.H,self.M    ,bias=True )
+        self.Wh = nn.Linear(self.H,self.M    ,bias=False)
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
         self.Wu = nn.Linear(self.M,self.n_out,bias=False)
 
@@ -34,6 +35,13 @@ class SumHiddenFeature(nn.Module):
 
     def forward(self,feature,hidden):
         ut = self.Wh(hidden) + self.Wy(feature)          # [1,batch,M]
+        ut = F.dropout(ut, p=0.5, training=self.training)
         ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
         return ut
         
+"""
+
+            ut = self.Wh(hidden[0].unsqueeze(0)) + self.Wy(visual) # [1,batch,M]
+            ut = F.dropout(ut, p=0.5, training=self.training)
+            ut = self.Wu(ut)            # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
+"""

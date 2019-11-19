@@ -3,6 +3,7 @@ import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
 import ImitationLearning.VisualAttention.network.Attention as attn
+import ImitationLearning.VisualAttention.network.Control   as ctrl
 
 """ Visual Attention Network
     ------------------------
@@ -15,13 +16,21 @@ import ImitationLearning.VisualAttention.network.Attention as attn
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,shape=(88,200)):
         super(Experimental, self).__init__()
-        # Modules
-        self.attention = attn.Atten4()
-
+        # Parameters
+        in_dim   = shape
+        cube_dim = ()
+        n_hidden = 512
+        
+        # Encoder
         self.encoder = E.CNN5()
-        self.decoder = D.DualDecoder(self.attention)
+        cube_dim = self.encoder.cube(in_dim)
+
+        # Decoder
+        self.attention = attn.Atten4(cube_dim,n_hidden)
+        self.control   = ctrl.SumHiddenFeature(cube_dim,n_hidden)
+        self.decoder   = D.DualDecoder(self.attention,self.control,cube_dim,n_hidden)
     
     """ Forward """
     def forward(self,batch):

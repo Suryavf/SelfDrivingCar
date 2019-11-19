@@ -1,11 +1,6 @@
-import json
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from   torch.autograd import Variable as V
-from   torch.utils.data import Dataset,DataLoader
-from   torchvision import models, transforms, utils
 
 
 """ Basic Decoder Module
@@ -20,37 +15,31 @@ from   torchvision import models, transforms, utils
 """
 class BasicDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,AttentionNet):
+    def __init__(self,AttentionNet,ControlNet,cube_size,n_hidden):
         super(BasicDecoder, self).__init__()
         
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   #  512 # hidden_size
+        self.M = n_hidden                   #  512 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
         self.n_out        =   3
         
         # Declare layers
         self.attn = AttentionNet
+        self.ctrl =   ControlNet
         self.lstm = nn.LSTM( input_size = self.R,
                              hidden_size = self.H,
                              num_layers =      1)
-        
-        self.Wh = nn.Linear(self.H,self.M    ,bias=True )
-        self.Wy = nn.Linear(self.R,self.M    ,bias=False)
-        self.Wu = nn.Linear(self.M,self.n_out,bias=True )
         
         self.init_Wh   = nn.Linear(self.D,self.H,bias=True )
         self.init_Wc   = nn.Linear(self.D,self.H,bias=True )
         self.init_tanh = nn.Tanh()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.     Wh.weight)
-        torch.nn.init.xavier_uniform_(self.     Wy.weight)
-        torch.nn.init.xavier_uniform_(self.     Wu.weight)
         torch.nn.init.xavier_uniform_(self.init_Wh.weight)
         torch.nn.init.xavier_uniform_(self.init_Wc.weight)
         self.lstm.reset_parameters()
@@ -83,94 +72,56 @@ class BasicDecoder(nn.Module):
         
     """ Forward """
     def forward(self,feature):
-        #
-        # Training mode
-        # -------------
+        # Parameters
+        if self.training: batch_size = int(feature.shape[0]/self.sequence_len)
+        else            : batch_size =     feature.shape[0]
+        
+        # Data
+        if self.training: sequence = feature.view(batch_size,self.sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
+        else            : sequence = feature  # [batch,L,D]
+        
+        # Input to inicialize LSTM 
+        if self.training: xt = sequence[0]
+        else            : xt = sequence[0].unsqueeze(0)
+
+        # Inicialize hidden state and cell state
+        #   * hidden ~ [1,batch,H]
+        #   * cell   ~ [1,batch,H]
+        hidden,cell = self.initializeLSTM(xt)
+
+        # Prediction container
         if self.training:
-            sequence_len = self.sequence_len
-            batch_size   = feature.shape[0]
-            batch_size   = int(batch_size/sequence_len)
-            out = torch.zeros([sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
-
-            # Fragment
-            sequence = feature.view( batch_size,sequence_len,self.L,self.D )
-            sequence.transpose_(0,1)    # [sequence,batch,L,D]
-
-            # Inicialize hidden state and cell state
-            #   * hidden ~ [1,batch,H]
-            #   * cell   ~ [1,batch,H]
-            hidden,cell = self.initializeLSTM(sequence[0])
-
-            # Sequence loop
-            for k in range(sequence_len):
-                # One time
-                xt = sequence[k]        # [batch,L,D]
-                
-                # Visual Attention
-                alpha = self.attn(xt,hidden)                # [batch,L,1]
-                visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
-                visual = visual.reshape(batch_size,self.R)  # [batch,R]
-                visual = visual.unsqueeze(0)                # [1,batch,R]
-                
-                # LSTM
-                #  * yt     ~ [sequence,batch,H]
-                #  * hidden ~ [ layers ,batch,H]
-                #  * cell   ~ [ layers ,batch,H]
-                yt,(hidden,cell) = self.lstm(visual,(hidden,cell))
-                
-                # Control
-                ut = self.Wh(hidden) + self.Wy(visual)               # [1,batch,M]
-                ut = F.dropout(ut, p=0.5, training=self.training)
-                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-                
-                # Save sequence out
-                out[k] = ut
-            
-            return out.transpose(0,1).contiguous().view(batch_size*sequence_len,self.n_out)
-            
-        #
-        # Evaluation mode
-        # ---------------
+            pred = torch.zeros([self.sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
         else:
-            # Fragment
-            sequence   = feature # [batch,L,D]
-            batch_size = feature.shape[0]
-
-            # Inicialize hidden state and cell state
-            #   * hidden ~ [1,batch,H]
-            #   * cell   ~ [1,batch,H]
-            hidden,cell = self.initializeLSTM(feature[0].unsqueeze(0))
-            
-            # Prediction container
             pred = torch.zeros([batch_size,self.n_out]).to( torch.device('cuda:0') )
 
-            # Sequence loop
-            for k in range(batch_size):
-                # One time
-                xt = sequence[k].unsqueeze(0)      # [1,L,D]
+        # Sequence loop
+        n_range  = self.sequence_len if self.training else batch_size
+        n_visual =        batch_size if self.training else     1
+        for k in range(n_range):
+            # One time
+            if self.training: xt = sequence[k]              # [batch,L,D]
+            else            : xt = sequence[k].unsqueeze(0) # [  1  ,L,D]
+            
+            # Visual Attention
+            alpha = self.attn(xt,hidden)# [batch,L,1]
+            visual = xt * alpha                         # [batch,L,D]x[batch,L,1] = [batch,L,D]
+            
+            visual = visual.reshape(n_visual,self.R)    # [batch,R]
+            visual = visual.unsqueeze(0)                # [1,batch,R]
 
-                # Visual Attention
-                alpha = self.attn(xt,hidden)       # [batch,L,1]
-                visual = xt * alpha                # [batch,L,D]x[batch,L,1] = [batch,L,D]
+            # LSTM
+            #  * yt     ~ [sequence,batch,H]
+            #  * hidden ~ [ layers ,batch,H]
+            #  * cell   ~ [ layers ,batch,H]
+            _,(hidden,cell) = self.lstm(visual,(hidden,cell))
+            
+            # Control
+            pred[k] = self.ctrl(visual, hidden, training=self.training)
 
-                visual = visual.reshape(1,self.R)  # [1,R]
-                visual = visual.unsqueeze(0)       # [1,1,R]
+        if self.training: return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
+        else            : return pred
 
-                # LSTM
-                #  * yt     ~ [sequence,batch,H]
-                #  * hidden ~ [ layers ,batch,H]
-                #  * cell   ~ [ layers ,batch,H]
-                yt,(hidden,cell) = self.lstm(visual,(hidden,cell))
-
-                # Control
-                ut = self.Wh(hidden) + self.Wy(visual)           # [1,batch,M]
-                ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-                
-                # Save sequence out
-                pred[k] = ut
-
-            return pred
-        
 
 """ Dual Decoder Module
     -------------------
@@ -180,26 +131,23 @@ class BasicDecoder(nn.Module):
 """
 class DualDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,AttentionNet):
+    def __init__(self,AttentionNet,ControlNet,cube_size,n_hidden):
         super(DualDecoder, self).__init__()
         
         # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
+        self.D = cube_size[2]               #   64 # cube_size[0]
+        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
+        self.R = self.L*self.D              # 5760 # self.L*self.D
+        self.H = n_hidden                   # 1024 # hidden_size
+        self.M = n_hidden                   # 1024 # hidden_size
         self.sequence_len =  20
         self.batch_size   = 120
         self.n_out        =   3
         
         # Declare layers
         self.attn = AttentionNet
+        self.ctrl =   ControlNet
         self.lstm = nn.LSTM( input_size=self.R, hidden_size=self.H, num_layers=2 )
-        
-        self.Wh = nn.Linear(self.H,self.M    ,bias=True )
-        self.Wy = nn.Linear(self.R,self.M    ,bias=False)
-        self.Wu = nn.Linear(self.M,self.n_out,bias=True )
         
         self.init_Wh1  = nn.Linear(self.D,self.H,bias=True )
         self.init_Wh2  = nn.Linear(self.H,self.H,bias=True )
@@ -208,9 +156,6 @@ class DualDecoder(nn.Module):
         self.init_tanh = nn.Tanh()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.     Wh.weight)
-        torch.nn.init.xavier_uniform_(self.     Wy.weight)
-        torch.nn.init.xavier_uniform_(self.     Wu.weight)
         torch.nn.init.xavier_uniform_(self.init_Wh1.weight)
         torch.nn.init.xavier_uniform_(self.init_Wh2.weight)
         torch.nn.init.xavier_uniform_(self.init_Wc1.weight)
@@ -296,12 +241,7 @@ class DualDecoder(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            ut = self.Wh(hidden[0].unsqueeze(0)) + self.Wy(visual) # [1,batch,M]
-            ut = F.dropout(ut, p=0.5, training=self.training)
-            ut = self.Wu(ut)            # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-
-            # Save sequence out
-            pred[k] = ut
+            pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0), training=self.training)
 
         if self.training: return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
         else            : return pred
