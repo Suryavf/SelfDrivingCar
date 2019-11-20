@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 """ Basic Decoder Module
@@ -19,15 +18,19 @@ class BasicDecoder(nn.Module):
         super(BasicDecoder, self).__init__()
         
         # Parameters
-        self.D = cube_size[2]               #   64 # cube_size[0]
-        self.L = cube_size[0]*cube_size[1]  #   90 # cube_size[1]*cube_size[2]
-        self.R = self.L*self.D              # 5760 # self.L*self.D
-        self.H = n_hidden                   #  512 # hidden_size
-        self.M = n_hidden                   #  512 # hidden_size
+        self.D = cube_size[2]               #   64 
+        self.L = cube_size[0]*cube_size[1]  #   90 
+        self.R = self.L*self.D              # 5760 
+        self.H = n_hidden                   #  512 
+        self.M = n_hidden                   #  512 
         self.sequence_len =  20
         self.batch_size   = 120
         self.n_out        =   3
         
+        # Output container
+        self.pred = torch.zeros([self.batch_size,self.n_out])
+        self. map = torch.zeros([self.batch_size,self.  L  ])
+
         # Declare layers
         self.attn = AttentionNet
         self.ctrl =   ControlNet
@@ -73,11 +76,13 @@ class BasicDecoder(nn.Module):
     """ Forward """
     def forward(self,feature):
         # Parameters
-        if self.training: batch_size = int(feature.shape[0]/self.sequence_len)
+        sequence_len = self.sequence_len
+        n_out        = self.n_out
+        if self.training: batch_size = int(feature.shape[0]/sequence_len)
         else            : batch_size =     feature.shape[0]
         
         # Data
-        if self.training: sequence = feature.view(batch_size,self.sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
+        if self.training: sequence = feature.view(batch_size,sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
         else            : sequence = feature  # [batch,L,D]
         
         # Input to inicialize LSTM 
@@ -91,9 +96,8 @@ class BasicDecoder(nn.Module):
 
         # Prediction container
         if self.training:
-            pred = torch.zeros([self.sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
-        else:
-            pred = torch.zeros([batch_size,self.n_out]).to( torch.device('cuda:0') )
+            self.pred = self.pred.view(sequence_len,batch_size, n_out)
+            self. map = self. map.view(sequence_len,batch_size,self.L)
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -117,10 +121,14 @@ class BasicDecoder(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            pred[k] = self.ctrl(visual, hidden, training=self.training)
+            self.pred[k] = self.ctrl(visual, hidden, training=self.training)
+            self. map[k] = alpha.squeeze()
 
-        if self.training: return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
-        else            : return pred
+        if self.training: 
+            self.pred = self.pred.transpose(0,1).contiguous().view(batch_size*sequence_len, n_out)
+            self. map = self. map.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
+        
+        return self.pred, self.map
 
 
 """ Dual Decoder Module
@@ -144,6 +152,10 @@ class DualDecoder(nn.Module):
         self.batch_size   = 120
         self.n_out        =   3
         
+        # Output container
+        self.pred = torch.zeros([self.batch_size,self.n_out])
+        self. map = torch.zeros([self.batch_size,self.  L  ])
+
         # Declare layers
         self.attn = AttentionNet
         self.ctrl =   ControlNet
@@ -197,11 +209,13 @@ class DualDecoder(nn.Module):
     """ Forward """
     def forward(self,feature):
         # Parameters
-        if self.training: batch_size = int(feature.shape[0]/self.sequence_len)
+        sequence_len = self.sequence_len
+        n_out        = self.n_out
+        if self.training: batch_size = int(feature.shape[0]/sequence_len)
         else            : batch_size =     feature.shape[0]
         
         # Data
-        if self.training: sequence = feature.view(batch_size,self.sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
+        if self.training: sequence = feature.view(batch_size,sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
         else            : sequence = feature  # [batch,L,D]
         
         # Input to inicialize LSTM 
@@ -215,9 +229,8 @@ class DualDecoder(nn.Module):
 
         # Prediction container
         if self.training:
-            pred = torch.zeros([self.sequence_len,batch_size,self.n_out]).to( torch.device('cuda:0') )
-        else:
-            pred = torch.zeros([batch_size,self.n_out]).to( torch.device('cuda:0') )
+            self.pred = self.pred.view(sequence_len,batch_size, n_out)
+            self. map = self. map.view(sequence_len,batch_size,self.L)
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -241,8 +254,12 @@ class DualDecoder(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0), training=self.training)
+            self.pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0), training=self.training)
+            self. map[k] = alpha.squeeze()
 
-        if self.training: return pred.transpose(0,1).contiguous().view(batch_size*self.sequence_len,self.n_out)
-        else            : return pred
+        if self.training: 
+            self.pred = self.pred.transpose(0,1).contiguous().view(batch_size*sequence_len, n_out)
+            self. map = self. map.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
+        
+        return self.pred, self.map
         

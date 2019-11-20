@@ -20,7 +20,7 @@ class Experimental(nn.Module):
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = shape
-        n_hidden = 512
+        n_hidden = 1024
         
         # Encoder
         self.encoder = E.CNN5()
@@ -33,7 +33,8 @@ class Experimental(nn.Module):
     
     """ Forward """
     def forward(self,batch):
-        x = self.encoder(batch['frame'])
-        y = self.decoder(x)
-        return {'actions': y}
+        x       = self.encoder(batch['frame'])
+        y,alpha = self.decoder(x)
+        return {'actions'  :     y,
+                'attention': alpha}
         
