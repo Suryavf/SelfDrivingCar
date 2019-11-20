@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from   torchvision import models
 
 """ Convolutional Neuronal Network - 5 layers
     -----------------------------------------
@@ -77,3 +78,45 @@ class CNN5(nn.Module):
         x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
         return x.transpose(1, 2)                # [batch,L,D]
         
+
+class ResNet50(nn.Module):
+    """ Constructor """
+    def __init__(self):
+        super(ResNet50, self).__init__()
+
+        self.model = models.resnet50(pretrained=True)
+        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+
+    def cube(self,in_size):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,512 )
+
+    """ Forward """
+    def forward(self,x):
+        with torch.no_grad():
+            x = self.model(x)
+            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+            return x.transpose(1, 2)                # [batch,L,D]
+
+
+class WideResNet50(nn.Module):
+    """ Constructor """
+    def __init__(self):
+        super(WideResNet50, self).__init__()
+
+        self.model = models.wide_resnet50_2(pretrained=True)
+        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+
+    def cube(self,in_size):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,512 )
+
+    """ Forward """
+    def forward(self,x):
+        with torch.no_grad():
+            x = self.model(x)
+            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+            return x.transpose(1, 2)                # [batch,L,D]
+            

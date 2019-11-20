@@ -11,32 +11,17 @@ You must choose between
 
 ### Dependences
 
+Install libraries
+
 ```shell
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-sudo apt-get update
-
-sudo apt-get install build-essential clang-6.0 lld-6.0 g++-7 cmake ninja-build python python-pip python-dev python3-dev python3-pip 
-libpng16-dev 
-libtiff5-dev libjpeg-dev tzdata sed curl wget unzip autoconf libtool
-
-pip2 install --user setuptools
-pip3 install --user setuptools
+pip install pygame numpy
 ```
 
-Change your default clang version to compile Unreal Engine and the CARLA dependencies
+Install UnReal 4.22. Make sure you are registered with Epic Games. This is required to get source code access for Unreal Engine.
 
 ```shell
-sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/lib/llvm-6.0/bin/clang++ 102
-sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-6.0/bin/clang 102
-```
-
-### UnReal 4.21
-
-Make sure you are registered with Epic Games. This is required to get source code access for Unreal Engine.
-
-```shell
-git clone --depth=1 -b 4.21 https://github.com/EpicGames/UnrealEngine.git ~/UnrealEngine_4.21
-cd ~/UnrealEngine_4.21
+git clone --depth=1 -b 4.22 https://github.com/EpicGames/UnrealEngine.git ~/UnrealEngine_4.22
+cd ~/UnrealEngine_4.22
 ./Setup.sh 
 ./GenerateProjectFiles.sh 
 make

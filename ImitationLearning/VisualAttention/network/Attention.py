@@ -21,8 +21,6 @@ class Atten1(nn.Module):
         self.R = self.L*self.D              # 5760 # self.L*self.D
         self.H = n_hidden                   #  512 # hidden_size
         self.M = n_hidden                   #  512 # hidden_size
-        self.sequence_len =  20
-        self.batch_size   = 120
 
         # Declare layers
         self.w = nn.Linear(self.H,self.D,bias=True)
@@ -61,8 +59,6 @@ class Atten2(nn.Module):
         self.R = self.L*self.D              # 5760 # self.L*self.D
         self.H = n_hidden                   #  512 # hidden_size
         self.M = n_hidden                   #  512 # hidden_size
-        self.sequence_len =  20
-        self.batch_size   = 120
 
         # Declare layers
         self.w1 = nn.Linear(self.H,self.D,bias= True)
@@ -82,7 +78,6 @@ class Atten2(nn.Module):
         pi =  self.sigmoid(pi)
         pi =   self.w2(  pi  ) # [1,batch,D]*[D,D] = [1,batch,D]
         pi    .transpose_(0,1) # [1,batch,D] -> [batch,1,D]
-        #pi = self.softmax1(pi) # [batch,1,D]
         
         attn = feature * pi       # [batch,L,D]x[batch,1,D]  = [batch,L,D]
         attn = torch.sum(attn,2,keepdim=True) # [batch,L,D] -> [batch,L,1]
@@ -146,8 +141,6 @@ class Atten4(nn.Module):
         self.R = self.L*self.D              # 5760 # self.L*self.D
         self.H = n_hidden                   #  512 # hidden_size
         self.M = n_hidden                   #  512 # hidden_size
-        self.sequence_len =  20
-        self.batch_size   = 120
 
         # Declare layers
         self.w1 = nn.Linear(self.H,self.D,bias= True)

@@ -20,7 +20,6 @@ class Experimental(nn.Module):
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = shape
-        cube_dim = ()
         n_hidden = 512
         
         # Encoder
