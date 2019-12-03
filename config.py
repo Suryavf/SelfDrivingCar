@@ -20,7 +20,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Experimental" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
     def model_(self,model):
@@ -178,8 +178,8 @@ class General_settings(object):
 
 class Sampling_settings(object):
     def __init__(self):
-        self.alpha = 0.7
-        self. beta = 1.0
+        self.alpha = 1.0
+        self. beta = 0.6
         
     def load(self,data):
         self.alpha = data["alpha"]
@@ -246,8 +246,8 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 40
-        self.learning_rate_decay_factor = 0.1
+        self.learning_rate_decay_steps  = 10
+        self.learning_rate_decay_factor = 0.5
 
     def load(self,data):
         self.available = data["available"]

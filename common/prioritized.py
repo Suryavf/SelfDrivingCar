@@ -1,32 +1,76 @@
 import numpy as np
 
 class PrioritizedSamples(object):
-    def __init__(self,n,alpha=1.0,beta=0.9):
-        self.n_samples = n
-        self.n_leaf    = int(2**np.ceil(np.log2(n)))
-        self.n_nodes   = 2*self.n_leaf - 1
-
+    def __init__(self,n,alpha=1.0,beta=0.9,c=1.0,betaPhase=50,betaUniform=True,UCB=False):
+        # Parameters
+        self.n_samples = n   
         self.alpha = alpha
         self.beta  =  beta
 
-        # Priority Tree 
+        self.n_leaf    = int(2**np.ceil(np.log2(n)))
+        self.n_nodes   = 2*self.n_leaf - 1
+
+        # Samples Tree
         self.priorityPowAlpha = np.zeros( self.n_nodes )
-        
+
+        # Beta
+        self.betaUniform = betaUniform
+        if not betaUniform: 
+            self.beta_m  = (1.0-self.beta)/betaPhase
+            self.beta_b  = self.beta
+            self.n_iter  = 0
+
+        # Upper Confidence Bound (UCB)
+        self.UCB = UCB
+        if UCB: 
+            self.c = c
+            self.sampleFame    = np.zeros( self.n_nodes )  
+            self.sampleFame[0] = 1.0 
+
+
+    def step(self):
+        if not self.betaUniform: 
+            self.beta    = self.beta_b + self.beta_m*self.n_iter
+            self.n_iter += 1
+
+
     def _update(self,idx):
         son1 = self.priorityPowAlpha[2*idx + 1]
         son2 = self.priorityPowAlpha[2*idx + 2]
         self.priorityPowAlpha[idx] = son1 + son2
         # Root
-        if idx == 0:
-            return son1 + son2
-        else:
-            return self._update( int(np.ceil(idx/2)-1) )  
+        if idx == 0: return son1 + son2
+        else: return self._update( int(np.ceil(idx/2)-1) )  
+
+
+    def _like(self,idx):
+        son1 = self.sampleFame[2*idx + 1]
+        son2 = self.sampleFame[2*idx + 2]
+        self.sampleFame[idx] = son1 + son2
+        # Root
+        if idx == 0: return son1 + son2
+        else: return self._like( int(np.ceil(idx/2)-1) ) 
+
 
     def update(self,idx,p = None):
         idx = idx + (self.n_samples - 1)
-        self.priorityPowAlpha[idx] = p**self.alpha
+
+        if self.UCB: value = p**self.alpha + self.c*np.sqrt( np.log(self.sampleFame[0]) / ( 1 + self.sampleFame[idx]) )
+        else       : value = p**self.alpha 
         
-        return self._update( int(np.ceil(idx/2)-1) )
+        self.priorityPowAlpha[idx] = value
+        
+        
+        if self.UCB:
+            self.sampleFame[idx] += 1
+        
+        # Update fame
+        n = int(np.ceil(idx/2)-1)
+        self._like( n )
+
+        # Update priority
+        return self._update( n )
+
 
     def _search(self,value,node):
         # Root
