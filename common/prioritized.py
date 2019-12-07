@@ -1,13 +1,16 @@
 import numpy as np
 
 class PrioritizedSamples(object):
-    def __init__(self,n,alpha=1.0,beta=0.9,c=1.0,betaPhase=50,betaUniform=True,UCB=False):
+    """ Constructor """
+    def __init__(self,n_samples,alpha=1.0,beta=0.9,
+                        betaUniform=True,betaPhase=50,
+                        UCB=False,c=1.0):
         # Parameters
-        self.n_samples = n   
-        self.alpha = alpha
-        self.beta  =  beta
+        self.n_samples = n_samples
+        self.alpha     =     alpha
+        self.beta      =      beta
 
-        self.n_leaf    = int(2**np.ceil(np.log2(n)))
+        self.n_leaf    = int(2**np.ceil(np.log2(n_samples)))
         self.n_nodes   = 2*self.n_leaf - 1
 
         # Samples Tree
@@ -60,13 +63,13 @@ class PrioritizedSamples(object):
         
         self.priorityPowAlpha[idx] = value
         
-        
         if self.UCB:
             self.sampleFame[idx] += 1
         
         # Update fame
         n = int(np.ceil(idx/2)-1)
-        self._like( n )
+        if self.UCB:
+            self._like( n )
 
         # Update priority
         return self._update( n )
@@ -92,6 +95,7 @@ class PrioritizedSamples(object):
                 return self._search(value-base,son2)
         else:
             return node
+
 
     def sample(self):
         # Roulette

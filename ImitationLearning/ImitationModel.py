@@ -87,7 +87,13 @@ class ImitationModel(object):
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
             self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-        self.samplePriority = PrioritizedSamples( len(self.trainingFiles)*self.samplesByTrainingFile, alpha=1.0,beta=1.0 )
+        self.samplePriority = PrioritizedSamples( n_samples=len(self.trainingFiles)*self.samplesByTrainingFile, 
+                                                  alpha = self.setting.sampling.alpha,
+                                                  beta  = self.setting.sampling. beta,
+                                                  betaUniform = self.setting.sampling.beta_uniform,
+                                                  betaPhase   = self.setting.sampling.beta_phase,
+                                                  UCB = self.setting.sampling.UCB,
+                                                  c   = self.setting.sampling.c)
 
         # Datasets
         self.trainDataset = CoRL2017Dataset(setting,self.  trainingFiles,train= True)

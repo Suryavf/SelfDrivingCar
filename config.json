@@ -1,0 +1,47 @@
+{
+    "model": "Kim2017",
+    "preprocessing": {
+        "reshape": false,
+        "data_aug": true,
+        "input_size": [88,200,3],
+        "Laskey_noise": false
+    },
+    "evaluation": {
+        "metric": "MAE"
+    },
+    "sampling": {
+        "alpha": 0.7,
+        "beta" : 0.0
+    },
+    "general": {
+        "n_epoch" : 400,
+        "batch_size"  : 120,
+        "sequence_len": 20,
+        "validPath": "./data/h5file/SeqVal/",
+        "trainPath": "./data/h5file/SeqTrain/",
+        "savedPath": "/media/victor/Datos/Saved/"
+    },
+    "train": {
+        "dropout": 0.5,
+        "scheduler": {
+            "learning_rate_decay_factor":    0.5,
+            "learning_rate_decay_steps" :     10,
+            "learning_rate_initial"     : 0.0001,
+            "available": true
+        },
+        "optimizer": {
+            "type"  : "Adam",
+            "beta_1":   0.70,
+            "beta_2":   0.85,
+            "learning_rate": 0.0001
+        },
+        "loss": {
+            "type": "Weight",
+            "lambda_gas"   : 0.45,
+            "lambda_steer" : 0.45,
+            "lambda_brake" : 0.10,
+            "lambda_speed" : 0.05,
+            "lambda_action": 0.95
+        }
+    }
+}
