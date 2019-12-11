@@ -33,7 +33,9 @@ class PrioritizedSamples(object):
 
     def step(self):
         if not self.betaUniform: 
-            self.beta    = self.beta_b + self.beta_m*self.n_iter
+            self.beta = self.beta_b + self.beta_m*self.n_iter
+            self.beta = min(self.beta,1.0)
+            # print("Step %i: %2.4f" %(self.n_iter, self.beta)) 
             self.n_iter += 1
 
 

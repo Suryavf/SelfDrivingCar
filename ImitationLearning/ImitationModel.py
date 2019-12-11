@@ -287,6 +287,11 @@ class ImitationModel(object):
         dev_Gas   = measure['actions'][:,1]
         dev_Brake = measure['actions'][:,2]
 
+        # Prediction
+        # dev_SteerPred = prediction['actions'][:,0] * max_steering
+        dev_GasPred   = prediction['actions'][:,1]
+        dev_BrakePred = prediction['actions'][:,2]
+
         # Error
         dev_err = torch.abs(measure['actions'] - prediction['actions'])
         dev_SteerErr = dev_err[:,0] * max_steering
@@ -302,7 +307,11 @@ class ImitationModel(object):
         metrics['Steer'] = dev_Steer.data.cpu().numpy()
         metrics[  'Gas'] = dev_Gas  .data.cpu().numpy()
         metrics['Brake'] = dev_Brake.data.cpu().numpy()
-        
+
+        # metrics['SteerPred'] = dev_SteerPred.data.cpu().numpy()
+        metrics[  'GasPred'] = dev_GasPred  .data.cpu().numpy()
+        metrics['BrakePred'] = dev_BrakePred.data.cpu().numpy()
+
         # Mean
         steerMean = np.mean(metrics['SteerError'])
         gasMean   = np.mean(metrics[  'GasError'])
@@ -551,15 +560,13 @@ class ImitationModel(object):
         GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
         BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
+        
+        
         F.saveColorMershError(  metrics['Steer'],
                                 metrics['SteerError'],
                                 metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
-        F.saveColorMershError(  metrics['Gas'],
-                                metrics['GasError'],
-                                metrics['Command'],  GasErrorPath,dom=( 0.00, 1.20))
-        F.saveColorMershError(  metrics['Brake'],
-                                metrics['BrakeError'],
-                                metrics['Command'],BrakeErrorPath,dom=( 0.00, 1.20))
+        F.saveGridSpec( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1])
+        F.saveGridSpec( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1])
         return running_loss,avgMetrics
     
 
@@ -587,6 +594,7 @@ class ImitationModel(object):
             # Train
             lossTrain = self._Train(epoch)
             self.scheduler.step()
+            self.samplePriority.step()
             
             # Validation
             lossValid,metr = self._Validation(epoch)
@@ -602,11 +610,12 @@ class ImitationModel(object):
             df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
-            self._state_add (     'epoch',                    epoch  )
-            self._state_add ('state_dict',self.    model.state_dict())
-            self._state_add ( 'scheduler',self.scheduler.state_dict())
-            self._state_add ( 'optimizer',self.optimizer.state_dict())
-            self._state_save(epoch)
+            if epoch%2 == 0:
+                self._state_add (     'epoch',                    epoch  )
+                self._state_add ('state_dict',self.    model.state_dict())
+                self._state_add ( 'scheduler',self.scheduler.state_dict())
+                self._state_add ( 'optimizer',self.optimizer.state_dict())
+                self._state_save(epoch)
     
 
     """ Plot generate"""

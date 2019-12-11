@@ -198,6 +198,10 @@ def checkdirectory(d):
         os.makedirs(d)
     
 
+""" Averager class
+    --------------
+    Average of array or scalar
+"""
 class averager():
     def __init__(self,n=0):
         if n >0:
@@ -218,7 +222,12 @@ class averager():
         self.mean  = (self.mean*n + val)/self.count
     def val(self):
         return self.mean
-        
+
+
+""" Counter class
+    --------------
+    Simple counter
+"""      
 class counter():
     def __init__(self):
         self.val = 0
@@ -227,6 +236,11 @@ class counter():
     def update(self):
         self.val+= 1
        
+
+""" Big Dictionary
+    --------------
+    Stack data to dictionary
+"""  
 class BigDict():
     def __init__(self):
         self.dictList = list()
@@ -234,19 +248,33 @@ class BigDict():
         self.dictList.append(dict_)
     def resume(self):
         batch = {}
-        #print(self.dictList[0])
         for key in self.dictList[0]:
             batch[key] = np.concatenate([data[key] for data in self.dictList])
         return batch
 
+
+""" Last model in directory
+    -----------------------
+    Last checkpoint 
+"""  
 def lastModel(modelPath):
     path = glob.glob(modelPath+"/model*.pth")
     return sorted(path, key=lambda x: int(x.partition('/Model/model')[2].partition('.')[0]))[-1]
     
+
+""" Model List in directory
+    -----------------------
+    Checkpoint list
+"""  
 def modelList(modelPath):
     path = glob.glob(modelPath+"/model*.pth")
     return sorted(path, key=lambda x: int(x.partition('/Model/model')[2].partition('.')[0]))
 
+
+""" Load values (csv) to save
+    -------------------------
+    Load csv data
+"""  
 def loadValuesToSave(path):
     # Read
     df = pd.read_csv(path)
@@ -254,3 +282,99 @@ def loadValuesToSave(path):
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     return[x for x in df[:].values]
     
+
+def getDictValue(dictionary,key):
+    if key in dictionary:
+        return dictionary[key]
+    else:
+        return None
+
+"""
+def isnotObject(val):
+    _int   = isinstance(val,  int)
+    _str   = isinstance(val,  str)
+    _list  = isinstance(val, list)
+    _dict  = isinstance(val, dict)
+    _bool  = isinstance(val, bool)
+    _float = isinstance(val,float)
+    return _int or _str or _list or _dict or _bool or _float
+
+import inspect
+
+class Setting(object):
+    def __init__(self):
+        self.preprocessing = Preprocessing_settings()
+        self.evaluation    =    Evaluation_settings()
+        self.sampling      =      Sampling_settings()
+        self.general       =       General_settings()
+        self.train         =         Train_settings()
+        
+        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.boolean = BooleanConditions(self.model)
+
+    def model_(self,model):
+        self.model = model
+        self.boolean = BooleanConditions(self.model)
+
+    def load(self,path):
+        attributes = inspect.getmembers(self, lambda a:not(inspect.isroutine(a))) 
+        attributes = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
+
+        
+
+
+        with open(path) as json_file:
+            data = json.load(json_file)
+
+            for attr in attributes:
+                if attr[0] in data:
+                    
+
+                    # Not objects
+                    if isnotObject( getattr(self,attr[0]) ):
+                        setattr(self,attr[0],attr[1]) 
+                        
+                    # Object
+                    else:
+                        self.preprocessing.load(data["preprocessing"])
+                        self.evaluation   .load(data[   "evaluation"])
+                        self.sampling     .load(data[     "sampling"])
+                        self.general      .load(data[      "general"])
+                        self.train        .load(data[        "train"])
+                    
+
+
+            self.model = data["model"]
+            
+
+    def print(self):
+        print("="*80,"\n\n","\t"+self.model+" Model\n","\t"+"-"*64,"\n")
+        print("\tGeneral")
+        self.general.print()
+        print("\tPriorized sampling")
+        self.sampling.print()
+        print("\tPreprocessing")
+        self.preprocessing.print()
+        print("\tTrain")
+        self.train.print()
+        print("\tEvaluation")
+        self.evaluation.print()
+        print("="*80)
+
+    def save(self,path):
+        setting = {
+            "model": self.model,
+
+            "preprocessing": self.preprocessing.save(),
+            "evaluation"   : self.   evaluation.save(),
+            "sampling"     : self.     sampling.save(),
+            "general"      : self.      general.save(),
+            "train"        : self.        train.save()
+        }
+
+        with open(path, "w") as write_file:
+            json.dump(setting, write_file, indent=4)
+
+
+"""
+

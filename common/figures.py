@@ -3,10 +3,13 @@ from   os      import listdir
 from   os.path import isfile, join
 import datetime
 
+from IPython.core.debugger import set_trace
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot    as plt
+import matplotlib.gridspec  as gridspec
 import matplotlib.animation as animation 
 from scipy.interpolate import interp2d
 from random import shuffle
@@ -284,4 +287,49 @@ def saveHistAnimation(data):
     fig = plt.figure() 
     ani = animation.FuncAnimation(fig, update_hist, data.shape[0], fargs=(data, ) ) 
     ani.save("samples.mp4")  
+    
+
+
+def saveGridSpec(orig,pred,label,path,range):
+    fig = plt.figure()
+    gs  = gridspec.GridSpec(4,4)
+    
+    # Plot regions
+    figScatter  = fig.add_subplot(gs[1:4,0:3])
+    figMargOrig = fig.add_subplot(gs[ 0 ,0:3])
+    figMargPred = fig.add_subplot(gs[1:4, 3 ])
+
+    heatmap, xedges, yedges = np.histogram2d(orig,pred, bins=100)
+    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    heatmap = np.log(heatmap.T + 1)
+
+    figScatter .imshow(heatmap, extent=extent, origin='lower')#scatter(orig,pred,alpha=0.1)
+    figMargOrig.hist(orig, bins=100, normed=True)
+    figMargPred.hist(pred, bins=100, normed=True, orientation="horizontal")
+ 
+    # Range
+    range[0] -= 0.2
+    range[1] += 0.2
+    figScatter .set_xlim(range[0],range[1])
+    figScatter .set_ylim(range[0],range[1])
+    figMargOrig.set_xlim(range[0],range[1])
+    figMargPred.set_xlim(range[0],range[1])
+
+    # Turn off tick labels on marginals
+    plt.setp(figMargOrig.get_xticklabels(), visible=False)
+    plt.setp(figMargOrig.get_yticklabels(), visible=False)
+    plt.setp(figMargPred.get_xticklabels(), visible=False)
+    plt.setp(figMargPred.get_yticklabels(), visible=False)
+
+
+    # Set labels on joint
+    figScatter.set_xlabel('Original '  + label)
+    figScatter.set_ylabel('Predicted ' + label)
+
+    # Set labels on marginals
+    #figMargOrig.set_xlabel('Original '  + label)
+    #figMargPred.set_ylabel('Predicted ' + label)
+
+    fig.savefig(path)
+    plt.close('all')
     

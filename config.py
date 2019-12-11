@@ -179,10 +179,10 @@ class General_settings(object):
 class Sampling_settings(object):
     def __init__(self):
         self.alpha = 0.7
-        self. beta = 0.0
+        self. beta = 0.6
 
         # Beta function
-        self.beta_uniform = True
+        self.beta_uniform = False
         self.beta_phase   = 50 # epochs
 
         # Upper Confidence Bound (UCB)
@@ -193,24 +193,27 @@ class Sampling_settings(object):
     def load(self,data):
         self.alpha = data["alpha"]
         self.beta  = data[ "beta"]
-        self.beta_uniform = data["alpha"]
-        self.beta_phase   = data[ "beta"]
+        self.beta_uniform = data["BetaUniform"]
+        self.beta_phase   = data[ "BetaPhase" ]
         self.UCB = data["UCB"]
         self.c   = data[ "c" ]
 
     def print(self):
         print("\t"*2,"Alpha:\t",self.alpha)
-        print("\t"*2,"Beta: \t",self. beta)
-        if not self.beta_uniform:
-            print("\t"*3,"Phase: \t",self.beta_phase)
+        if self.beta_uniform: print("\t"*2,"Beta:\t",self.beta)
+        else                : print("\t"*2,"Beta:\t",self.beta,' (Phase:',self.beta_phase,')')
         if self.UCB:
-            print("\t"*2,"Use UCB. C:\t",self.  c  )
+            print("\t"*2,"Use UCB. C factor:\t",self.c)
         print("")
 
     def save(self):
         return {
             "alpha" : self.alpha,
-            "beta"  : self. beta
+            "beta"  : self. beta,
+            "BetaUniform": self.beta_uniform,
+            "BetaPhase"  : self.beta_phase,
+            "UCB": self.UCB,
+            "c"  : self.c
         }
 
 
