@@ -38,10 +38,4 @@ class SumHiddenFeature(nn.Module):
         ut = F.dropout(ut, p=0.5, training=self.training)
         ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
         return ut
-        
-"""
-
-            ut = self.Wh(hidden[0].unsqueeze(0)) + self.Wy(visual) # [1,batch,M]
-            ut = F.dropout(ut, p=0.5, training=self.training)
-            ut = self.Wu(ut)            # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
-"""
+                

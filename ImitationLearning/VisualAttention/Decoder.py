@@ -151,10 +151,13 @@ class DualDecoder(nn.Module):
         self.sequence_len =  20
         self.batch_size   = 120
         self.n_out        =   3
-        
+        self.study = False
+
         # Output container
         self.pred = torch.zeros([self.batch_size,self.n_out])
         self. map = torch.zeros([self.batch_size,self.  L  ])
+        self.actnCtrl = torch.zeros([self.batch_size,self.H])
+        self.attnCtrl = torch.zeros([self.batch_size,self.H])
 
         # Declare layers
         self.attn = AttentionNet
@@ -257,9 +260,14 @@ class DualDecoder(nn.Module):
             self.pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0), training=self.training)
             self. map[k] = alpha.squeeze()
 
+            if self.study:
+                self.actnCtrl[k] = hidden[0].squeeze()
+                self.attnCtrl[k] = hidden[1].squeeze()
+
         if self.training: 
             self.pred = self.pred.transpose(0,1).contiguous().view(batch_size*sequence_len, n_out)
             self. map = self. map.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
         
-        return self.pred, self.map
+        # Return
+        return self.pred, self.map, {'action': self.actnCtrl, 'attention': self.attnCtrl}
         

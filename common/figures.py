@@ -7,6 +7,7 @@ from IPython.core.debugger import set_trace
 
 import numpy as np
 import matplotlib
+import cv2 as cv
 matplotlib.use('Agg')
 import matplotlib.pyplot    as plt
 import matplotlib.gridspec  as gridspec
@@ -290,30 +291,43 @@ def saveHistAnimation(data):
     
 
 
-def saveGridSpec(orig,pred,label,path,range):
-    fig = plt.figure()
-    gs  = gridspec.GridSpec(4,4)
+def saveHeatmap(orig,pred,label,path,range):
+    # Parameters
+    n    = 8
+    bins = 30
+    
+    # Figure
+    fig = plt.figure(figsize=(5,5))
+    gs  = gridspec.GridSpec(n,n)
     
     # Plot regions
-    figScatter  = fig.add_subplot(gs[1:4,0:3])
-    figMargOrig = fig.add_subplot(gs[ 0 ,0:3])
-    figMargPred = fig.add_subplot(gs[1:4, 3 ])
-
-    heatmap, xedges, yedges = np.histogram2d(orig,pred, bins=100)
-    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
-    heatmap = np.log(heatmap.T + 1)
-
-    figScatter .imshow(heatmap, extent=extent, origin='lower')#scatter(orig,pred,alpha=0.1)
-    figMargOrig.hist(orig, bins=100, normed=True)
-    figMargPred.hist(pred, bins=100, normed=True, orientation="horizontal")
- 
+    figScatter  = fig.add_subplot(gs[1:n,:n-1])
+    figMargOrig = fig.add_subplot(gs[ 0 ,:n-1],sharex=figScatter)
+    figMargPred = fig.add_subplot(gs[1:n, n-1],sharey=figScatter)
     # Range
-    range[0] -= 0.2
-    range[1] += 0.2
+    range[0] -= 0.15
+    range[1] += 0.15
+
+    # Heatmap
+    heatmap, xedges, yedges = np.histogram2d(orig, pred, bins=bins, range=[range,range])
+    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    heatmap = np.log( 120 + heatmap.T )
+    heatmap = cv.pyrUp(heatmap)
+    heatmap = cv.pyrUp(heatmap)
+    heatmap = cv.pyrUp(heatmap)
+    heatmap = cv.pyrUp(heatmap)
+    heatmap = cv.pyrUp(heatmap)
+    
+    figScatter.imshow(heatmap, extent=extent, origin='lower', cmap='GnBu') # BuPu GnBu PuBu binary bone gist_earth gray_r inferno_r nipy_spectral_r rainbow
+    n_orig, _, _ = figMargOrig.hist(orig, bins=bins, density=True)
+    n_pred, _, _ = figMargPred.hist(pred, bins=bins, density=True, orientation="horizontal")
+    
     figScatter .set_xlim(range[0],range[1])
     figScatter .set_ylim(range[0],range[1])
     figMargOrig.set_xlim(range[0],range[1])
-    figMargPred.set_xlim(range[0],range[1])
+    figMargOrig.set_ylim( 0,np.max(n_orig))
+    figMargPred.set_ylim(range[0],range[1])
+    figMargPred.set_xlim( 0,np.max(n_pred))
 
     # Turn off tick labels on marginals
     plt.setp(figMargOrig.get_xticklabels(), visible=False)
@@ -321,15 +335,14 @@ def saveGridSpec(orig,pred,label,path,range):
     plt.setp(figMargPred.get_xticklabels(), visible=False)
     plt.setp(figMargPred.get_yticklabels(), visible=False)
 
-
     # Set labels on joint
     figScatter.set_xlabel('Original '  + label)
     figScatter.set_ylabel('Predicted ' + label)
 
     # Set labels on marginals
-    #figMargOrig.set_xlabel('Original '  + label)
-    #figMargPred.set_ylabel('Predicted ' + label)
+    #figMargOrig.set_ylabel('Original '  + label)
+    #figMargPred.set_xlabel('Predicted ' + label)
 
     fig.savefig(path)
     plt.close('all')
-    
+

@@ -115,6 +115,7 @@ class ImitationModel(object):
         U.checkdirectory(savedPath)
         U.checkdirectory(modelPath)
         U.checkdirectory( execPath)
+        print("Execute %s model: %s\n"%(self.setting.model,self.codename))
 
         # Figures Path
         self._figurePath           = os.path.join(execPath,"Figure")
@@ -560,20 +561,17 @@ class ImitationModel(object):
         GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
         BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
-        
-        
-        F.saveColorMershError(  metrics['Steer'],
-                                metrics['SteerError'],
-                                metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
-        F.saveGridSpec( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1])
-        F.saveGridSpec( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1])
+        F.saveColorMershError( metrics['Steer'], metrics['SteerError'],
+                               metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
+        F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
+        F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
         return running_loss,avgMetrics
     
 
     """ Train/Evaluation """
     def execute(self):
         # Parameters
-        n_epoch     = self.setting.general.n_epoch
+        n_epoch = self.setting.general.n_epoch
         
         # Initialize
         if self.init.is_loadedModel:
@@ -602,7 +600,7 @@ class ImitationModel(object):
             # Save values metrics
             tb.add_scalar('Loss/Train', lossTrain, epoch)
             tb.add_scalar('Loss/Valid', lossValid, epoch)
-            tb.add_scalar('MAE/Steer' , metr[0]  , epoch)
+            tb.add_scalar('MAE/Steer' , metr[0] , epoch)
             tb.add_scalar('MAE/Gas'   , metr[1]  , epoch)
             tb.add_scalar('MAE/Brake' , metr[2]  , epoch)
             valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
@@ -616,7 +614,7 @@ class ImitationModel(object):
                 self._state_add ( 'scheduler',self.scheduler.state_dict())
                 self._state_add ( 'optimizer',self.optimizer.state_dict())
                 self._state_save(epoch)
-    
+
 
     """ Plot generate"""
     def plot(self,name):
@@ -648,4 +646,58 @@ class ImitationModel(object):
 
             # Save metrics (csv)
             df.to_csv(self._modelPath + "/metrics.csv", index=False)  
-            
+    
+
+    def _storeSignals(self,prediction):
+        signals = prediction['hidden']
+        
+        # To CPU
+        attention = prediction['attention'].data.cpu().numpy()
+        for key in signals:
+            signals[key] = signals[key].data.cpu().numpy()
+
+        # Add attention
+        signals['attention'] = attention
+        return signals
+
+
+    """ Plot generate"""
+    def study(self,name,epoch):
+        # Check paths
+        self._checkFoldersToSave(name)
+        paths = U.modelList(self._modelPath)
+
+        # Load
+        checkpoint = torch.load(paths[epoch-1])
+        self.model.load_state_dict(checkpoint['state_dict'])
+
+        # Parameters
+        n_samples = len(self.validationFiles)*self.samplesByValidationFile
+
+        # ID list
+        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
+        loader = DataLoader(Dataset(self.validDataset,IDs),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers)
+    
+        signals = U.BigDict ( )
+
+        # Model to evaluation
+        self.model.eval()
+        with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
+            for i, sample in enumerate(loader):
+                # Batch
+                batch,_ = sample
+                dev_batch = self._transfer2device(batch)
+
+                # Model
+                dev_pred = self.model(dev_batch)
+                host_s   = self._storeSignals(dev_pred)
+                signals.update(host_s)
+
+                pbar. update()
+                pbar.refresh()
+            pbar.close()
+
+
+

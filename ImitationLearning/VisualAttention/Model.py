@@ -33,8 +33,9 @@ class Experimental(nn.Module):
     
     """ Forward """
     def forward(self,batch):
-        x       = self.encoder(batch['frame'])
-        y,alpha = self.decoder(x)
-        return {'actions'  :     y,
-                'attention': alpha}
+        x              = self.encoder(batch['frame'])
+        y,alpha,hidden = self.decoder(x)
+        return {  'actions' :      y,
+                'attention' :  alpha,
+                   'hidden' : hidden}
         
