@@ -182,12 +182,12 @@ class Sampling_settings(object):
         self. beta = 0.6
 
         # Beta function
-        self.beta_uniform = False
+        self.beta_uniform = True
         self.beta_phase   = 50 # epochs
 
         # Upper Confidence Bound (UCB)
-        self.UCB = False
-        self.c   = 1.0 
+        self.UCB = True
+        self.c   = 1.4
 
         
     def load(self,data):

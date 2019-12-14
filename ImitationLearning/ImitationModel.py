@@ -1,9 +1,11 @@
 import os
 import glob
-from   tqdm import tqdm
 
+from   tqdm import tqdm
+import pickle
 import pandas as pd
 import numpy  as np
+from   tsnecuda import TSNE
 
 import torch
 import torch.optim as optim
@@ -679,13 +681,13 @@ class ImitationModel(object):
         loader = DataLoader(Dataset(self.validDataset,IDs),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
-    
         signals = U.BigDict ( )
 
         # Model to evaluation
         self.model.eval()
+        print('Evaluating model')
         with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
-            for i, sample in enumerate(loader):
+            for sample in loader:
                 # Batch
                 batch,_ = sample
                 dev_batch = self._transfer2device(batch)
@@ -698,6 +700,23 @@ class ImitationModel(object):
                 pbar. update()
                 pbar.refresh()
             pbar.close()
+            
+        # Resume
+        signals = signals.resume()
+        
+        # Save resume
+        print('Save evaluation resume\n')
+        with open(os.path.join(self._modelPath,'resume.pk'), 'wb') as handle:
+            pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+        # t-SNE
+        print("Execute t-SNE")
+        for key in signals:
+            print('Embedding '+ key)
+            embedded = TSNE().fit_transform(signals[key]) # [n,2]
+            path = os.path.join(self._modelPath,key+'.tsne')
+            print('Save '+path+'\n')
 
-
-
+            with open(path, 'wb') as handle:
+                pickle.dump(embedded, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                

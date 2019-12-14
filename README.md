@@ -4,11 +4,14 @@ Self-driving car
 End-To-End models for autonomous driving. Imitation learning model trained with <a href="https://github.com/carla-simulator/imitation-learning">CoRL2017</a>. The reinforcement learning agents were trained in the <a href="https://github.com/carla-simulator/carla">CARLA</a> environment:
 
 ## Necessary Packages
-
-* Pytorch 1.2.0
-* Numpy   1.16.4
-* ImgAug  0.2.9 
-
+* Pytorch  1.2.0
+* Numpy    1.16.4
+* ImgAug   0.2.9 
+* tsnecuda 2.1.0
+```
+$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+$ conda install tsnecuda cuda101 -c cannylab
+```
 CARLA environment configuration in [link](environment/README.md)
 
 ## Execution
