@@ -178,11 +178,11 @@ class General_settings(object):
 
 class Sampling_settings(object):
     def __init__(self):
-        self.alpha = 0.7
+        self.alpha = 1.0
         self. beta = 0.6
 
         # Beta function
-        self.beta_uniform = True
+        self.beta_uniform = False
         self.beta_phase   = 50 # epochs
 
         # Upper Confidence Bound (UCB)
