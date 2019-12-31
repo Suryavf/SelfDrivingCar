@@ -187,7 +187,8 @@ class Sampling_settings(object):
 
         # Upper Confidence Bound (UCB)
         self.UCB = True
-        self.c   = 1.4
+        self.c   = 3.0
+        
 
         
     def load(self,data):
