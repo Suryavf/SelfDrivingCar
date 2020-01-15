@@ -179,7 +179,7 @@ class General_settings(object):
 class Sampling_settings(object):
     def __init__(self):
         self.alpha = 1.0
-        self. beta = 0.6
+        self. beta = 0.0
 
         # Beta function
         self.beta_uniform = False
@@ -187,8 +187,7 @@ class Sampling_settings(object):
 
         # Upper Confidence Bound (UCB)
         self.UCB = True
-        self.c   = 3.0
-        
+        self.c   = 5.0
 
         
     def load(self,data):
@@ -267,8 +266,8 @@ class _Scheduler_settings(object):
         self.available = True
 
         self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 10
-        self.learning_rate_decay_factor = 0.5
+        self.learning_rate_decay_steps  = 20
+        self.learning_rate_decay_factor = 0.25
 
     def load(self,data):
         self.available = data["available"]

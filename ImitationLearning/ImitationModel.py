@@ -23,6 +23,9 @@ import common.figures as F
 import common.  utils as U
 from   common.RAdam       import RAdam
 from   common.Ranger      import Ranger
+from   common.DiffGrad    import DiffGrad
+from   common.DiffRGrad   import DiffRGrad
+from   common.DeepMemory  import DeepMemory
 from   common.data        import CoRL2017Dataset
 from   common.data        import  GeneralDataset as Dataset
 from   common.prioritized import PrioritizedSamples
@@ -178,12 +181,18 @@ class ImitationModel(object):
         self.model = self.model.to(self.device)
 
         # Optimizator
-        if   self.setting.train.optimizer.type ==  "Adam":
+        if   self.setting.train.optimizer.type == "Adam":
             optFun = optim.Adam
         elif self.setting.train.optimizer.type == "RAdam":
             optFun = RAdam
         elif self.setting.train.optimizer.type == "Ranger":
             optFun = Ranger
+        elif self.setting.train.optimizer.type == "DiffGrad":
+            optFun = DiffGrad
+        elif self.setting.train.optimizer.type == "DiffRGrad":
+            optFun = DiffRGrad
+        elif self.setting.train.optimizer.type == "DeepMemory":
+            optFun = DeepMemory
         else:
             txt = self.setting.train.optimizer.type
             raise NameError('ERROR 404: Optimizer no found ('+txt+')')
@@ -445,9 +454,9 @@ class ImitationModel(object):
                                     num_workers = self.init.num_workers)
         
         # Save samples ID
-        self.samplesID['Epoch'+str(epoch)] = IDs
-        df = pd.DataFrame(self.samplesID)
-        df.to_csv( os.path.join(self._modelPath,"samples.csv") )
+        # self.samplesID['Epoch'+str(epoch)] = IDs
+        # df = pd.DataFrame(self.samplesID)
+        # df.to_csv( os.path.join(self._modelPath,"samples.csv") )
 
         # Train loop
         self.model.train()
