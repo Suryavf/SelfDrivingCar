@@ -84,20 +84,27 @@ class ResNet50(nn.Module):
     def __init__(self):
         super(ResNet50, self).__init__()
 
-        self.model = models.resnet50(pretrained=True)
-        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.model     = models.resnet50(pretrained=True)
+        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.linear    = nn.Linear(512,64,bias= True)
+        self.LeakyReLu = nn.LeakyReLU()
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.linear.weight)
 
     def cube(self,in_size):
         x = int( in_size[0]/8 )
         y = int( in_size[1]/8 )
-        return( x,y,512 )
+        return( x,y,64 )
 
     """ Forward """
     def forward(self,x):
         with torch.no_grad():
-            x = self.model(x)
+            x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-            return x.transpose(1, 2)                # [batch,L,D]
+            x = x.transpose(1, 2)                   # [batch,L,D]
+        x = self.linear(x)
+        return self.LeakyReLu(x)
 
 
 class WideResNet50(nn.Module):
@@ -105,18 +112,25 @@ class WideResNet50(nn.Module):
     def __init__(self):
         super(WideResNet50, self).__init__()
 
-        self.model = models.wide_resnet50_2(pretrained=True)
-        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.model     = models.wide_resnet50_2(pretrained=True)
+        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.linear    = nn.Linear(512,64,bias= True)
+        self.LeakyReLu = nn.LeakyReLU()
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.linear.weight)
 
     def cube(self,in_size):
         x = int( in_size[0]/8 )
         y = int( in_size[1]/8 )
-        return( x,y,512 )
+        return( x,y,64 )
 
     """ Forward """
     def forward(self,x):
         with torch.no_grad():
-            x = self.model(x)
+            x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-            return x.transpose(1, 2)                # [batch,L,D]
-            
+            x = x.transpose(1, 2)                   # [batch,L,D]
+        x = self.linear(x)
+        return self.LeakyReLu(x)
+        

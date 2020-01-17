@@ -11,6 +11,14 @@ End-To-End models for autonomous driving. Imitation learning model trained with 
 ```
 $ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 $ conda install tsnecuda cuda101 -c cannylab
+$ conda install -c anaconda numpy
+$ conda install -c anaconda pandas
+$ conda install -c anaconda opencv
+$ conda install -c anaconda scipy
+$ pip install matplotlib
+$ pip install imgaug
+$ pip install tqdm
+$ pip install ipython
 ```
 CARLA environment configuration in [link](environment/README.md)
 

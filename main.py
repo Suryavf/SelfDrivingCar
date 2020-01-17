@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size" ,type=int,help="Batch size for train")
     parser.add_argument("--model"      ,type=str,help="End-to-End model: Basic, Multimodal, Codevilla18, Codevilla19, Kim2017")
 
-    parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger")
+    parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger, DiffGrad, DiffRGrad, DeepMemory.")
     parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
 
     parser.add_argument("--name",type=str,help="Code model.")
