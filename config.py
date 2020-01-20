@@ -293,10 +293,10 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "DeepMemory" # Adam, RAdam, Ranger
+        self.type          = "DiffRGrad" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
-        self.beta_1        = 0.9    #0.9   #0.7 
-        self.beta_2        = 0.999  #0.999 #0.85
+        self.beta_1        = 0.70  #0.9   #0.7 
+        self.beta_2        = 0.85  #0.999 #0.85
 
     def load(self,data):
         self.type          = data[         "type"]

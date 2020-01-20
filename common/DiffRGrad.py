@@ -22,7 +22,6 @@ class DiffRGrad(Optimizer):
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
 
         self.degenerated_to_sgd = degenerated_to_sgd
-
         self.version = version
 
         if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):

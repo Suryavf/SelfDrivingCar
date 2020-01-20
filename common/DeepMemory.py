@@ -37,7 +37,7 @@ class DeepMemory(Optimizer):
         weight_decay (float, optional): weight decay (L2 penalty) (default: 0)
     """
 
-    def __init__(self, params, lr=4e-3, betas=(0.9, 0.999), len_memory=200, version=1,
+    def __init__(self, params, lr=4e-3, betas=(0.9, 0.999), len_memory=200, version=0,
                  eps=1e-6, weight_decay=0, debug_print=False):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
