@@ -9,8 +9,8 @@ _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017','Experimental']
-_CNN5BackboneList    = ['Kim2017','Experimental']
-_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19']
+_CNN5BackboneList    = ['Kim2017']#,'Experimental']
+_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19','Experimental']
 
 class Setting(object):
     def __init__(self):
@@ -20,7 +20,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Kim2017" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.model   = "Experimental" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
         self.boolean = BooleanConditions(self.model)
 
     def model_(self,model):

@@ -154,10 +154,10 @@ class DualDecoder(nn.Module):
         self.study = False
 
         # Output container
-        self.pred = torch.zeros([self.batch_size,self.n_out])
-        self. map = torch.zeros([self.batch_size,self.  L  ])
-        self.actnCtrl = torch.zeros([self.batch_size,self.H])
-        self.attnCtrl = torch.zeros([self.batch_size,self.H])
+        self.pred = torch.zeros([self.batch_size,self.n_out]).to( torch.device('cuda:0') )
+        self. map = torch.zeros([self.batch_size,self.  L  ]).to( torch.device('cuda:0') )
+        self.actnCtrl = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
+        self.attnCtrl = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
 
         # Declare layers
         self.attn = AttentionNet
@@ -249,7 +249,7 @@ class DualDecoder(nn.Module):
             
             visual = visual.reshape(n_visual,self.R)    # [batch,R]
             visual = visual.unsqueeze(0)                # [1,batch,R]
-
+            
             # LSTM
             #  * yt     ~ [sequence,batch,H]
             #  * hidden ~ [ layers ,batch,H]
@@ -257,9 +257,8 @@ class DualDecoder(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            self.pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0), training=self.training)
+            self.pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0))
             self. map[k] = alpha.squeeze()
-
             if self.study:
                 self.actnCtrl[k] = hidden[0].squeeze()
                 self.attnCtrl[k] = hidden[1].squeeze()

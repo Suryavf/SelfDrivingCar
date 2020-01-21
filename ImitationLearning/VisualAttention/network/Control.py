@@ -24,9 +24,9 @@ class SumHiddenFeature(nn.Module):
         self.n_out = 3
 
         # Declare layers
-        self.Wh = nn.Linear(self.H,self.M    ,bias=False)
+        self.Wh = nn.Linear(self.H,self.M    ,bias=True )
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
-        self.Wu = nn.Linear(self.M,self.n_out,bias=False)
+        self.Wu = nn.Linear(self.M,self.n_out,bias=True )
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.Wh.weight)

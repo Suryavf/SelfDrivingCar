@@ -2,8 +2,8 @@ import torch.nn as nn
 import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
-import ImitationLearning.VisualAttention.network.Attention as attn
-import ImitationLearning.VisualAttention.network.Control   as ctrl
+import ImitationLearning.VisualAttention.network.Attention as A
+import ImitationLearning.VisualAttention.network.Control   as C
 
 """ Visual Attention Network
     ------------------------
@@ -16,19 +16,19 @@ import ImitationLearning.VisualAttention.network.Control   as ctrl
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self,shape=(88,200)):
+    def __init__(self,shape=(96,192)):
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = shape
         n_hidden = 1024
         
         # Encoder
-        self.encoder = E.CNN5()
+        self.encoder = E.ResNet50()
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
-        self.attention = attn.Atten4(cube_dim,n_hidden)
-        self.control   = ctrl.SumHiddenFeature(cube_dim,n_hidden)
+        self.attention = A.Atten4          (cube_dim,n_hidden)
+        self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
         self.decoder   = D.DualDecoder(self.attention,self.control,cube_dim,n_hidden)
     
     """ Forward """
