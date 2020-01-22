@@ -9,8 +9,8 @@ _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017','Experimental']
-_CNN5BackboneList    = ['Kim2017']#,'Experimental']
-_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19','Experimental']
+_CNN5BackboneList    = ['Kim2017','Experimental']
+_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19']#,'Experimental']
 
 class Setting(object):
     def __init__(self):
@@ -293,7 +293,7 @@ class _Scheduler_settings(object):
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "DiffRGrad" # Adam, RAdam, Ranger
+        self.type          = "Adam" # Adam, RAdam, Ranger
         self.learning_rate = 0.0001
         self.beta_1        = 0.70  #0.9   #0.7 
         self.beta_2        = 0.85  #0.999 #0.85

@@ -153,12 +153,6 @@ class DualDecoder(nn.Module):
         self.n_out        =   3
         self.study = False
 
-        # Output container
-        self.pred = torch.zeros([self.batch_size,self.n_out]).to( torch.device('cuda:0') )
-        self. map = torch.zeros([self.batch_size,self.  L  ]).to( torch.device('cuda:0') )
-        self.actnCtrl = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
-        self.attnCtrl = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
-
         # Declare layers
         self.attn = AttentionNet
         self.ctrl =   ControlNet
@@ -177,7 +171,7 @@ class DualDecoder(nn.Module):
         torch.nn.init.xavier_uniform_(self.init_Wc2.weight)
         self.lstm.reset_parameters()
         
-        
+
     """ Initialize LSTM: hidden state and cell state
         Ref: Xu, Kelvin, et al. "Show, attend and tell: Neural 
             image caption generation with visual attention." 
@@ -232,8 +226,18 @@ class DualDecoder(nn.Module):
 
         # Prediction container
         if self.training:
-            self.pred = self.pred.view(sequence_len,batch_size, n_out)
-            self. map = self. map.view(sequence_len,batch_size,self.L)
+            pred = torch.zeros([sequence_len,batch_size, n_out]).to( torch.device('cuda:0') )
+            map_ = torch.zeros([sequence_len,batch_size,self.L]).to( torch.device('cuda:0') )
+        else:
+            pred = torch.zeros([batch_size, n_out]).to( torch.device('cuda:0') )
+            map_ = torch.zeros([batch_size,self.L]).to( torch.device('cuda:0') )
+
+        # Study rountime
+        if self.study:
+            action = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
+            atten  = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
+        else:
+            action,atten = (None,None)
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -257,16 +261,16 @@ class DualDecoder(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Control
-            self.pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0))
-            self. map[k] = alpha.squeeze()
+            pred[k] = self.ctrl(visual, hidden[0].unsqueeze(0))
+            map_[k] = alpha.squeeze()
             if self.study:
-                self.actnCtrl[k] = hidden[0].squeeze()
-                self.attnCtrl[k] = hidden[1].squeeze()
+                action[k] = hidden[0].squeeze()
+                atten [k] = hidden[1].squeeze()
 
         if self.training: 
-            self.pred = self.pred.transpose(0,1).contiguous().view(batch_size*sequence_len, n_out)
-            self. map = self. map.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
+            pred = pred.transpose(0,1).contiguous().view(batch_size*sequence_len, n_out)
+            map_ = map_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
         
         # Return
-        return self.pred, self.map, {'action': self.actnCtrl, 'attention': self.attnCtrl}
+        return pred, map_, {'action': action, 'attention': atten}
         

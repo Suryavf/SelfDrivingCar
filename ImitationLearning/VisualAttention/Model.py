@@ -16,14 +16,14 @@ import ImitationLearning.VisualAttention.network.Control   as C
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self,shape=(96,192)):
+    def __init__(self,shape=(92,196)):#(96,192)):
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = shape
         n_hidden = 1024
         
         # Encoder
-        self.encoder = E.ResNet50()
+        self.encoder = E.CNN5()
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
@@ -38,4 +38,4 @@ class Experimental(nn.Module):
         return {  'actions' :      y,
                 'attention' :  alpha,
                    'hidden' : hidden}
-                    
+

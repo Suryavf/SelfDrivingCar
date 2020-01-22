@@ -477,7 +477,7 @@ class ImitationModel(object):
                 self.optimizer.zero_grad()
                 self.model    .zero_grad()
 
-                dev_loss.backward()
+                dev_loss.backward()#retain_graph=True)
                 self.optimizer.step()
                 
                 # Print statistics

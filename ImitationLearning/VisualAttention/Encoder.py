@@ -79,15 +79,31 @@ class CNN5(nn.Module):
         return x.transpose(1, 2)                # [batch,L,D]
         
 
+class _ResNet50():
+    """ Constructor """
+    def __init__(self):
+        self.model     = models.resnet50(pretrained=True)
+        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.model = self.model.to( torch.device('cuda:0') )
+
+    def __call__(self, x): 
+        with torch.no_grad():
+            x = self.model(x)
+            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+            x = x.transpose(1, 2)                   # [batch,L,D]
+            return x
+
+
 class ResNet50(nn.Module):
     """ Constructor """
     def __init__(self):
         super(ResNet50, self).__init__()
 
-        self.model     = models.resnet50(pretrained=True)
-        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.backbone = _ResNet50()
+        #self.model     = models.resnet50(pretrained=True)
+        #self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
         self.linear    = nn.Linear(512,64,bias= True)
-        self.LeakyReLu = nn.LeakyReLU()
+        self.LeakyReLu = nn.ReLU()
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.linear.weight)
@@ -99,11 +115,12 @@ class ResNet50(nn.Module):
 
     """ Forward """
     def forward(self,x):
-        with torch.no_grad():
-            x = self.model(x)                       # [batch,D,h,w]
-            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-            x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear(x)
+        x = self.backbone(x)
+        #with torch.no_grad():
+        #    x = self.model(x)                       # [batch,D,h,w]
+        #    x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        #    x = x.transpose(1, 2)                   # [batch,L,D]
+        x = self.linear(x.detach())
         return self.LeakyReLu(x)
 
 
@@ -112,7 +129,35 @@ class WideResNet50(nn.Module):
     def __init__(self):
         super(WideResNet50, self).__init__()
 
-        self.model     = models.wide_resnet50_2(pretrained=True)
+        #self.model     = models.wide_resnet50_2(pretrained=True)
+        #self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.linear    = nn.Linear(512,64,bias= True)
+        self.LeakyReLu = nn.LeakyReLU()
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.linear.weight)
+
+    def cube(self,in_size):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        with torch.no_grad():
+            x = self.model(x)                       # [batch,D,h,w]
+            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+            x = x.transpose(1, 2)                   # [batch,L,D]
+        x = self.linear(x.detach())
+        return self.LeakyReLu(x)
+
+
+class VGG19(nn.Module):
+    """ Constructor """
+    def __init__(self):
+        super(VGG19, self).__init__()
+
+        self.model     = models.vgg19_bn(pretrained=True)
         self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
         self.linear    = nn.Linear(512,64,bias= True)
         self.LeakyReLu = nn.LeakyReLU()
@@ -133,4 +178,4 @@ class WideResNet50(nn.Module):
             x = x.transpose(1, 2)                   # [batch,L,D]
         x = self.linear(x)
         return self.LeakyReLu(x)
-        
+
