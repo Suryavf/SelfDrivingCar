@@ -103,7 +103,7 @@ class ResNet50(nn.Module):
         #self.model     = models.resnet50(pretrained=True)
         #self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
         self.linear    = nn.Linear(512,64,bias= True)
-        self.LeakyReLu = nn.ReLU()
+        self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.linear.weight)
@@ -178,4 +178,4 @@ class VGG19(nn.Module):
             x = x.transpose(1, 2)                   # [batch,L,D]
         x = self.linear(x)
         return self.LeakyReLu(x)
-
+        

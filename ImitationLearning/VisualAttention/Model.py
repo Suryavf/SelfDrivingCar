@@ -16,7 +16,7 @@ import ImitationLearning.VisualAttention.network.Control   as C
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self,shape=(92,196)):#(96,192)):
+    def __init__(self,shape=(92,196)):#(96,192)): 92,196
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = shape
@@ -27,9 +27,9 @@ class Experimental(nn.Module):
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
-        self.attention = A.Atten4          (cube_dim,n_hidden)
+        self.attention = A.Atten5          (cube_dim,n_hidden)
         self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
-        self.decoder   = D.DualDecoder(self.attention,self.control,cube_dim,n_hidden)
+        self.decoder   = D.TVADecoder(self.attention,self.control,cube_dim,n_hidden)
     
     """ Forward """
     def forward(self,batch):
