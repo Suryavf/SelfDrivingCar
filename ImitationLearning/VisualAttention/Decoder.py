@@ -392,7 +392,7 @@ class TVADecoder(nn.Module):
 
             # Filtering
             visual =    xt * alpha      # [batch,L,D]x[batch,L,1] = [batch,L,D]
-            
+
             # Pigeonholing
             visual = visual * beta      # [batch,L,D]x[batch,1,D] = [batch,L,D]
 
