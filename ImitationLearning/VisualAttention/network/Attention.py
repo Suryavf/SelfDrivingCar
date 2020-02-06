@@ -184,11 +184,68 @@ class Atten5(nn.Module):
 
         # Filtering 
         self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
+        self.wf1 = nn.Linear(512,   256,bias=True)
+        self.wf2 = nn.Linear(256,self.L,bias=False)
+        
+        # Pigeonholing 
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
+        self.wp1 = nn.Linear(512,   256,bias=True)
+        self.wp2 = nn.Linear(256,self.D,bias=False)
+
+        # Initialization
+        self.   filteringLSTM.reset_parameters()
+        self.pigeonholingLSTM.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.wf1.weight)
+        torch.nn.init.xavier_uniform_(self.wf2.weight)
+        torch.nn.init.xavier_uniform_(self.wp1.weight)
+        torch.nn.init.xavier_uniform_(self.wp2.weight)
+
+        self.ReLu    = nn.ReLU()
+        self.Softmax = nn.Softmax(1)
+
+    """ Forward """
+    def forward(self,feature,hidden):
+        # Filtering
+        _,(hf,_) = self.filteringLSTM(hidden)
+        xf = self.ReLu( self.wf1(hf) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        xf = self.ReLu( self.wf2(xf) )  # [1,batch,b]*[b,L] = [1,batch,L]
+        xf = xf.squeeze(0)              # [1,batch,L] -> [batch,L]    
+        
+        # Pigeonholing
+        _,(hp,_) = self.pigeonholingLSTM(hidden)
+        xp = self.ReLu( self.wp1(hp) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        xp = self.ReLu( self.wp2(xp) )  # [1,batch,c]*[c,D] = [1,batch,D]
+        xp = xp.squeeze(0)              # [1,batch,D] -> [batch,D]    
+
+        # Attention maps
+        alpha = self.Softmax( feature.mean(2)*xf )    # [batch,L]
+        beta  = self.Softmax( feature.mean(1)*xp )    # [batch,D]
+        return alpha.unsqueeze(2), beta.unsqueeze(1)
+        
+
+""" Attention Module 6
+    ------------------
+    Architecture:
+        
+"""
+class Atten6(nn.Module):
+    """ Constructor """
+    def __init__(self, cube_size, n_hidden):
+        super(Atten6, self).__init__()
+        # Parameters
+        self.D = cube_size[2]               #  depth
+        self.L = cube_size[0]*cube_size[1]  #  h x w
+        self.R = self.L*self.D              #  L x D
+        self.H = n_hidden                   #  hidden_size
+        self.M = n_hidden                   #  hidden_size
+
+        # Filtering 
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
         self.wfL = nn.Linear(1024,  256,bias=True)
         self.wfR = nn.Linear( 512,  256,bias=False)
 
         self.wf = nn.Linear(256,self.L,bias=True)
-        # self.bNormf = nn.BatchNorm1d(self.L)
+        self.avgFil = nn.AdaptiveAvgPool1d(1)
         
         # Pigeonholing 
         self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
@@ -196,8 +253,7 @@ class Atten5(nn.Module):
         self.wpR = nn.Linear( 512,  256,bias=False)
         
         self.wp = nn.Linear(256,self.D,bias=True)
-        # self.bNormp = nn.BatchNorm1d(self.D)
-        # nn.AdaptiveAvgPool1d
+        self.avgPig = nn.AdaptiveAvgPool1d(1)
 
         # Initialization
         self.   filteringLSTM.reset_parameters()
@@ -231,27 +287,10 @@ class Atten5(nn.Module):
         xp = xp.squeeze(0)              # [1,batch,D] -> [batch,D]    
 
         # Attention maps
-        alpha = self.Softmax( feature.mean(2)*xf )    # [batch,L]
-        beta  = self.Softmax( feature.mean(1)*xp )    # [batch,D]
+        featureFil = self.avgFil(feature               ).squeeze(2)
+        featurePig = self.avgPig(feature.transpose(1,2)).squeeze(2)
+        alpha = self.Softmax( featureFil*xf )    # [batch,L]
+        beta  = self.Softmax( featurePig*xp )    # [batch,D]
         
-        """
-        # Filtering
-        _,(hf,_) = self.filteringLSTM(hidden)
-        xf = self.ReLu( self.wf1(hf) )  # [1,batch,a]*[a,b] = [1,batch,b]
-        xf = self.ReLu( self.wf2(xf) )  # [1,batch,b]*[b,L] = [1,batch,L]
-        xf = xf.squeeze(0)              # [1,batch,L] -> [batch,L]    
-        
-        # Pigeonholing
-        _,(hp,_) = self.pigeonholingLSTM(hidden)
-        xp = self.ReLu( self.wp1(hp) )  # [1,batch,a]*[a,b] = [1,batch,b]
-        xp = self.ReLu( self.wp2(xp) )  # [1,batch,c]*[c,D] = [1,batch,D]
-        xp = xp.squeeze(0)              # [1,batch,D] -> [batch,D]    
-
-        # Attention maps
-        alpha = self.bNormf(feature.mean(2))
-        alpha = self.Softmax( alpha*xf )    # [batch,L]
-        beta  = self.bNormp(feature.mean(1))
-        beta  = self.Softmax( beta *xp )   # [batch,D]
-        """
         return alpha.unsqueeze(2), beta.unsqueeze(1)
         
