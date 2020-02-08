@@ -27,7 +27,7 @@ class Experimental(nn.Module):
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
-        self.attention = A.Atten5          (cube_dim,n_hidden)
+        self.attention = A.Atten6          (cube_dim,n_hidden)
         self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
         self.decoder   = D.TVADecoder(self.attention,self.control,cube_dim,n_hidden)
     

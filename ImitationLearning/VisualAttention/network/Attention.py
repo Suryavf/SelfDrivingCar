@@ -258,10 +258,12 @@ class Atten6(nn.Module):
         # Initialization
         self.   filteringLSTM.reset_parameters()
         self.pigeonholingLSTM.reset_parameters()
-        torch.nn.init.xavier_uniform_(self.wf1.weight)
-        torch.nn.init.xavier_uniform_(self.wf2.weight)
-        torch.nn.init.xavier_uniform_(self.wp1.weight)
-        torch.nn.init.xavier_uniform_(self.wp2.weight)
+        torch.nn.init.xavier_uniform_(self.wfL.weight)
+        torch.nn.init.xavier_uniform_(self.wfR.weight)
+        torch.nn.init.xavier_uniform_(self.wf .weight)
+        torch.nn.init.xavier_uniform_(self.wpL.weight)
+        torch.nn.init.xavier_uniform_(self.wpR.weight)
+        torch.nn.init.xavier_uniform_(self.wp .weight)
 
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(1)
@@ -271,26 +273,106 @@ class Atten6(nn.Module):
         # Filtering
         _,(hf,_) = self.filteringLSTM(hidden)
 
-        xfr = self.ReLu( self.wfR(hf) )  # [1,batch,a]*[a,b] = [1,batch,b]
-        xfl = self.ReLu( self.wfL(hidden) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        xfr = self.ReLu( self.wfR(hf) )     # [1,batch,a]*[a,b] = [1,batch,b]
+        xfl = self.ReLu( self.wfL(hidden) ) # [1,batch,a]*[a,b] = [1,batch,b]
         
-        xf = self.ReLu( self.wf(xfr + xfl) )  # [1,batch,b]*[b,L] = [1,batch,L]
-        xf = xf.squeeze(0)              # [1,batch,L] -> [batch,L]    
+        xf = self.ReLu( self.wf( xfl+xfr ) )    # [1,batch,b]*[b,L] = [1,batch,L]
+        xf = xf.squeeze(0)                      # [1,batch,L] -> [batch,L]    
         
         # Pigeonholing
         _,(hp,_) = self.pigeonholingLSTM(hidden)
 
-        xpr = self.ReLu( self.wpR(hp) )  # [1,batch,a]*[a,b] = [1,batch,b]
-        xpl = self.ReLu( self.wpL(hidden) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        xpr = self.ReLu( self.wpR(hp) )     # [1,batch,a]*[a,b] = [1,batch,b]
+        xpl = self.ReLu( self.wpL(hidden) ) # [1,batch,a]*[a,b] = [1,batch,b]
 
-        xp = self.ReLu( self.wp(xpr + xpl) )  # [1,batch,c]*[c,D] = [1,batch,D]
-        xp = xp.squeeze(0)              # [1,batch,D] -> [batch,D]    
+        xp = self.ReLu( self.wp( xpl+xpr ) )    # [1,batch,c]*[c,D] = [1,batch,D]
+        xp = xp.squeeze(0)                      # [1,batch,D] -> [batch,D]    
 
         # Attention maps
         featureFil = self.avgFil(feature               ).squeeze(2)
         featurePig = self.avgPig(feature.transpose(1,2)).squeeze(2)
         alpha = self.Softmax( featureFil*xf )    # [batch,L]
         beta  = self.Softmax( featurePig*xp )    # [batch,D]
+        
+        return alpha.unsqueeze(2), beta.unsqueeze(1)
+        
+
+""" Attention Module 7
+    ------------------
+    Architecture:
+        
+"""
+class Atten7(nn.Module):
+    """ Constructor """
+    def __init__(self, cube_size, n_hidden):
+        super(Atten7, self).__init__()
+        # Parameters
+        self.D = cube_size[2]               #  depth
+        self.L = cube_size[0]*cube_size[1]  #  h x w
+        self.R = self.L*self.D              #  L x D
+        self.H = n_hidden                   #  hidden_size
+        self.M = n_hidden                   #  hidden_size
+
+        # Filtering 
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
+        self.wfLh = nn.Linear(1024,  256,bias=True)
+        self.wfRh = nn.Linear( 512,  256,bias=False)
+
+        self.wfh = nn.Linear(  256 ,self.L,bias=True)
+        self.wfx = nn.Linear(self.L,   1  ,bias=True)
+        
+        # Pigeonholing 
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
+        self.wpLh = nn.Linear(1024,  256,bias=True)
+        self.wpRh = nn.Linear( 512,  256,bias=False)
+        
+        self.wph = nn.Linear(  256 ,self.D,bias=True)
+        self.wpx = nn.Linear(self.D,   1  ,bias=True)
+
+        # Initialization
+        self.   filteringLSTM.reset_parameters()
+        self.pigeonholingLSTM.reset_parameters()
+
+        torch.nn.init.xavier_uniform_(self.wfLh.weight)
+        torch.nn.init.xavier_uniform_(self.wfRh.weight)
+        torch.nn.init.xavier_uniform_(self. wfh.weight)
+        torch.nn.init.xavier_uniform_(self. wfx.weight)
+
+        torch.nn.init.xavier_uniform_(self.wpLh.weight)
+        torch.nn.init.xavier_uniform_(self.wpRh.weight)
+        torch.nn.init.xavier_uniform_(self. wph.weight)
+        torch.nn.init.xavier_uniform_(self. wpx.weight)
+
+        self.ReLu    = nn.ReLU()
+        self.Softmax = nn.Softmax(1)
+
+    """ Forward """
+    def forward(self,feature,hidden):
+        # Filtering
+        _,(hfilter,_) = self.filteringLSTM(hidden)
+
+        vfRh = self.ReLu( self.wfRh(hfilter) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        vfLh = self.ReLu( self.wfLh(hidden ) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        
+        vfh = self.ReLu( self.wfh( vfRh+vfLh ) )    # [1,batch,b]*[b,L] = [1,batch,L]
+        vfh = vfh.squeeze(0)                        # [1,batch,L] -> [batch,L]    
+        
+        # Pigeonholing
+        _,(hpigeon,_) = self.pigeonholingLSTM(hidden)
+
+        vpRh = self.ReLu( self.wpRh(hpigeon) )  # [1,batch,a]*[a,b] = [1,batch,b]
+        vpLh = self.ReLu( self.wpLh(hidden ) )  # [1,batch,a]*[a,b] = [1,batch,b]
+
+        vph = self.ReLu( self.wph( vpRh+vpLh ) )    # [1,batch,c]*[c,D] = [1,batch,D]
+        vph = vph.squeeze(0)                        # [1,batch,D] -> [batch,D]    
+
+        # Feature reduction
+        featureFil = self.ReLu( self.wfx(        feature       ) ).squeeze(2)
+        featurePig = self.ReLu( self.wpx(feature.transpose(1,2)) ).squeeze(2)
+
+        # Attention maps
+        alpha = self.Softmax( featureFil*vfh )    # [batch,L]
+        beta  = self.Softmax( featurePig*vph )    # [batch,D]
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
         
