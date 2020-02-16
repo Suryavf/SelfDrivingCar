@@ -99,10 +99,11 @@ class ResNet50(nn.Module):
     def __init__(self):
         super(ResNet50, self).__init__()
 
-        self.backbone = _ResNet50()
-        #self.model     = models.resnet50(pretrained=True)
-        #self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        self.linear    = nn.Linear(512,64,bias= True)
+        self.model     = models.resnet50(pretrained=True)
+        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.linear1   = nn.Linear(512,256,bias=True)
+        self.linear2   = nn.Linear(256,128,bias=True)
+        self.linear3   = nn.Linear(128, 64,bias=True)
         self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
@@ -116,11 +117,17 @@ class ResNet50(nn.Module):
     """ Forward """
     def forward(self,x):
         x = self.backbone(x)
-        #with torch.no_grad():
-        #    x = self.model(x)                       # [batch,D,h,w]
-        #    x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-        #    x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear(x.detach())
+        with torch.no_grad():
+            x = self.model(x)                       # [batch,D,h,w]
+            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+            x = x.transpose(1, 2)                   # [batch,L,D]
+        x = self.linear1(x.detach())
+        x = self.LeakyReLu(x)
+
+        x = self.linear2(x)
+        x = self.LeakyReLu(x)
+
+        x = self.linear3(x)
         return self.LeakyReLu(x)
 
 
@@ -129,9 +136,11 @@ class WideResNet50(nn.Module):
     def __init__(self):
         super(WideResNet50, self).__init__()
 
-        #self.model     = models.wide_resnet50_2(pretrained=True)
-        #self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        self.linear    = nn.Linear(512,64,bias= True)
+        self.model     = models.wide_resnet50_2(pretrained=True)
+        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
+        self.linear1   = nn.Linear(512,256,bias=True)
+        self.linear2   = nn.Linear(256,128,bias=True)
+        self.linear3   = nn.Linear(128, 64,bias=True)
         self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
@@ -148,7 +157,13 @@ class WideResNet50(nn.Module):
             x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
             x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear(x.detach())
+        x = self.linear1(x.detach())
+        x = self.LeakyReLu(x)
+
+        x = self.linear2(x)
+        x = self.LeakyReLu(x)
+        
+        x = self.linear3(x)
         return self.LeakyReLu(x)
 
 
