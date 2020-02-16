@@ -1,19 +1,47 @@
-import glob
-import os
-import sys
+from carla.client           import CarlaClient,make_carla_client
+from carla.settings         import CarlaSettings
+from carla.sensor           import Camera
+from carla.carla_server_pb2 import Control
+from carla.planner.planner  import  Planner
+from carla.tcp              import TCPConnectionError
+from carla.client           import VehicleControl
+import environment.config  as carla_config
+
+import signal
+import subprocess
 import random
-import math
-
-try:
-    sys.path.append('~/CARLA_0.9.6/PythonAPI/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg')
-except IndexError:
-    pass
-
+import time
+import os
 import numpy as np
-import  cv2  as cv
-import carla
+from PIL  import Image
+from enum import Enum
 
-import environment.sensors as S
+class action_space(object):
+    def __init__(self, dim, high, low, seed):
+        self.shape = (dim,)
+        self. high = np.array(high)
+        self.  low = np.array(low )
+        self. seed = seed
+        assert(dim == len(high) == len(low))
+        np.random.seed(self.seed)
+
+    def sample(self):
+        return np.random.uniform(self.low, self.high)
+
+class observation_space(object):
+    def __init__(self, dim, high=None, low=None, seed=None):
+        self.shape = (dim,)
+        self. high = high
+        self.  low = low
+        self. seed = seed
+
+class FinishState(Enum):
+    TIME_OUT = 0
+    COLLISION_VEHICLE = 1
+    COLLISION_PEDESTRIAN = 2 
+    COLLISION_OTHER = 3
+    OFFROAD = 4
+
 
 """
 Carla environment
@@ -25,129 +53,160 @@ Ref:
 """
 class CarlaSim(object):
     """ Constructor """
-    def __init__(self,host='localhost',port=2000):
-        # Parameters
-        self.n_vehicles = 10
-        self.host       = host
-        self.port       = port
+    def __init__(self, log_dir,image_agent,city="/Game/Maps/Town01"):
+        self.log_dir = log_dir
+        self.carla_server_settings =None
+        self.server = None
+        self.server_pid = -99999
+        self.map = city
 
-        # Objects
-        self.client    = None
-        self.world     = None
-        self.blueprint = None
+        self.client = None  #carla client 
+        self.  host = 'localhost'
+        self.  port = 2000
         
-        # Actors
-        self.agent  = None
-        self.actors = list()
+        self.Image_agent = image_agent
 
-        # Connect to CARLA
-        self._connect()
+        #steer,throttle,brake
+        #self.action_space = action_space(3, (1.0, 1.0,1.0), (-1.0,0,0), SEED)
+        #featured image,speed,steer,other lane ,offroad,
+        #collision with pedestrians,vehicles,other
+        #self.observation_space = observation_space(512 + 7)
+        self.max_episode = 1000000
+        self.time_out_step = 10000
+        self.max_speed = 35
+        self.speed_up_steps = 20 
+        self.current_episode = 0
+        self.weather = -1
+        self.current_step = 0
+        self.current_position = None
+        self.total_reward = 0
+        self.planner = None
+        self.carla_setting = None
+        self.number_of_vehicles = None
+        self.control = None
+        self.nospeed_times =0
+        self.reward = 0
+        self.observation = None
+        self.done =False
+        self.LoadConfig()
+        self.Setup()
 
-        # Sensors
-        self.camera = None
 
-     
-    # Connect to the Carla enviroment
-    # -------------------------------
-    def _connect(self):
-        try:
-            # Connect to client
-            self.client = carla.Client(self.host,self.port)
-            self.client.set_timeout(5.0)
+    """ Load Configuration """
+    def LoadConfig(self):
+        self.   vehicle_pair = carla_config.NumberOfVehicles
+        self.pedestrian_pair = carla_config.NumberOfPedestrians
+        self.   weather_set  = carla_config.set_of_weathers
+        #[straight,one_curve,navigation,navigation]
+        if self.map=="/Game/Maps/Town01":
+            self.poses = carla_config.poses_town01()
+        elif self.map=="/Game/Maps/Town02":
+            self.poses = carla_config.poses_town02()
+        else:
+            print("Unsupported Map Name")
 
-            self.world     = self.client.get_world()
-            self.blueprint = self. world.get_blueprint_library()
 
-        finally:
-            print('Error in connection D:')
-    
-    # Spawn actors
-    # ------------
-    def _spawnActors(self):
-        # Possible points
-        points = self.world.get_map().get_spawn_points()
+    """ Setup client """
+    def Setup(self):
+        self.client = CarlaClient(self.host, self.port, timeout=99999999) #carla  client 
+        self.client.connect(connection_attempts=100)
 
-        # Main actor (random position)
-        bp = random.choice(self.blueprint.filter('vehicle.audi.*'))
-        self.agent = self.world.spawn_actor(bp, random.choice(points) )
-        self.actors.append(self.agent)
-        print('Created %s' % self.agent.type_id)
 
-        # Extra vehicles
-        for _ in range(self.n_vehicles):
-            bp = random.choice(self.blueprint.filter('vehicle'))
-            npc = self.world.try_spawn_actor(bp, random.choice(points))
-            if npc is not None:
-                self.actors.append(npc)
-                npc.set_autopilot()
-                print('Created %s' % npc.type_id)
-        
-    """
-    Reset enviroment
-    ----------------
-    """
     def reset(self):
-        # Initialize
-        self.actors = list()
-        self.agent  = None
+        self.nospeed_times =0 
+        pose_type = random.choice(self.poses)
+        #pose_type =  self.poses[0]
+        self.current_position = random.choice(pose_type)  #start and  end  index
+        #self.current_position = (53,67)
+        self.number_of_vehicles    = 0  # random.randint( self.vehicle_pair[0],self.vehicle_pair[1])
+        self.number_of_pedestrians = 0  # random.randint( self.vehicle_pair[0],self.vehicle_pair[1])
+        self.weather = random.choice(self.weather_set)
 
-        # Actors spawn
-        self._spawnActors()
-
-        # Sensors spawn
-        self.camera = S.CameraRgb(self.world,self.agent)
-
-        # Here's first workaround. If we do not apply any control it takes almost a second for car to start moving
-        # after episode restart. That starts counting once we aplly control for a first time.
-        # Workarounf here is to apply both throttle and brakes and disengage brakes once we are ready to start an episode.
-        # Ref: https://github.com/Sentdex/Carla-RL/blob/master/sources/carla.py
-        self.agent.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
-
-
-    """
-    Get simulation state
-    --------------------
-    """
-    def state(self):
-        # RGB camera
-        img = self.camera.get()
-
-        # Velocity
-        v = self.agent.get_velocity()
-        kmh = int(3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2))
+        settings = carla_config.make_carla_settings()
+        settings.set(   NumberOfVehicles = self.number_of_vehicles,
+                     NumberOfPedestrians = self.number_of_pedestrians,
+                               WeatherId = self.weather    )
+        self.carla_setting = settings
+        self.scene = self.client.load_settings(settings)
+        self.client.start_episode(self.current_position[0]) #set the start position
         
-        return {'frame': img,
-                'speed': kmh}
+        self.target_transform = self.scene.player_start_spots[self.current_position[1]]
+        self.planner = Planner(self.scene.map_name)
+
+        # Skip the  car fall to sence frame
+        for i in range(self.speed_up_steps): 
+            self.control = VehicleControl()
+            self.control.steer = 0
+            self.control.throttle = 0.025*i
+            self.control.brake = 0
+            self.control.hand_brake = False
+            self.control.reverse = False
+            time.sleep(0.05)
+            send_success = self.send_control(self.control)
+            if not send_success:
+                return None
+            self.client.send_control(self.control)
+
+        measurements, sensor_data = self.client.read_data() #measurements,sensor 
+        directions =self.getDirections(measurements,self.target_transform,self.planner)
+        if directions is None or measurements is None:
+            return None
+        state,_,_=self.get_state(measurements,sensor_data,directions)
+        return state 
 
 
-    """
-    Set action on simulation
-    ------------------------
-    Ref: https://github.com/carla-simulator/carla/blob/master/Docs/python_api_tutorial.md
-         https://carla.readthedocs.io/en/latest/python_api_tutorial/
-    """
-    def setAction(self,steer,gas,brake):
-        self.agent.apply_control(carla.VehicleControl(steer=steer, throttle=gas, brake=brake))
-    
-    
-    """
-    Destroy actors
-    --------------
-    """
-    def _destroyActor(self,_actor):
-        # If it has a callback attached, remove it first
-        if hasattr(_actor, 'is_listening') and _actor.is_listening:
-            _actor.stop()
+    """ Send Control """
+    def send_control(self,control):
+        send_success = False
+        try:
+            self.client.send_control(control)
+            send_success = True
+        except Exception:
+            print("Send Control error")
+        return send_success
 
-        # If it's still alive - desstroy it
-        if _actor.is_alive:
-            _actor.destroy()
-    def destroy(self):
-        # Destroy actors
-        for carrito in self.actors:
-            if carrito is not None:
-                self._destroyActor(carrito)
 
-        # Destroy sensors
-        self.camera.destroy()
+    """ Get Directions: function to get the high level commands and the waypoints 
+        The waypoints correspond to the local planning, the near path the car has to follow.
+    """
+    def getDirections(self,measurements, target_transform, planner):
+        # Get the current position from the measurements
+        current_point = measurements.player_measurements.transform
+        try:
+            directions = planner.get_next_command(
+                            (   current_point.location   .x,    current_point.location   .y,                0.22           ),
+                            (   current_point.orientation.x,    current_point.orientation.y,    current_point.orientation.z),
+                            (target_transform.location   .x, target_transform.location   .y,                0.22           ),
+                            (target_transform.orientation.x, target_transform.orientation.y, target_transform.orientation.z))
+        except Exception:
+            print("Route plan error ")
+            directions = None
+        return directions
+
+
+    """  Get state
+        comute new state,reward,and is done
+    """
+    def get_state(self,measurements,sensor_data,directions):
+        # Frame
+        img_feature = self.Image_agent.compute_feature(sensor_data)  #shape = (512,)
         
+        # Measurements
+        speed                  = measurements.player_measurements.forward_speed # m/s
+        intersection_offroad   = measurements.player_measurements.intersection_offroad
+        intersection_otherlane = measurements.player_measurements.intersection_otherlane
+        collision_vehicles     = measurements.player_measurements.collision_vehicles
+        collision_pedestrians  = measurements.player_measurements.collision_pedestrians
+        collision_other        = measurements.player_measurements.collision_other
+
+        self.reward = 0 
+        done = False 
+
+
+    def _getImage(self):
+        pass
+    def _getImage(self):
+        pass
+    def _getReward(self):
+        pass
+
