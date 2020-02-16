@@ -414,11 +414,14 @@ class Atten8(nn.Module):
         # Initialization
         self.   filteringLSTM.reset_parameters()
         self.pigeonholingLSTM.reset_parameters()
-        torch.nn.init.xavier_uniform_(self.wfL.weight)
+        torch.nn.init.xavier_uniform_(self.wfA.weight)
         torch.nn.init.xavier_uniform_(self.wfR.weight)
+        torch.nn.init.xavier_uniform_(self.wfn.weight)
         torch.nn.init.xavier_uniform_(self.wf .weight)
-        torch.nn.init.xavier_uniform_(self.wpL.weight)
+        
+        torch.nn.init.xavier_uniform_(self.wpA.weight)
         torch.nn.init.xavier_uniform_(self.wpR.weight)
+        torch.nn.init.xavier_uniform_(self.wpn.weight)
         torch.nn.init.xavier_uniform_(self.wp .weight)
 
         self.ReLu    = nn.ReLU()
