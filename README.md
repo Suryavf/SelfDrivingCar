@@ -9,18 +9,39 @@ End-To-End models for autonomous driving. Imitation learning model trained with 
 * ImgAug   0.2.9 
 * tsnecuda 2.1.0
 ```
-$ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-$ conda install tsnecuda cuda101 -c cannylab
-$ conda install -c anaconda numpy
-$ conda install -c anaconda pandas
-$ conda install -c anaconda opencv
-$ conda install -c anaconda scipy
-$ pip install matplotlib
-$ pip install imgaug
-$ pip install tqdm
-$ pip install ipython
+conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+conda install tsnecuda cuda101 -c cannylab
+conda install -c anaconda numpy
+conda install -c anaconda pandas
+conda install -c anaconda opencv
+conda install -c anaconda scipy
+pip install matplotlib
+pip install imgaug
+pip install tqdm
+pip install ipython
 ```
-CARLA environment configuration in [link](environment/README.md)
+
+## CARLA 0.9.6
+<a href="https://github.com/carla-simulator/carla">CARLA</a> environment instructions, all credits to <a href="https://github.com/dianchen96">dianchen96</a>. SOURCE: <a href="https://github.com/dianchen96/LearningByCheating">link</a>.
+
+CARLA download:
+```
+wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
+mkdir carla
+tar -xvzf CARLA_0.9.6.tar.gz -C carla
+cd carla
+wget http://www.cs.utexas.edu/~dchen/lbc_release/navmesh/Town01.bin
+wget http://www.cs.utexas.edu/~dchen/lbc_release/navmesh/Town02.bin
+mv Town*.bin CarlaUE4/Content/Carla/Maps/Nav/
+```
+
+CARLA installation:
+```
+cd PythonAPI/carla/dist
+rm carla-0.9.6-py3.5-linux-x86_64.egg
+wget http://www.cs.utexas.edu/~dchen/lbc_release/egg/carla-0.9.6-py3.5-linux-x86_64.egg
+easy_install carla-0.9.6-py3.5-linux-x86_64.egg
+```
 
 ## Execution
 Basic exectution:
