@@ -503,18 +503,19 @@ class Atten9(nn.Module):
         torch.nn.init.xavier_uniform_(self.wp .weight)
 
         self.ReLu    = nn.ReLU()
+        self.Sigmoid = nn.Sigmoid()
         self.Softmax = nn.Softmax(1)
 
 
     def norm2(self,x):
-        y = x**2
+        y = self.Sigmoid(x)**2
         y = x.mean(1)
         y = torch.sqrt(y)
 
         return x/y
 
     def norm4(self,x):
-        y = x**4
+        y = self.Sigmoid(x)**4
         y = x.mean(1)
         y = torch.sqrt(y)
         y = torch.sqrt(y)
