@@ -509,18 +509,18 @@ class Atten9(nn.Module):
 
     def norm2(self,x):
         y = self.Sigmoid(x)**2
-        y = x.mean(1)
+        y = x.mean(1) + 10**-6
         y = torch.sqrt(y)
 
-        return x/y
+        return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
         y = self.Sigmoid(x)**4
-        y = x.mean(1)
+        y = x.mean(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 
-        return x/y
+        return x/y.view(x.shape[0],1)
 
 
     """ Forward """
@@ -546,8 +546,8 @@ class Atten9(nn.Module):
         # Attention maps
         featureFil = self.avgFiltering   (feature               ).squeeze(2)
         featurePig = self.avgPigeonholing(feature.transpose(1,2)).squeeze(2)
-        alpha = self.norm4( featureFil*xf )    # [batch,L]
-        beta  = self.norm4( featurePig*xp )    # [batch,D]
+        alpha = self.norm2( featureFil*xf )    # [batch,L]
+        beta  = self.norm2( featurePig*xp )    # [batch,D]
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
         
