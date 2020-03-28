@@ -28,14 +28,15 @@ class Experimental(nn.Module):
 
         # Decoder
         self.attention = A.Atten9          (cube_dim,n_hidden)
+        self.decoder   = D.TVADecoder2     (self.attention,cube_dim,n_hidden)
         self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
-        self.decoder   = D.TVADecoder(self.attention,self.control,cube_dim,n_hidden)
     
     """ Forward """
     def forward(self,batch):
-        x              = self.encoder(batch['frame'])
-        y,alpha,hidden = self.decoder(x)
-        return {  'actions' :      y,
-                'attention' :  alpha,
-                   'hidden' : hidden}
+        x               = self.encoder(batch['frame'])
+        x,hdn,attn,lstm = self.decoder(x)
+        y               = self.control(x,hdn)
+        return {  'actions' :     y,
+                'attention' :  attn,
+                   'hidden' : lstm}
                     
