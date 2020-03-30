@@ -490,7 +490,6 @@ class TVADecoder2(nn.Module):
     def forward(self,feature):
         # Parameters
         sequence_len = self.sequence_len
-        n_out        = self.n_out
         if self.training: batch_size = int(feature.shape[0]/sequence_len)
         else            : batch_size =     feature.shape[0]
         
