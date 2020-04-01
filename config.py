@@ -20,7 +20,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "Experimental" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017
+        self.model   = "ExpBranch" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, ExpBranch
         self.boolean = BooleanConditions(self.model)
 
     def model_(self,model):

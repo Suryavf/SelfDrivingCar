@@ -6,7 +6,7 @@ from common.utils import str2bool
 #from ReinforcementLearning.dqnAgent import DQNAgent
 from ImitationLearning.ImitationModel import ImitationModel
 
-_imitationLearningList = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017','Experimental']
+_imitationLearningList = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017','Experimental','ExpBranch']
 
 class Main():
     """ Constructor """
