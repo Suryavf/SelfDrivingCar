@@ -41,12 +41,12 @@ class SumHiddenFeature(nn.Module):
                 
 
 class Branch(nn.Module):
-    def __init__(self):
+    def __init__(self,n_out):
         super(Branch, self).__init__()
         # Declare layers
-        self.fully1 = nn.Linear(512,256)
-        self.fully2 = nn.Linear(256,256)
-        self.fully3 = nn.Linear(256, 3 )
+        self.fully1 = nn.Linear(512, 256 )
+        self.fully2 = nn.Linear(256, 256 )
+        self.fully3 = nn.Linear(256,n_out)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.fully1.weight)
@@ -63,14 +63,21 @@ class Branch(nn.Module):
 
 
 class BranchesModule(nn.Module):
-    def __init__(self):
+    def __init__(self, cube_size, n_hidden, n_out=3):
         super(BranchesModule, self).__init__()
+        # Parameters
+        self.D     = cube_size[2]               # cube_size[0]
+        self.L     = cube_size[0]*cube_size[1]  # cube_size[1]*cube_size[2]
+        self.R     = self.L*self.D              # self.L*self.D
+        self.H     = n_hidden                   # hidden_size
+        self.M     = n_hidden                   # hidden_size
+        self.n_out = n_out
 
         # Declare layers
         self.Wh = nn.Linear(self.H,self.M    ,bias=True )
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
 
-        self.branches = nn.ModuleList([ Branch() for i in range(4) ])
+        self.branches = nn.ModuleList([ Branch(self.n_out) for i in range(4) ])
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.Wh.weight)
@@ -83,4 +90,7 @@ class BranchesModule(nn.Module):
         # Branches
         y_pred = torch.cat( [out(ut) for out in self.branches], dim=1)
         y_pred = y_pred*mask
-        
+        y_pred = y_pred.view(-1,3,4)
+        y_pred = y_pred.sum(-1)
+
+        return y_pred

@@ -40,3 +40,30 @@ class Experimental(nn.Module):
                 'attention' :  attn,
                    'hidden' : lstm}
                     
+
+class ConditionalExperiment(nn.Module):
+    """ Constructor """
+    def __init__(self,shape=(92,196)):#(96,192)): 92,196
+        super(ConditionalExperiment, self).__init__()
+        # Parameters
+        in_dim   = shape
+        n_hidden = 1024
+        
+        # Encoder
+        self.encoder = E.CNN5()
+        cube_dim = self.encoder.cube(in_dim)
+
+        # Decoder
+        self.attention = A.Atten9          (cube_dim,n_hidden)
+        self.decoder   = D.TVADecoder2     (self.attention,cube_dim,n_hidden)
+        self.control   = C.BranchesModule(cube_dim,n_hidden)
+    
+    """ Forward """
+    def forward(self,batch):
+        x               = self.encoder(batch['frame'])
+        x,hdn,attn,lstm = self.decoder(x)
+        y               = self.control(x,hdn)
+        return {  'actions' :     y,
+                'attention' :  attn,
+                   'hidden' : lstm}
+                    

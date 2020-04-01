@@ -453,11 +453,6 @@ class ImitationModel(object):
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
         
-        # Save samples ID
-        # self.samplesID['Epoch'+str(epoch)] = IDs
-        # df = pd.DataFrame(self.samplesID)
-        # df.to_csv( os.path.join(self._modelPath,"samples.csv") )
-
         # Train loop
         self.model.train()
         with tqdm(total=len(loader),leave=False) as pbar:
