@@ -3,13 +3,13 @@ import json
 import numpy as np
 import torch
 
-_branchesList        = ['Codevilla18','Codevilla19']
+_branchesList        = ['Codevilla18','Codevilla19','ExpBranch']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
 _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
-_temporalModelList   = ['Kim2017','Experimental']
-_CNN5BackboneList    = ['Kim2017','Experimental']
+_temporalModelList   = ['Kim2017','Experimental','ExpBranch']
+_CNN5BackboneList    = ['Kim2017','Experimental','ExpBranch']
 _ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19']#,'Experimental']
 
 class Setting(object):

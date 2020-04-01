@@ -61,6 +61,7 @@ class ImitationModel(object):
         elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
         elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
         elif self.setting.model == 'Experimental': self.model = exper. Experimental()
+        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch()
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")

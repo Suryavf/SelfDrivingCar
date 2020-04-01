@@ -41,10 +41,10 @@ class Experimental(nn.Module):
                    'hidden' : lstm}
                     
 
-class ConditionalExperiment(nn.Module):
+class ExpBranch(nn.Module):
     """ Constructor """
     def __init__(self,shape=(92,196)):#(96,192)): 92,196
-        super(ConditionalExperiment, self).__init__()
+        super(ExpBranch, self).__init__()
         # Parameters
         in_dim   = shape
         n_hidden = 1024
@@ -62,7 +62,7 @@ class ConditionalExperiment(nn.Module):
     def forward(self,batch):
         x               = self.encoder(batch['frame'])
         x,hdn,attn,lstm = self.decoder(x)
-        y               = self.control(x,hdn)
+        y               = self.control(x,hdn,batch['mask'])
         return {  'actions' :     y,
                 'attention' :  attn,
                    'hidden' : lstm}
