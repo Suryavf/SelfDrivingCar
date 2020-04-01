@@ -35,7 +35,7 @@ class SumHiddenFeature(nn.Module):
 
     def forward(self,feature,hidden):
         ut = self.Wh(hidden) + self.Wy(feature)          # [1,batch,M]
-        ut = F.dropout(ut, p=0.1, training=self.training)
+        ut = F.dropout(ut, p=0.5, training=self.training)
         ut = self.Wu(ut)        # [1,batch,M]*[M,n_outs] = [1,batch,n_outs]
         return ut
                 
@@ -44,9 +44,9 @@ class Branch(nn.Module):
     def __init__(self,n_out):
         super(Branch, self).__init__()
         # Declare layers
-        self.fully1 = nn.Linear(512, 256 )
-        self.fully2 = nn.Linear(256, 256 )
-        self.fully3 = nn.Linear(256,n_out)
+        self.fully1 = nn.Linear(1024, 256 )
+        self.fully2 = nn.Linear( 256,  64 )
+        self.fully3 = nn.Linear(  64,n_out)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.fully1.weight)
@@ -91,6 +91,6 @@ class BranchesModule(nn.Module):
         y_pred = torch.cat( [out(ut) for out in self.branches], dim=1)
         y_pred = y_pred*mask
         #y_pred = y_pred.view(-1,3,4).sum(-1)
-        
+
         return y_pred
         

@@ -552,12 +552,13 @@ class TVADecoder2(nn.Module):
             _,(hidden,cell) = self.lstm(visual,(hidden,cell))
             
             # Output
+            """
             print("size:"  ,visual.size())
             print("alpha:" , alpha.size())
             print("beta:"  ,  beta.size())
             print("hidden:",hidden[0].unsqueeze(0).size())
             print("----------------")
-
+            """
             vis_[k] = visual                    # [1,batch,R]
             alp_[k] =  alpha.squeeze()          # [1,batch,L]
             bet_[k] =   beta.squeeze()          # [1,batch,D]
@@ -572,13 +573,13 @@ class TVADecoder2(nn.Module):
             alp_ = alp_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
             bet_ = bet_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.D)
             hdd_ = hdd_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.H)
-
+        """
         print("==================")
         print("Visual features:",vis_.size())
         print("Hidden features:",hdd_.size())
         print("Alpha:",alp_.size())
         print("Beta:" ,bet_.size())
         print("==================\n\n")
-
+        """
         return vis_, hdd_, {'alpha': alp_, 'beta': bet_}, {'action': action, 'attention': atten}
         
