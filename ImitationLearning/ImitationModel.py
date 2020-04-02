@@ -294,19 +294,26 @@ class ImitationModel(object):
     def _metrics(self,measure,prediction):
         # Parameters
         max_steering = self.setting.preprocessing.max_steering
-
+        
+        # if branch then reshape
+        measure    = measure   ['actions']
+        prediction = prediction['actions']
+        if measure.size(-1) == 12:
+            measure    = measure   .view(-1,3,4).sum(-1)
+            prediction = prediction.view(-1,3,4).sum(-1)
+        
         # Measurements
-        dev_Steer = measure['actions'][:,0] * max_steering
-        dev_Gas   = measure['actions'][:,1]
-        dev_Brake = measure['actions'][:,2]
+        dev_Steer = measure[:,0] * max_steering
+        dev_Gas   = measure[:,1]
+        dev_Brake = measure[:,2]
 
         # Prediction
-        # dev_SteerPred = prediction['actions'][:,0] * max_steering
-        dev_GasPred   = prediction['actions'][:,1]
-        dev_BrakePred = prediction['actions'][:,2]
+        # dev_SteerPred = prediction[:,0] * max_steering
+        dev_GasPred   = prediction[:,1]
+        dev_BrakePred = prediction[:,2]
 
         # Error
-        dev_err = torch.abs(measure['actions'] - prediction['actions'])
+        dev_err = torch.abs(measure - prediction)
         dev_SteerErr = dev_err[:,0] * max_steering
         dev_GasErr   = dev_err[:,1]
         dev_BrakeErr = dev_err[:,2]

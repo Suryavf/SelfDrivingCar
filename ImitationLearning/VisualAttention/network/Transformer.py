@@ -3,6 +3,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Ref https://github.com/epfml/attention-cnn/blob/master/models/bert.py
+def gelu(x):
+    """Implementation of the gelu activation function.
+        For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
+        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+        Also see https://arxiv.org/abs/1606.08415
+    """
+    return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
+
 # Transformer
 # http://jalammar.github.io/illustrated-transformer/
 # https://arxiv.org/pdf/1706.03762.pdf
@@ -134,3 +143,32 @@ class Transformer(nn.Module):
     def forward(self,feature):
         return None
 
+
+""" ECA-Net Module
+    --------------
+    Ref: Wang, Qilong, et al. "Eca-net: Efficient channel attention for 
+         deep convolutional neural networks." 
+         arXiv preprint arXiv:1910.03151 (2019).
+"""
+class ECAnet(nn.Module):
+    """ Constructor """
+    def __init__(self, D, gamma=2,b=1):
+        super(ECAnet, self).__init__()
+        # Kernel size
+        t = int( abs((math.log(D,2)+b)/gamma) )
+        k = t if t%2 else t+1
+
+        # Layers
+        self.avgPool = nn.AdaptiveAvgPool1d(1)
+        self.conv    = nn.Conv1d(1,1,kernel_size=k,padding=int(k/2),bias=False)
+
+    """ Forward """
+    def forward(self,x):        # [batch,L,D]
+        x = x.transpose(1,2)    # [batch,D,L]
+        y = self.avgPool(x)     # [batch,D,1]
+        
+        y = y.transpose(1,2)    # [batch,1,D]
+        y = self.conv(y)        # [batch,1,D]
+        
+        return y
+        
