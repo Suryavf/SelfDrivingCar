@@ -201,7 +201,7 @@ class ImitationModel(object):
                                     lr    =  self.setting.train.optimizer.learning_rate, 
                                     betas = (self.setting.train.optimizer.beta_1, 
                                              self.setting.train.optimizer.beta_2 ) )
-
+        
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,

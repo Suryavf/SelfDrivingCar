@@ -40,9 +40,9 @@ class SumHiddenFeature(nn.Module):
         return ut
                 
 
-class Branch(nn.Module):
+class _Branch(nn.Module):
     def __init__(self,n_out):
-        super(Branch, self).__init__()
+        super(_Branch, self).__init__()
         # Declare layers
         self.fully1 = nn.Linear(1024, 256 )
         self.fully2 = nn.Linear( 256,  64 )
@@ -55,9 +55,8 @@ class Branch(nn.Module):
 
     def forward(self,sig):
         h1 = F.relu(self.fully1(sig))
-        h1 = F.dropout(h1, p=0.1, training=self.training)
+        h1 = F.dropout(h1, p=0.5, training=self.training)
         h2 = F.relu(self.fully2( h1))
-
         out = self.fully3(h2)
         return out
 
@@ -77,7 +76,7 @@ class BranchesModule(nn.Module):
         self.Wh = nn.Linear(self.H,self.M    ,bias=True )
         self.Wy = nn.Linear(self.R,self.M    ,bias=False)
 
-        self.branches = nn.ModuleList([ Branch(self.n_out) for i in range(4) ])
+        self.branches = nn.ModuleList([ _Branch(self.n_out) for i in range(4) ])
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.Wh.weight)

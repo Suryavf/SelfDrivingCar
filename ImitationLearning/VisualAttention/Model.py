@@ -28,7 +28,7 @@ class Experimental(nn.Module):
 
         # Decoder
         self.attention = A.Atten9          (cube_dim,n_hidden)
-        self.decoder   = D.TVADecoder2     (self.attention,cube_dim,n_hidden)
+        self.decoder   = D.TVADecoder      (self.attention,cube_dim,n_hidden)
         self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
     
     """ Forward """
@@ -55,7 +55,7 @@ class ExpBranch(nn.Module):
 
         # Decoder
         self.attention = A.Atten9          (cube_dim,n_hidden)
-        self.decoder   = D.TVADecoder2     (self.attention,cube_dim,n_hidden)
+        self.decoder   = D.TVADecoder      (self.attention,cube_dim,n_hidden)
         self.control   = C.BranchesModule(cube_dim,n_hidden)
     
     """ Forward """

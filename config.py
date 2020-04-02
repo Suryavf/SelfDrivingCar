@@ -3,14 +3,6 @@ import json
 import numpy as np
 import torch
 
-_branchesList        = ['Codevilla18','Codevilla19','ExpBranch']
-_multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
-_speedRegressionList = ['Codevilla19']
-_inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
-_outputSpeedList     = ['Codevilla19']
-_temporalModelList   = ['Kim2017','Experimental','ExpBranch']
-_CNN5BackboneList    = ['Kim2017','Experimental','ExpBranch']
-_ResNetBackboneList  = ['Basic','Multimodal','Codevilla18','Codevilla19']#,'Experimental']
 
 class Setting(object):
     def __init__(self):
@@ -20,12 +12,19 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   = "ExpBranch" # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, ExpBranch
-        self.boolean = BooleanConditions(self.model)
-
+        self.model   =  "ExpBranch"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, ExpBranch
+        self.modules = {
+                        "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19
+                        "Decoder"   : "TVADecoder",      # BasicDecoder, DualDecoder, TVADecoder
+                        "Attention" : "Atten9"    ,      # Atten1-9
+                        "Control"   : "BranchesModule"   # SumHiddenFeature,BranchesModule
+                        }
+        
+        self.boolean = BooleanConditions(self.model,self.modules)
+        
     def model_(self,model):
         self.model = model
-        self.boolean = BooleanConditions(self.model)
+        self.boolean = BooleanConditions(self.model,self.modules)
 
     def load(self,path):
         with open(path) as json_file:
@@ -54,7 +53,8 @@ class Setting(object):
 
     def save(self,path):
         setting = {
-            "model": self.model,
+            "model"  : self.model,
+            "modules": self.modules,
 
             "preprocessing": self.preprocessing.save(),
             "evaluation"   : self.   evaluation.save(),
@@ -407,9 +407,19 @@ class Evaluation_settings(object):
             "metric": self.metric
         }
 
+# Boolean conditions (model)
+_branchesList        = ['Codevilla18','Codevilla19','ExpBranch']
+_multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
+_speedRegressionList = ['Codevilla19']
+_inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
+_outputSpeedList     = ['Codevilla19']
+_temporalModelList   = ['Kim2017','Experimental','ExpBranch']
+
+_branchesModList = ['BranchesModule']
+_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 
 class BooleanConditions(object):
-    def __init__(self,model):
+    def __init__(self,model,modules):
         self.branches        = False    # Conditional (branches)
         self.multimodal      = False    # Multimodal (image + speed)
         self.inputSpeed      = False    # Input speed
@@ -418,17 +428,12 @@ class BooleanConditions(object):
         
         self.temporalModel   = False
 
-        self.branches        = model in _branchesList
+        self.branches        = model in _branchesList      or modules['Control'] in _branchesModList
         self.multimodal      = model in _multimodalList
         self.inputSpeed      = model in _inputSpeedList
         self.outputSpeed     = model in _outputSpeedList
+        self.temporalModel   = model in _temporalModelList or modules['Decoder'] in _temporalModList 
         self.speedRegression = model in _speedRegressionList
-        self.temporalModel   = model in _temporalModelList
         
-        if   model in _CNN5BackboneList:
-            self.backbone = 'CNN5'
-        elif model in _ResNetBackboneList:
-            self.backbone = 'ResNet'
-        else:
-            self.backbone = ''
-            
+        self.backbone = modules['Encoder']
+        
