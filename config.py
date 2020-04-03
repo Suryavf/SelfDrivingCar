@@ -221,20 +221,14 @@ class Preprocessing_settings(object):
     def __init__(self):
         self.data_aug      = True
         self.Laskey_noise  = False
-        self.input_size    = (88,200,3)
-        self.input_reshape = (88,200)
-        self.reshape       = False
-
+        
         # Normalize
         self.max_speed    =  90
         self.max_steering = 1.2
 
     def load(self,data):
-        self.reshape       = data[      "reshape"]
         self.data_aug      = data[     "data_aug"]
-        self.input_size    = data[   "input_size"]
         self.Laskey_noise  = data[ "Laskey_noise"]
-        self.input_reshape = data["input_reshape"]
 
         self.max_steering = data["max_steering"]
         self.max_speed    = data[   "max_speed"]
@@ -242,18 +236,13 @@ class Preprocessing_settings(object):
     def print(self):
         print("\t"*2,"Data augmentation:\t",self.data_aug)
         print("\t"*2,"Laskey noise:\t\t"   ,self.Laskey_noise)
-        print("\t"*2,"Input size:\t\t"     ,self.input_size)
-        if self.reshape:
-            print("\t"*2,"Reshape:\t"      ,self.input_reshape)
-        print("\t"*2,"Maximum steering:\t",self.max_steering)
-        print("\t"*2,"Maximum speed:\t\t" ,self.max_speed)
+        print("\t"*2,"Maximum steering:\t" ,self.max_steering)
+        print("\t"*2,"Maximum speed:\t\t"  ,self.max_speed)
         print("")
 
     def save(self):
         return {
-            "reshape"      : self.      reshape,
             "data_aug"     : self.     data_aug,
-            "input_size"   : self.   input_size,
             "Laskey_noise" : self. Laskey_noise,
 
             "max_speed"    : self.   max_speed,
@@ -418,6 +407,11 @@ _temporalModelList   = ['Kim2017','Experimental','ExpBranch']
 _branchesModList = ['BranchesModule']
 _temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 
+_shape = {  'CNN5'        : (92,196), 
+            'ResNet50'    : (96,192), 
+            'WideResNet50': (96,192), 
+            'VGG19'       : (96,192)
+          }
 class BooleanConditions(object):
     def __init__(self,model,modules):
         self.branches        = False    # Conditional (branches)
@@ -436,4 +430,5 @@ class BooleanConditions(object):
         self.speedRegression = model in _speedRegressionList
         
         self.backbone = modules['Encoder']
+        self.shape    = _shape[self.backbone]
         

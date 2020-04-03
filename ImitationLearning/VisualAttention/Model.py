@@ -16,20 +16,20 @@ import ImitationLearning.VisualAttention.network.Control   as C
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self,shape=(92,196)):#(96,192)): 92,196
+    def __init__(self,module,setting):#(96,192)): 92,196
         super(Experimental, self).__init__()
         # Parameters
-        in_dim   = shape
+        in_dim   = setting.boolean.shape
         n_hidden = 1024
         
         # Encoder
-        self.encoder = E.CNN5()
+        self.encoder = module['Encoder']()
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
-        self.attention = A.Atten9          (cube_dim,n_hidden)
-        self.decoder   = D.TVADecoder      (self.attention,cube_dim,n_hidden)
-        self.control   = C.SumHiddenFeature(cube_dim,n_hidden)
+        self.attention = module['Attention'](cube_dim,n_hidden)
+        self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
+        self.control   = module[  'Control'](cube_dim,n_hidden)
     
     """ Forward """
     def forward(self,batch):
@@ -43,20 +43,20 @@ class Experimental(nn.Module):
 
 class ExpBranch(nn.Module):
     """ Constructor """
-    def __init__(self,shape=(92,196)):#(96,192)): 92,196
+    def __init__(self,module,setting):#(96,192)): 92,196
         super(ExpBranch, self).__init__()
         # Parameters
-        in_dim   = shape
+        in_dim   = setting.boolean.shape
         n_hidden = 1024
         
         # Encoder
-        self.encoder = E.CNN5()
+        self.encoder = module['Encoder']()
         cube_dim = self.encoder.cube(in_dim)
 
         # Decoder
-        self.attention = A.Atten9          (cube_dim,n_hidden)
-        self.decoder   = D.TVADecoder      (self.attention,cube_dim,n_hidden)
-        self.control   = C.BranchesModule(cube_dim,n_hidden)
+        self.attention = module['Attention'](cube_dim,n_hidden)
+        self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
+        self.control   = module[  'Control'](cube_dim,n_hidden)
     
     """ Forward """
     def forward(self,batch):

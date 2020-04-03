@@ -290,6 +290,10 @@ def getDictValue(dictionary,key):
         return None
 
 
+""" Random intenger
+    ---------------
+    Range min, max
+"""  
 def randint(_min,_max):
     _range = _max - _min
     return int(_min + _range*np.random.rand())

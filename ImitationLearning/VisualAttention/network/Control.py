@@ -89,7 +89,6 @@ class BranchesModule(nn.Module):
         # Branches
         y_pred = torch.cat( [out(ut) for out in self.branches], dim=1)
         y_pred = y_pred*mask
-        #y_pred = y_pred.view(-1,3,4).sum(-1)
 
         return y_pred
         

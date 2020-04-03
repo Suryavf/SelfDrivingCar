@@ -43,7 +43,7 @@ class CNN5(nn.Module):
         self.batchN4.reset_parameters()
         self.batchN5.reset_parameters()
 
-    def cube(self,in_size):
+    def cube(self,in_size=(92,196)):
         x = int( (in_size[0]/4-13)/2 )
         y = int( (in_size[1]/4-13)/2 )
         return( x,y,64 )
@@ -77,21 +77,6 @@ class CNN5(nn.Module):
         
         x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
         return x.transpose(1, 2)                # [batch,L,D]
-        
-
-class _ResNet50():
-    """ Constructor """
-    def __init__(self):
-        self.model     = models.resnet50(pretrained=True)
-        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        self.model = self.model.to( torch.device('cuda:0') )
-
-    def __call__(self, x): 
-        with torch.no_grad():
-            x = self.model(x)
-            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-            x = x.transpose(1, 2)                   # [batch,L,D]
-            return x
 
 
 class ResNet50(nn.Module):
@@ -109,7 +94,7 @@ class ResNet50(nn.Module):
         # Initialization
         torch.nn.init.xavier_uniform_(self.linear.weight)
 
-    def cube(self,in_size):
+    def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
         y = int( in_size[1]/8 )
         return( x,y,64 )
@@ -146,7 +131,7 @@ class WideResNet50(nn.Module):
         # Initialization
         torch.nn.init.xavier_uniform_(self.linear.weight)
 
-    def cube(self,in_size):
+    def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
         y = int( in_size[1]/8 )
         return( x,y,64 )
@@ -180,7 +165,7 @@ class VGG19(nn.Module):
         # Initialization
         torch.nn.init.xavier_uniform_(self.linear.weight)
 
-    def cube(self,in_size):
+    def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
         y = int( in_size[1]/8 )
         return( x,y,64 )

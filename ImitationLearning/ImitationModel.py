@@ -19,8 +19,14 @@ import ImitationLearning.VisualAttention.Model   as exper
 
 from IPython.core.debugger import set_trace
 
-import common.figures as F
-import common.  utils as U
+import ImitationLearning.VisualAttention.Decoder           as D
+import ImitationLearning.VisualAttention.Encoder           as E
+import ImitationLearning.VisualAttention.network.Attention as A
+import ImitationLearning.VisualAttention.network.Control   as C
+
+import common.directory as V
+import common.  figures as F
+import common.    utils as U
 from   common.RAdam       import RAdam
 from   common.Ranger      import Ranger
 from   common.DiffGrad    import DiffGrad
@@ -54,18 +60,30 @@ class ImitationModel(object):
         self._state    = {}
         self. epoch    = 1
         
+        # Modules
+        module = {}
+        for k in self.setting.modules:
+            if   k in V.Encoder  : module[  'Encoder'] = eval('E.'+self.setting.modules[  'Encoder'])
+            elif k in V.Decoder  : module[  'Decoder'] = eval('D.'+self.setting.modules[  'Decoder'])
+            elif k in V.Control  : module[  'Control'] = eval('C.'+self.setting.modules[  'Control'])
+            elif k in V.Attention: module['Attention'] = eval('A.'+self.setting.modules['Attention'])
+            else : raise NameError('ERROR 404: module '+k+' no found')
+
         # Nets
         if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
         elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
         elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
         elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
         elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
-        elif self.setting.model == 'Experimental': self.model = exper. Experimental()
-        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch()
+        elif self.setting.model == 'Experimental': self.model = exper. Experimental(module,setting)
+        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(module,setting)
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
         
+        # Modules for model (build)
+        self.module = {}
+
         if not self.init.is_loadedModel:
             # Paths
             self._checkFoldersToSave()
@@ -201,7 +219,7 @@ class ImitationModel(object):
                                     lr    =  self.setting.train.optimizer.learning_rate, 
                                     betas = (self.setting.train.optimizer.beta_1, 
                                              self.setting.train.optimizer.beta_2 ) )
-        
+
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
