@@ -62,11 +62,12 @@ class ImitationModel(object):
         
         # Modules
         module = {}
-        for k in self.setting.modules:
-            if   self.setting.modules[k] in V.Encoder  : module[  'Encoder'] = eval('E.'+self.setting.modules[  'Encoder'])
-            elif self.setting.modules[k] in V.Decoder  : module[  'Decoder'] = eval('D.'+self.setting.modules[  'Decoder'])
-            elif self.setting.modules[k] in V.Control  : module[  'Control'] = eval('C.'+self.setting.modules[  'Control'])
-            elif self.setting.modules[k] in V.Attention: module['Attention'] = eval('A.'+self.setting.modules['Attention'])
+        _mod = self.setting.modules
+        for k in _mod:
+            if   _mod[k] in V.Encoder  : module[  'Encoder'] = eval('E.'+_mod[  'Encoder'])
+            elif _mod[k] in V.Decoder  : module[  'Decoder'] = eval('D.'+_mod[  'Decoder'])
+            elif _mod[k] in V.Control  : module[  'Control'] = eval('C.'+_mod[  'Control'])
+            elif _mod[k] in V.Attention: module['Attention'] = eval('A.'+_mod['Attention'])
             else : raise NameError('ERROR 404: module '+k+' no found')
 
         # Nets
