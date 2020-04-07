@@ -81,9 +81,12 @@ class CNN5(nn.Module):
 
 class ResNet50(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,compression=3):
         super(ResNet50, self).__init__()
+        # Parameters
+        self.compression = compression
 
+        # Layers
         self.model     = models.resnet50(pretrained=True)
         self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
         self.linear1   = nn.Linear(512,256,bias=True)
@@ -92,7 +95,9 @@ class ResNet50(nn.Module):
         self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.linear.weight)
+        torch.nn.init.xavier_uniform_(self.linear1.weight)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
+        torch.nn.init.xavier_uniform_(self.linear3.weight)
 
     def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
@@ -106,21 +111,26 @@ class ResNet50(nn.Module):
             x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
             x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear1(x.detach())
-        x = self.LeakyReLu(x)
-
-        x = self.linear2(x)
-        x = self.LeakyReLu(x)
-
-        x = self.linear3(x)
-        return self.LeakyReLu(x)
+        if self.compression>0:
+            x = self.linear1(x.detach())
+            x = self.LeakyReLu(x)
+        if self.compression>1:
+            x = self.linear2(x)
+            x = self.LeakyReLu(x)
+        if self.compression>2:
+            x = self.linear3(x)
+            x = self.LeakyReLu(x)
+        return x
 
 
 class WideResNet50(nn.Module):
     """ Constructor """
-    def __init__(self):
+    def __init__(self,compression=3):
         super(WideResNet50, self).__init__()
-
+        # Parameters
+        self.compression = compression
+        
+        # Layers
         self.model     = models.wide_resnet50_2(pretrained=True)
         self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
         self.linear1   = nn.Linear(512,256,bias=True)
@@ -129,7 +139,9 @@ class WideResNet50(nn.Module):
         self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.linear.weight)
+        torch.nn.init.xavier_uniform_(self.linear1.weight)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
+        torch.nn.init.xavier_uniform_(self.linear3.weight)
 
     def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
@@ -142,14 +154,16 @@ class WideResNet50(nn.Module):
             x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
             x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear1(x.detach())
-        x = self.LeakyReLu(x)
-
-        x = self.linear2(x)
-        x = self.LeakyReLu(x)
-        
-        x = self.linear3(x)
-        return self.LeakyReLu(x)
+        if self.compression>0:
+            x = self.linear1(x.detach())
+            x = self.LeakyReLu(x)
+        if self.compression>1:
+            x = self.linear2(x)
+            x = self.LeakyReLu(x)
+        if self.compression>2:
+            x = self.linear3(x)
+            x = self.LeakyReLu(x)
+        return x
 
 
 class VGG19(nn.Module):
@@ -159,11 +173,15 @@ class VGG19(nn.Module):
 
         self.model     = models.vgg19_bn(pretrained=True)
         self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        self.linear    = nn.Linear(512,64,bias= True)
+        self.linear1   = nn.Linear(512,256,bias=True)
+        self.linear2   = nn.Linear(256,128,bias=True)
+        self.linear3   = nn.Linear(128, 64,bias=True)
         self.LeakyReLu = nn.LeakyReLU()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.linear.weight)
+        torch.nn.init.xavier_uniform_(self.linear1.weight)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
+        torch.nn.init.xavier_uniform_(self.linear3.weight)
 
     def cube(self,in_size=(96,192)):
         x = int( in_size[0]/8 )
@@ -176,6 +194,14 @@ class VGG19(nn.Module):
             x = self.model(x)                       # [batch,D,h,w]
             x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
             x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear(x)
-        return self.LeakyReLu(x)
+        if self.compression>0:
+            x = self.linear1(x.detach())
+            x = self.LeakyReLu(x)
+        if self.compression>1:
+            x = self.linear2(x)
+            x = self.LeakyReLu(x)
+        if self.compression>2:
+            x = self.linear3(x)
+            x = self.LeakyReLu(x)
+        return x
         
