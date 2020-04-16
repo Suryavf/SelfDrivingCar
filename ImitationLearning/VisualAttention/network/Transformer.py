@@ -17,6 +17,14 @@ def gelu(x):
 # https://arxiv.org/pdf/1706.03762.pdf
 # https://towardsdatascience.com/how-to-code-the-transformer-in-pytorch-24db27c8f9ec
 # https://ufal.mff.cuni.cz/pbml/110/art-popel-bojar.pdf
+
+""" Self-Attention
+    --------------
+        * Attention function:
+            A = Softmax [ QK'/sqrt_dk ] V
+    Ref: Vaswani A., et al. (2017). "Attention is all you need". In Advances 
+         in neural information processing systems (pp. 5998-6008).
+"""
 class SelfAttention(nn.Module):
     """ Constructor """
     def __init__(self, n_features,n_heads):
@@ -24,7 +32,7 @@ class SelfAttention(nn.Module):
         # Parameters
         self.dmodel  = n_features
         self.n_heads = n_heads
-        self.dv = self.dmodel/n_heads
+        self.dv = self.dmodel//n_heads
         self.dk = self.dv
         self.sqrt_dk = math.sqrt(self.dk)
 
@@ -38,6 +46,7 @@ class SelfAttention(nn.Module):
         torch.nn.init.xavier_uniform_(self.wk.weight)
         torch.nn.init.xavier_uniform_(self.wv.weight)
     
+    """ Attention function """
     def attnFunc(self,Q,K,V):
         A = torch.matmul(Q,K.transpose(-2,-1))
         A = A/self.sqrt_dk
@@ -52,6 +61,53 @@ class SelfAttention(nn.Module):
         V = self.wv(feature)
 
         return self.attnFunc(Q,K,V)
+
+
+""" Relative Positional Self-Attention
+    ----------------------------------
+        * Attention function:
+            A = Softmax [ 1/sqrt_dk (QK'+ Sh + Sw) ] V
+            
+    Ref: Cheng-Zhi Anna Huang et al. (2018). "Music transformer: Generating 
+         music with long-term structure". arXiv preprint arXiv:1809.04281.
+         Bello, I., Zoph, B., Vaswani, A., Shlens, J., & Le, Q. V. (2019). 
+         "Attention augmented convolutional networks". In Proceedings of the 
+         IEEE International Conference on Computer Vision (pp. 3286-3295).
+"""
+class RelativeAttention(nn.Module):
+    """ Constructor """
+    def __init__(self, n_features,n_heads):
+        super(RelativeAttention, self).__init__()
+        # Parameters
+        self.dmodel  = n_features
+        self.n_heads = n_heads
+        self.dv = self.dmodel//n_heads
+        self.dk = self.dv
+        self.sqrt_dk = math.sqrt(self.dk)
+
+        # Declare layers
+        self.wq = nn.Linear(self.dmodel,self.dk,bias=True)
+        self.wk = nn.Linear(self.dmodel,self.dk,bias=True)
+        self.wv = nn.Linear(self.dmodel,self.dv,bias=True)
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.wq.weight)
+        torch.nn.init.xavier_uniform_(self.wk.weight)
+        torch.nn.init.xavier_uniform_(self.wv.weight)
+
+    """ Attention function """
+    def attnFunc(self,Q,K,Sh,Sw,V):
+        A = torch.matmul(Q,K.transpose(-2,-1))
+        A = A + Sh + Sw
+        A = A/self.sqrt_dk
+        A = nn.functional.softmax(A,dim=-1)
+        A = torch.matmul(A,V)
+        return A
+    
+    """ Forward """
+    def forward(self,feature):
+        pass
+
 
 """
     Multi-Head Attention layer
