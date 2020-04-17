@@ -28,4 +28,4 @@ class Vaswani2017(nn.Module):
 
     def forward(self, x): # [120,L,D]
         return self.pe[:, :x.size(1)]
-
+        

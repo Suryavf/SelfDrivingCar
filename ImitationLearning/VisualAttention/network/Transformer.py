@@ -188,18 +188,6 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class Transformer(nn.Module):
-    """ Constructor """
-    def __init__(self, n_features,n_heads):
-        super(Transformer, self).__init__()
-        
-    
-
-    """ Forward """
-    def forward(self,feature):
-        return None
-
-
 """ ECA-Net Module
     --------------
     Ref: Wang, Qilong, et al. "Eca-net: Efficient channel attention for 
