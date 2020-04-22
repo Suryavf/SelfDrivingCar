@@ -1,7 +1,5 @@
-import random
-from collections import deque
-from common.prioritized import PrioritizedExperienceReplay 
 import numpy as np
+from common.prioritized import PrioritizedExperienceReplay 
 
 class ReplayMemory(object):
     def __init__(self, n_buffer,len_state,len_action):
@@ -38,6 +36,8 @@ class ReplayMemory(object):
         else:
             n = self.pointer
             self.pointer += 1        
+            if self.pointer>=self.n_buffer:
+                self.pointer = 0 
         self.state    [n] = state
         self.action   [n] = action
         self.reward   [n] = reward
