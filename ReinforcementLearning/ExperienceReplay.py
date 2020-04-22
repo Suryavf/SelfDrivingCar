@@ -1,41 +1,52 @@
-from collections import deque
 import random
+from collections import deque
+from common.prioritized import PrioritizedExperienceReplay 
+import numpy as np
 
-class ReplayBuffer(object):
-
-    def __init__(self, buffer_size):
+class ReplayMemory(object):
+    def __init__(self, n_buffer,len_state,len_action):
         # Parameters
-        self.buffer_size     = buffer_size
-        self.num_experiences = 0
-        
+        self.n_buffer      = n_buffer
+        self.len_state     = len_state
+        self.len_action    = len_action
+        self.n_experiences = 0
+        self.pointer       = 0
+
         # Buffer
-        self.buffer = deque(maxlen=buffer_size)
+        self.state     = np.array([n_buffer,len_state ],dtype=float)
+        self.action    = np.array([n_buffer,len_action],dtype=float)
+        self.reward    = np.array( n_buffer            ,dtype=float)
+        self.new_state = np.array([n_buffer,len_state ],dtype=float)
 
-    def getBatch(self, batch_size):
-        # Randomly sample batch_size examples
-        if self.num_experiences < batch_size:
-            return random.sample(self.buffer, self.num_experiences)
-        else:
-            return random.sample(self.buffer, batch_size)
+        # Priority
+        self.priority = PrioritizedExperienceReplay(n_buffer)
 
+    def getBatch(self):
+        idx,weight = self.priority.sample()
+        return (self. state[idx],self.   action[idx],
+                self.reward[idx],self.new_state[idx]), weight
+        
     def size(self):
-        return self.buffer_size
+        return self.n_buffer
+    def count(self):
+        return self.n_experiences
 
     def add(self, state, action, reward, new_state, done):
-        experience = (state, action, reward, new_state, done)
-        if  self.num_experiences < self.buffer_size:
-            self.buffer.append(experience)
-            self.num_experiences += 1
+        n = self.n_experiences 
+        if  n < self.n_buffer:
+            self.n_experiences += 1
         else:
-            self.buffer.popleft()
-            self.buffer.append(experience)
-
-    def count(self):
-        # if buffer is full, return buffer size
-        # otherwise, return experience counter
-        return self.num_experiences
+            n = self.pointer
+            self.pointer += 1        
+        self.state    [n] = state
+        self.action   [n] = action
+        self.reward   [n] = reward
+        self.new_state[n] = new_state
 
     def erase(self):
-        self.buffer = deque(maxlen=self.buffer_size)
-        self.num_experiences = 0
+        self.state     = np.array([self.n_buffer,self.len_state ],dtype=float)
+        self.action    = np.array([self.n_buffer,self.len_action],dtype=float)
+        self.reward    = np.array( self.n_buffer                 ,dtype=float)
+        self.new_state = np.array([self.n_buffer,self.len_state ],dtype=float)
+        self.n_experiences = 0
         

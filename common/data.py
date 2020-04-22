@@ -169,7 +169,7 @@ class CoRL2017Dataset(object):
         
         # Read
         with h5py.File(file_name, 'r') as h5_file:
-            # Image input
+            # Image input [88,200,3]
             img = np.array(h5_file['rgb'])[idx_sample]
             img = self.transform(img)
 

@@ -116,7 +116,7 @@ class PrioritizedExperienceReplay(object):
     """ Constructor """
     def __init__(self,n_samples,alpha=1.0,beta=0.9,
                         betaLineal=True,betaPhase=50,
-                        UCB=False,c=1.0):
+                        UCB=False,c=0.0):
         # Parameters
         self.n_samples = n_samples
         self.alpha     =     alpha
