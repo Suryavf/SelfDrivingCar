@@ -421,7 +421,7 @@ class BooleanConditions(object):
         self.speedRegression = False    # Speed regression
         
         self.temporalModel   = False
-
+        
         self.branches        = model in _branchesList      or modules['Control'] in _branchesModList
         self.multimodal      = model in _multimodalList
         self.inputSpeed      = model in _inputSpeedList

@@ -11,10 +11,10 @@ class ReplayMemory(object):
         self.pointer       = 0
 
         # Buffer
-        self.state     = np.array([n_buffer,len_state ],dtype=float)
-        self.action    = np.array([n_buffer,len_action],dtype=float)
-        self.reward    = np.array( n_buffer            ,dtype=float)
-        self.new_state = np.array([n_buffer,len_state ],dtype=float)
+        self.state     = np.zeros([n_buffer,len_state ],dtype=float)
+        self.action    = np.zeros([n_buffer,len_action],dtype=float)
+        self.reward    = np.zeros( n_buffer            ,dtype=float)
+        self.new_state = np.zeros([n_buffer,len_state ],dtype=float)
 
         # Priority
         self.priority = PrioritizedExperienceReplay(n_buffer)
@@ -44,9 +44,10 @@ class ReplayMemory(object):
         self.new_state[n] = new_state
 
     def erase(self):
-        self.state     = np.array([self.n_buffer,self.len_state ],dtype=float)
-        self.action    = np.array([self.n_buffer,self.len_action],dtype=float)
-        self.reward    = np.array( self.n_buffer                 ,dtype=float)
-        self.new_state = np.array([self.n_buffer,self.len_state ],dtype=float)
+        self.state     = np.zeros([self.n_buffer,self.len_state ],dtype=float)
+        self.action    = np.zeros([self.n_buffer,self.len_action],dtype=float)
+        self.reward    = np.zeros( self.n_buffer                 ,dtype=float)
+        self.new_state = np.zeros([self.n_buffer,self.len_state ],dtype=float)
         self.n_experiences = 0
+        self.pointer       = 0 
         

@@ -1,4 +1,5 @@
-import numpy as np
+import pickle
+import  numpy as np
 
 class PrioritizedSamples(object):
     """ Constructor """
@@ -29,6 +30,23 @@ class PrioritizedSamples(object):
             self.c = c
             self.sampleFame    = np.zeros( self.n_nodes )  
             self.sampleFame[0] = 1.0 
+
+    """ Save """
+    def save(self,path='priority.pck'):
+        p = dict()
+        p['priority'] = self.priorityPowAlpha
+        if self.UCB: 
+            p['sample'] = self.sampleFame
+        # Save
+        with open(path, 'wb') as handle:
+            pickle.dump(p, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    """ Load """
+    def load(self,path='priority.pck'):
+        with open(path, 'rb') as handle:
+            p = pickle.load(handle)
+        self.priorityPowAlpha = p['priority']
+        self.sampleFame       = p[  'sample']
 
     """ Step """
     def step(self):
@@ -127,7 +145,7 @@ class PrioritizedExperienceReplay(object):
         self.n_nodes   = 2*self.n_leaf - 1
 
         # Samples Tree
-        self.priorityPowAlpha = np.zeros( self.n_nodes )
+        self.priorityPowAlpha = np.zeros( self.n_nodes ,dtype=float)
         self.max_weight       = 1.0
 
         # Beta
@@ -141,9 +159,26 @@ class PrioritizedExperienceReplay(object):
         self.UCB = UCB
         if UCB: 
             self.c = c
-            self.sampleFame    = np.zeros( self.n_nodes )  
+            self.sampleFame    = np.zeros( self.n_nodes ,dtype=float)  
             self.sampleFame[0] = 1.0 
 
+    """ Save """
+    def save(self,path='priority.pck'):
+        p = dict()
+        p['priority'] = self.priorityPowAlpha
+        if self.UCB: 
+            p['sample'] = self.sampleFame
+        # Save
+        with open(path, 'wb') as handle:
+            pickle.dump(p, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    """ Load """
+    def load(self,path='priority.pck'):
+        with open(path, 'rb') as handle:
+            p = pickle.load(handle)
+        self.priorityPowAlpha = p['priority']
+        self.sampleFame       = p[  'sample']
+        
     """ Update """
     def _update(self,idx):
         son1 = self.priorityPowAlpha[2*idx + 1]

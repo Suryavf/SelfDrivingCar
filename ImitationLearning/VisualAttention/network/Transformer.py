@@ -76,7 +76,7 @@ class SelfAttention(nn.Module):
 """
 class RelativeAttention(nn.Module):
     """ Constructor """
-    def __init__(self, n_features,n_heads):
+    def __init__(self, n_features,n_heads,shape):
         super(RelativeAttention, self).__init__()
         # Parameters
         self.dmodel  = n_features
@@ -84,16 +84,28 @@ class RelativeAttention(nn.Module):
         self.dv = self.dmodel//n_heads
         self.dk = self.dv
         self.sqrt_dk = math.sqrt(self.dk)
+        self.h  = shape[0]
+        self.w  = shape[1]
 
         # Declare layers
-        self.wq = nn.Linear(self.dmodel,self.dk,bias=True)
-        self.wk = nn.Linear(self.dmodel,self.dk,bias=True)
-        self.wv = nn.Linear(self.dmodel,self.dv,bias=True)
-
+        self.wqkv = nn.Conv2d( self.dmodel, self.n_heads*( 2*self.dk+self.dv ),
+                               kernel_size=3,stride=1,padding=1,
+                               bias=False )
+        
         # Initialization
-        torch.nn.init.xavier_uniform_(self.wq.weight)
-        torch.nn.init.xavier_uniform_(self.wk.weight)
-        torch.nn.init.xavier_uniform_(self.wv.weight)
+        torch.nn.init.xavier_uniform_(self.wqkv.weight)
+
+        # Embedding
+        self.wEmbedding = nn.Parameter(torch.randn((2 * 8 - 1, self.dk), requires_grad=True))
+        self.hEmbedding = nn.Parameter(torch.randn((2 * 8 - 1, self.dk), requires_grad=True))
+    
+
+    def split(self,QKV):
+        Q,K,V = torch.split(QKV,[self.n_heads*self.dk, self.n_heads*self.dk, self.n_heads*self.dv], dim=1)
+        Q = Q.view(-1,self.n_heads,self.dk,self.h,self.w)
+        K = K.view(-1,self.n_heads,self.dk,self.h,self.w)
+        V = V.view(-1,self.n_heads,self.dv,self.h,self.w)
+        return Q,K,V
 
     """ Attention function """
     def attnFunc(self,Q,K,Sh,Sw,V):
@@ -103,10 +115,59 @@ class RelativeAttention(nn.Module):
         A = nn.functional.softmax(A,dim=-1)
         A = torch.matmul(A,V)
         return A
+        
+    def relativePositionalEncoding(self,Q):
+        qh =  Q.transpose(2,4)
+        qw = qh.transpose(2,3)
+        
+        henc = self.relativeVerPosEncoding(qw,self.wEmbedding)
+        wenc = self.relativeHorPosEncoding(qh,self.hEmbedding)
+
+        return henc,wenc
+
+    def relativeHorPosEncoding(self,Q,embedding):
+        relEmb = self.relative1DPositionalEncoding(Q,embedding)
+        L = self.h*self.w
+        return torch.reshape( relEmb.transpose(3, 4), (-1, self.n_heads, L, L) )
+
+    def relativeVerPosEncoding(self,Q,embedding):
+        relEmb = self.relative1DPositionalEncoding(Q,embedding)
+        L = self.h*self.w
+        return torch.reshape( relEmb.transpose(3, 4).transpose(4, 5).transpose(3, 5), (-1, self.n_heads, L, L) )
+
+    def relative1DPositionalEncoding(self,Q,embedding):
+        relEmb = torch.einsum('bhxyd,md->bhxym', Q, embedding)
+        relEmb = torch.reshape(relEmb, (-1, self.n_heads*self.h, self.w, 2 * self.w - 1))
+        relEmb = self.rel_to_abs(relEmb)
+
+        relEmb = torch.reshape(relEmb, (-1, self.n_heads, self.h, self.w, self.w))
+        relEmb = torch.unsqueeze(relEmb, dim=3)
+        relEmb = relEmb.repeat((1, 1, 1, self.h, 1, 1))
+        
+        return relEmb
+
+    def rel_to_abs(self, x):
+        B, Nh, L, _ = x.size()
+
+        col_pad = torch.zeros((B, Nh, L, 1)).to(x)
+        x = torch.cat((x, col_pad), dim=3)
+
+        flat_x = torch.reshape(x, (B, Nh, L * 2 * L))
+        flat_pad = torch.zeros((B, Nh, L - 1)).to(x)
+        flat_x_padded = torch.cat((flat_x, flat_pad), dim=2)
+
+        final_x = torch.reshape(flat_x_padded, (B, Nh, L + 1, 2 * L - 1))
+        final_x = final_x[:, :, :L, L - 1:]
+
+        return final_x
     
     """ Forward """
     def forward(self,feature):
-        pass
+        qkv   = self.wqkv(feature)
+        Q,K,V = self.split(qkv)
+        Sh,Sw = self.relativePositionalEncoding(Q)
+        return self.attnFunc(Q,K,Sh,Sw,V)
+
 
 
 """
