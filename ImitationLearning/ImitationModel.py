@@ -170,8 +170,10 @@ class ImitationModel(object):
         if self.setting.boolean.speedRegression:
             self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
-        path = self._modelPath + "/model" + str(epoch) + ".pth"
-        torch.save(self._state,path)
+        pathMod = os.path.join( self._modelPath, "model" + str(epoch) + ".pth" )
+        pathPri = os.path.join( self._modelPath, "priority.pck" )
+        torch.save( self._state, pathMod)
+        self.samplePriority.save(pathPri)
 
 
     """ Load model """
@@ -181,7 +183,8 @@ class ImitationModel(object):
         self.model    .load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
-
+        self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
+        
     def to_continue(self,name):
         # Check paths
         self._checkFoldersToSave(name)
