@@ -5,7 +5,7 @@ import pickle
 from   tqdm import tqdm
 import pandas as pd
 import numpy  as np
-from   tsnecuda import TSNE
+# from   tsnecuda import TSNE
 
 import torch
 import torch.optim as optim
@@ -184,7 +184,7 @@ class ImitationModel(object):
         self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
         self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
-        
+
     def to_continue(self,name):
         # Check paths
         self._checkFoldersToSave(name)
@@ -743,6 +743,7 @@ class ImitationModel(object):
         with open(os.path.join(self._modelPath,'resume.pk'), 'wb') as handle:
             pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
             
+        """
         # t-SNE
         print("Execute t-SNE")
         for key in signals:
@@ -753,4 +754,5 @@ class ImitationModel(object):
 
             with open(path, 'wb') as handle:
                 pickle.dump(embedded, handle, protocol=pickle.HIGHEST_PROTOCOL)
-                
+        """
+                        
