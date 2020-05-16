@@ -12,7 +12,7 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   =  "ExpBranch"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, ExpBranch
+        self.model   =  "Experimental"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, Experimental, ExpBranch
         self.modules = {
                         "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19
                         "Decoder"   : "TVADecoder",      # BasicDecoder, DualDecoder, TVADecoder
