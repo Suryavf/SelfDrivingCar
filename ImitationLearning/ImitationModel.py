@@ -319,6 +319,7 @@ class ImitationModel(object):
         max_steering = self.setting.preprocessing.max_steering
         
         # if branch then reshape
+        command    = measure   ['command']
         measure    = measure   ['actions']
         prediction = prediction['actions']
         if measure.size(-1) == 12:
@@ -362,8 +363,7 @@ class ImitationModel(object):
         metricsMean = np.array([steerMean,gasMean,brakeMean])
 
         # Command control
-        print(measure['command'])
-        metrics['Command'] = measure['command'].data.cpu().numpy()
+        metrics['Command'] = command.data.cpu().numpy()
 
         return metrics,metricsMean
 
