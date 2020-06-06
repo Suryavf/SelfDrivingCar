@@ -478,20 +478,23 @@ class Atten9(nn.Module):
         self.H = n_hidden                   #  hidden_size
         self.M = n_hidden                   #  hidden_size
 
-        # Filtering 
-        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
-        self.wfL = nn.Linear(1024,  256,bias=True)
-        self.wfR = nn.Linear( 512,  256,bias=False)
+        self. inH = n_hidden/2 # 512 256
+        self.medH = n_hidden/4 # 256 128
 
-        self.wf = nn.Linear(256,self.L,bias=True)
+        # Filtering 
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = self.inH)
+        self.wfL = nn.Linear(self.  H,self.medH,bias=True)
+        self.wfR = nn.Linear(self.inH,self.medH,bias=False)
+
+        self.wf = nn.Linear(self.medH,self.L,bias=True)
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         
         # Pigeonholing 
-        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
-        self.wpL = nn.Linear(1024,  256,bias=True)
-        self.wpR = nn.Linear( 512,  256,bias=False)
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = self.inH)
+        self.wpL = nn.Linear(self.  H,self.medH,bias=True)
+        self.wpR = nn.Linear(self.inH,self.medH,bias=False)
         
-        self.wp = nn.Linear(256,self.D,bias=True)
+        self.wp = nn.Linear(self.medH,self.D,bias=True)
         self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
 
         # Initialization
@@ -539,7 +542,7 @@ class Atten9(nn.Module):
         # Pigeonholing
         _,(hp,_) = self.pigeonholingLSTM(hidden)
 
-        xpr = self.ReLu( self.wpR(hp) )     # [1,batch,a]*[a,b] = [1,batch,b]
+        xpr = self.ReLu( self.wpR(  hp  ) ) # [1,batch,a]*[a,b] = [1,batch,b]
         xpl = self.ReLu( self.wpL(hidden) ) # [1,batch,a]*[a,b] = [1,batch,b]
 
         xp = self.ReLu( self.wp( xpl+xpr ) )    # [1,batch,c]*[c,D] = [1,batch,D]

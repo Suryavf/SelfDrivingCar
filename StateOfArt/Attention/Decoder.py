@@ -80,9 +80,9 @@ class Kim2017(nn.Module):
         
         # Declare layers
         self.attn = Attention()
-        self.lstm = nn.LSTM( input_size = self.R,
+        self.lstm = nn.LSTM(  input_size = self.R,
                              hidden_size = self.H,
-                             num_layers =      1)
+                              num_layers =      1)
         
         self.Wh = nn.Linear(self.H,self.M,bias=True )
         self.Wy = nn.Linear(self.R,self.M,bias=False)
