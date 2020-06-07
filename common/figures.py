@@ -260,7 +260,7 @@ def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,
                 else:
                     mersh[k] = np.zeros(y_len)
             mersh = np.array( mersh )
-
+            
             # Smooth mersh
             f = interp2d(x, y, mersh.T, kind='linear')
             mersh = f(xnew,ynew)

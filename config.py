@@ -12,12 +12,12 @@ class Setting(object):
         self.general       =       General_settings()
         self.train         =         Train_settings()
         
-        self.model   =  "Experimental"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, Experimental, ExpBranch
+        self.model   =  "ExpBranch"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, Experimental, ExpBranch
         self.modules = {
                         "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19
                         "Decoder"   : "TVADecoder",      # BasicDecoder, DualDecoder, TVADecoder
                         "Attention" : "Atten9"    ,      # Atten1-9
-                        "Control"   : "SumHiddenFeature" # SumHiddenFeature,BranchesModule
+                        "Control"   : "BranchesModule"   # SumHiddenFeature,BranchesModule
                         }
         
         self.boolean = BooleanConditions(self.model,self.modules)

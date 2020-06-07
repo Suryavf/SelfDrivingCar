@@ -485,7 +485,7 @@ class Atten9(nn.Module):
         self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = self.inH)
         self.wfL = nn.Linear(self.  H,self.medH,bias=True)
         self.wfR = nn.Linear(self.inH,self.medH,bias=False)
-
+        
         self.wf = nn.Linear(self.medH,self.L,bias=True)
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         
