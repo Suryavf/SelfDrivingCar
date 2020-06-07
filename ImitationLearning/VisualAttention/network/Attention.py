@@ -482,7 +482,7 @@ class Atten9(nn.Module):
         self.medH = n_hidden/4 # 256 128
 
         # Filtering 
-        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = self.inH)
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = int(self.inH))
         self.wfL = nn.Linear(self.  H,self.medH,bias=True)
         self.wfR = nn.Linear(self.inH,self.medH,bias=False)
         
@@ -490,7 +490,7 @@ class Atten9(nn.Module):
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         
         # Pigeonholing 
-        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = self.inH)
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = int(self.inH))
         self.wpL = nn.Linear(self.  H,self.medH,bias=True)
         self.wpR = nn.Linear(self.inH,self.medH,bias=False)
         
