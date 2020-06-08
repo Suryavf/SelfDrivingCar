@@ -101,7 +101,6 @@ class ImitationModel(object):
         
         # Path files
         self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
-        self.  trainingFiles = self.  trainingFiles[:3000]
         self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
         
         # Prioritized sampling

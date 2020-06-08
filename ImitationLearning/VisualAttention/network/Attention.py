@@ -579,14 +579,14 @@ class Atten10(nn.Module):
         self.wfR = nn.Linear( 512,  256,bias=False)
 
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
+        self.wf = nn.Linear(self.L,self.L,bias=True)
         
         # Pigeonholing 
         self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
         self.wpL = nn.Linear(1024,  256,bias=True )
         self.wpR = nn.Linear( 512,  256,bias=False)
+
         self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
-        
-        self.wf = nn.Linear(self.L,self.L,bias=True)
         self.wp = nn.Linear(self.D,self.D,bias=True)
 
         # Initialization
@@ -642,9 +642,11 @@ class Atten10(nn.Module):
 
         # Attention maps
         featureFil = self.avgFiltering   (feature               ).squeeze(2)
+        featureFil = self.Sigmoid( self.wf( featureFil ) )
+
         featurePig = self.avgPigeonholing(feature.transpose(1,2)).squeeze(2)
-        featureFil = self.wf( featureFil )
-        featurePig = self.wp( featurePig )
+        featurePig = self.Sigmoid( self.wp( featurePig ) )
+
         alpha = self.norm4( featureFil*xf )    # [batch,L]
         beta  = self.norm4( featurePig*xp )    # [batch,D]
         

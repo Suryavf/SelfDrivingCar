@@ -204,6 +204,10 @@ def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,
     hgl = ['Follow lane','Left Turn','Straight','Right Turn']
     cmd = [0,1,3,2]
     
+    # msr       (74800,)
+    # msrErr    (74800,)
+    # command   (74800,)
+    
     if dom[0] == 0: mirror = False
     else          : mirror = True
     

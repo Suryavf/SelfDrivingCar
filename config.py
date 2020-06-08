@@ -16,7 +16,7 @@ class Setting(object):
         self.modules = {
                         "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19
                         "Decoder"   : "TVADecoder",      # BasicDecoder, DualDecoder, TVADecoder
-                        "Attention" : "Atten9"    ,      # Atten1-9
+                        "Attention" : "Atten9"    ,      # Atten1-10
                         "Control"   : "BranchesModule"   # SumHiddenFeature,BranchesModule
                         }
         
