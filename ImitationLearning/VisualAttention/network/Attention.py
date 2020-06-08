@@ -478,11 +478,11 @@ class Atten9(nn.Module):
         self.H = n_hidden                   #  hidden_size
         self.M = n_hidden                   #  hidden_size
 
-        self. inH = n_hidden/2 # 512 256
-        self.medH = n_hidden/4 # 256 128
+        self. inH = int(n_hidden/2) # 512 256
+        self.medH = int(n_hidden/4) # 256 128
 
         # Filtering 
-        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = int(self.inH))
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = self.inH)
         self.wfL = nn.Linear(self.  H,self.medH,bias=True)
         self.wfR = nn.Linear(self.inH,self.medH,bias=False)
         
@@ -490,13 +490,13 @@ class Atten9(nn.Module):
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         
         # Pigeonholing 
-        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = int(self.inH))
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = self.inH)
         self.wpL = nn.Linear(self.  H,self.medH,bias=True)
         self.wpR = nn.Linear(self.inH,self.medH,bias=False)
         
         self.wp = nn.Linear(self.medH,self.D,bias=True)
         self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
-
+        
         # Initialization
         self.   filteringLSTM.reset_parameters()
         self.pigeonholingLSTM.reset_parameters()
@@ -575,28 +575,28 @@ class Atten10(nn.Module):
 
         # Filtering 
         self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
-        self.wfL = nn.Linear(1024,  256,bias=True)
+        self.wfL = nn.Linear(1024,  256,bias=True )
         self.wfR = nn.Linear( 512,  256,bias=False)
 
-        self.wf = nn.Linear(256,self.L,bias=True)
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         
         # Pigeonholing 
         self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
-        self.wpL = nn.Linear(1024,  256,bias=True)
+        self.wpL = nn.Linear(1024,  256,bias=True )
         self.wpR = nn.Linear( 512,  256,bias=False)
-        
-        self.wp = nn.Linear(256,self.D,bias=True)
         self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
+        
+        self.wf = nn.Linear(self.L,self.L,bias=True)
+        self.wp = nn.Linear(self.D,self.D,bias=True)
 
         # Initialization
         self.   filteringLSTM.reset_parameters()
         self.pigeonholingLSTM.reset_parameters()
         torch.nn.init.xavier_uniform_(self.wfL.weight)
         torch.nn.init.xavier_uniform_(self.wfR.weight)
-        torch.nn.init.xavier_uniform_(self.wf .weight)
         torch.nn.init.xavier_uniform_(self.wpL.weight)
         torch.nn.init.xavier_uniform_(self.wpR.weight)
+        torch.nn.init.xavier_uniform_(self.wf .weight)
         torch.nn.init.xavier_uniform_(self.wp .weight)
 
         self.ReLu    = nn.ReLU()
@@ -625,26 +625,28 @@ class Atten10(nn.Module):
         # Filtering
         _,(hf,_) = self.filteringLSTM(hidden)
 
-        xfr = self.ReLu( self.wfR(hf) )     # [1,batch,a]*[a,b] = [1,batch,b]
-        xfl = self.ReLu( self.wfL(hidden) ) # [1,batch,a]*[a,b] = [1,batch,b]
+        xfr = self.wfR(hf)      # [1,batch,a]*[a,b] = [1,batch,b]
+        xfl = self.wfL(hidden)  # [1,batch,a]*[a,b] = [1,batch,b]
         
-        xf = self.ReLu( self.wf( xfl+xfr ) )    # [1,batch,b]*[b,L] = [1,batch,L]
-        xf = xf.squeeze(0)                      # [1,batch,L] -> [batch,L]    
+        xf = self.ReLu( xfl+xfr )   # [1,batch,b]*[b,L] = [1,batch,L]
+        xf = xf.squeeze(0)          # [1,batch,L] -> [batch,L]    
         
         # Pigeonholing
         _,(hp,_) = self.pigeonholingLSTM(hidden)
 
-        xpr = self.ReLu( self.wpR(hp) )     # [1,batch,a]*[a,b] = [1,batch,b]
-        xpl = self.ReLu( self.wpL(hidden) ) # [1,batch,a]*[a,b] = [1,batch,b]
-
-        xp = self.ReLu( self.wp( xpl+xpr ) )    # [1,batch,c]*[c,D] = [1,batch,D]
+        xpr = self.wpR(hp)      # [1,batch,a]*[a,b] = [1,batch,b]
+        xpl = self.wpL(hidden)  # [1,batch,a]*[a,b] = [1,batch,b]
+        
+        xp = self.ReLu( xpl+xpr )    # [1,batch,c]*[c,D] = [1,batch,D]
         xp = xp.squeeze(0)                      # [1,batch,D] -> [batch,D]    
 
         # Attention maps
         featureFil = self.avgFiltering   (feature               ).squeeze(2)
         featurePig = self.avgPigeonholing(feature.transpose(1,2)).squeeze(2)
-        alpha = self.norm2( featureFil*xf )    # [batch,L]
-        beta  = self.norm2( featurePig*xp )    # [batch,D]
+        featureFil = self.wf( featureFil )
+        featurePig = self.wp( featurePig )
+        alpha = self.norm4( featureFil*xf )    # [batch,L]
+        beta  = self.norm4( featurePig*xp )    # [batch,D]
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
         

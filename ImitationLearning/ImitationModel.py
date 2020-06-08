@@ -599,8 +599,8 @@ class ImitationModel(object):
         GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
         BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
-        F.saveColorMershError( metrics['Steer'], metrics['SteerError'],
-                               metrics['Command'],SteerErrorPath,dom=(-1.20, 1.20))
+        F.saveColorMershError( metrics[ 'Steer' ], metrics['SteerError'],
+                               metrics['Command'], SteerErrorPath,dom=(-1.20, 1.20))
         F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
         F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
         return running_loss,avgMetrics
