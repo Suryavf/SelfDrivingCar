@@ -575,16 +575,16 @@ class Atten10(nn.Module):
 
         # Filtering 
         self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
-        self.wfL = nn.Linear(1024,  256,bias=True )
-        self.wfR = nn.Linear( 512,  256,bias=False)
+        self.wfL = nn.Linear(1024,self.L,bias=True )
+        self.wfR = nn.Linear( 512,self.L,bias=False)
 
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
         self.wf = nn.Linear(self.L,self.L,bias=True)
         
         # Pigeonholing 
         self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
-        self.wpL = nn.Linear(1024,  256,bias=True )
-        self.wpR = nn.Linear( 512,  256,bias=False)
+        self.wpL = nn.Linear(1024,self.D,bias=True )
+        self.wpR = nn.Linear( 512,self.D,bias=False)
 
         self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
         self.wp = nn.Linear(self.D,self.D,bias=True)

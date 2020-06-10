@@ -94,7 +94,7 @@ class CoRL2017Dataset(object):
                                                         p=0.3),
                                     RandomTransWrapper( seq=iaa.Multiply((0.9, 1.1), per_channel=0.2),
                                                         p=0.4),
-                                    RandomTransWrapper( seq=iaa.ContrastNormalization((0.8, 1.2), per_channel=0.5),
+                                    RandomTransWrapper( seq=iaa.contrast.LinearContrast((0.8, 1.2), per_channel=0.5),
                                                         p=0.09),
                                     ])
         
