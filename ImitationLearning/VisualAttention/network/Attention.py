@@ -606,14 +606,14 @@ class Atten10(nn.Module):
 
     def norm2(self,x):
         y = self.Sigmoid(x)**2
-        y = x.mean(1) + 10**-6
+        y = y.mean(1) + 10**-6
         y = torch.sqrt(y)
 
         return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
         y = self.Sigmoid(x)**4
-        y = x.mean(1) + 10**-12
+        y = y.mean(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 

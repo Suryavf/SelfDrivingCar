@@ -15,6 +15,7 @@ conda install -c anaconda numpy
 conda install -c anaconda pandas
 conda install -c anaconda opencv
 conda install -c anaconda scipy
+pip install efficientnet_pytorch
 pip install matplotlib
 pip install imgaug
 pip install tqdm

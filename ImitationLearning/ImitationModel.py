@@ -272,10 +272,8 @@ class ImitationModel(object):
 
         if weight is not None:
             # One wight to one sample
-            weight = weight.reshape(1,-1)
-            ones   = np.ones([self.setting.train.sequence_len,1])
-            weight = ones.dot(weight).reshape([-1,1],order='F')
-            weight = torch.from_numpy(weight).to(self.device)
+            weight = weight.reshape(-1,1)
+            weight = weight.to(self.device)
             
             loss = loss.mul(weight)
 
@@ -322,8 +320,8 @@ class ImitationModel(object):
         measure    = measure   ['actions']
         prediction = prediction['actions']
         if measure.size(-1) == 12:
-            measure    = measure   .view(-1,3,4).sum(-1)
-            prediction = prediction.view(-1,3,4).sum(-1)
+            measure    = measure   .view(-1,4,3).sum(-2)
+            prediction = prediction.view(-1,4,3).sum(-2)
         
         # Measurements
         dev_Steer = measure[:,0] * max_steering
