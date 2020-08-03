@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from   torchvision import models
+from   ImitationLearning.backbone import EfficientNet
 
 """ Convolutional Neuronal Network - 5 layers
     -----------------------------------------
@@ -194,30 +195,6 @@ class ResNet50(nn.Module):
         x = self.LeakyReLu(x)
         return x
 
-""" ResNet 50 (max)
-    ---------------
-        * Input: img [batch,H,W]
-        * Output: xt [batch,D,h,w]
-"""
-class ResNet50Max(nn.Module):
-    """ Constructor """
-    def __init__(self,):
-        super(ResNet50Max, self).__init__()
-        # Layers
-        self.model = models.resnet50(pretrained=True)
-        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        
-    def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
-        return( x,y,512 )
-
-    """ Forward """
-    def forward(self,x):
-        with torch.no_grad():
-            x = self.model(x)                       # [batch,D,h,w]
-        return x
-
 
 """ Wide residual network
     ---------------------
@@ -264,34 +241,6 @@ class WideResNet50(nn.Module):
         x = self.LeakyReLu(x)
         return x
 
-""" Wide residual network (max)
-    ---------------------------
-    Ref: He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep residual learning 
-         for image recognition. In Proceedings of the IEEE conference on 
-         computer vision and pattern recognition (pp. 770-778).
-    
-        * Input: img [batch,H,W]
-        * Output: xt [batch,D,h,w]
-"""
-class WideResNet50Max(nn.Module):
-    """ Constructor """
-    def __init__(self,):
-        super(WideResNet50Max, self).__init__()
-        # Layers
-        self.model     = models.wide_resnet50_2(pretrained=True)
-        self.model     = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-
-    def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
-        return( x,y,512 )
-
-    """ Forward """
-    def forward(self,x):
-        with torch.no_grad():
-            x = self.model(x)                       # [batch,D,h,w]
-        return x
-
 
 class VGG19(nn.Module):
     """ Constructor """
@@ -330,5 +279,98 @@ class VGG19(nn.Module):
         if self.compression>2:
             x = self.linear3(x)
             x = self.LeakyReLu(x)
+        return x
+        
+
+""" EfficientNet 
+    ------------
+    Ref: Mingxing Tan, Quoc V. Le (2019). EfficientNet: Rethinking Model 
+         Scaling for Convolutional Neural Networks. In International 
+         Conference on Machine Learning (pp. 6105-6114).
+
+        * Input: img [batch,H,W]
+        * Output: xt [batch,D,h,w]
+"""
+class EfficientNetB0(nn.Module):
+    """ Constructor """
+    def __init__(self,):
+        super(EfficientNetB0, self).__init__()
+        # Layers
+        self.model = EfficientNet.from_name('efficientnet-b0')
+
+    # (88,200) -> (96,192)
+    def cube(self,in_size=(96,192)):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        x = self.model(x)                       # [batch,D,h,w]
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
+        return x
+        
+
+class EfficientNetB1(nn.Module):
+    """ Constructor """
+    def __init__(self,):
+        super(EfficientNetB1, self).__init__()
+        # Layers
+        self.model = EfficientNet.from_name('efficientnet-b1')
+
+    # (88,200) -> (96,192)
+    def cube(self,in_size=(96,192)):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        x = self.model(x)                       # [batch,D,h,w]
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
+        return x
+        
+
+class EfficientNetB2(nn.Module):
+    """ Constructor """
+    def __init__(self,):
+        super(EfficientNetB2, self).__init__()
+        # Layers
+        self.model = EfficientNet.from_name('efficientnet-b2')
+
+    # (88,200) -> (96,192)
+    def cube(self,in_size=(96,192)):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        x = self.model(x)                       # [batch,D,h,w]
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
+        return x
+        
+
+class EfficientNetB3(nn.Module):
+    """ Constructor """
+    def __init__(self,):
+        super(EfficientNetB3, self).__init__()
+        # Layers
+        self.model = EfficientNet.from_name('efficientnet-b3')
+
+    # (88,200) -> (96,192)
+    def cube(self,in_size=(96,192)):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        x = self.model(x)                       # [batch,D,h,w]
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
         return x
         
