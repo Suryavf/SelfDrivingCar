@@ -14,9 +14,9 @@ class Setting(object):
         
         self.model   =  "ExpBranch"        # Basic, Multimodal, Codevilla18, Codevilla19, Kim2017, Experimental, ExpBranch
         self.modules = {
-                        "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19
+                        "Encoder"   : "CNN5"      ,      # CNN5, ResNet50, WideResNet50, VGG19, EfficientNetB0-3
                         "Decoder"   : "TVADecoder",      # BasicDecoder, DualDecoder, TVADecoder
-                        "Attention" : "Atten9"    ,      # Atten1-10
+                        "Attention" : "Atten11"   ,      # Atten1-12
                         "Control"   : "BranchesModule"   # SumHiddenFeature,BranchesModule
                         }
         
