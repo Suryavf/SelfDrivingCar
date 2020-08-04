@@ -568,9 +568,6 @@ url_map = {
     'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
     'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
     'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
-…    print('Loaded pretrained weights for {}'.format(model_name))
-et-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
-    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
 }
 
 # train with Adversarial Examples(AdvProp)
@@ -803,7 +800,7 @@ class EfficientNet(nn.Module):
 
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(block_args.input_filters, self._global_params),
+                input_filters =round_filters(block_args.input_filters, self._global_params),
                 output_filters=round_filters(block_args.output_filters, self._global_params),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
@@ -818,7 +815,7 @@ class EfficientNet(nn.Module):
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
         # Head
-        in_channels = block_args.output_filters  # output of final block
+        in_channels  = block_args.output_filters  # output of final block
         out_channels = round_filters(1280, self._global_params)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
@@ -908,8 +905,10 @@ class EfficientNet(nn.Module):
             # print(x.shape)
         
         # Head
-        x = self._swish(self._bn1(self._conv_head(x)))
-
+        # x = self._conv_head(x)
+        # x = self._bn1(x)
+        # x = self._swish(x)
+        
         return x
 
     def forward(self, inputs):

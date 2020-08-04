@@ -113,10 +113,7 @@ class CoRL2017Dataset(object):
         trans = list()
         if   self.isTrain: trans.append(self.transformDataAug)
         trans.append(transforms.ToPILImage())
-        if   self.setting.boolean.backbone ==         'CNN5': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone ==     'ResNet50': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone == 'WideResNet50': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone ==        'VGG19': trans.append(transforms.Resize(self.setting.boolean.shape))
+        trans.append(transforms.Resize(self.setting.boolean.shape))
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 

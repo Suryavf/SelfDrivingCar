@@ -407,10 +407,14 @@ _temporalModelList   = ['Kim2017','Experimental','ExpBranch']
 _branchesModList = ['BranchesModule']
 _temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 
-_shape = {  'CNN5'        : (92,196), 
-            'ResNet50'    : (96,192), 
-            'WideResNet50': (96,192), 
-            'VGG19'       : (96,192)
+_shape = {  'CNN5'          : (92,196), 
+            'ResNet50'      : (96,192), 
+            'WideResNet50'  : (96,192), 
+            'VGG19'         : (96,192), 
+            'EfficientNetB0': (96,192), 
+            'EfficientNetB1': (96,192), 
+            'EfficientNetB2': (96,192), 
+            'EfficientNetB3': (96,192)
           }
 class BooleanConditions(object):
     def __init__(self,model,modules):
