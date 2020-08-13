@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from   torchvision import models
 from   ImitationLearning.backbone import EfficientNet
+from   ImitationLearning.backbone import MemoryEfficientSwish
 
 """ Convolutional Neuronal Network - 5 layers
     -----------------------------------------
@@ -147,6 +148,49 @@ class CNN5Max(nn.Module):
         x = self.batchN5(x)
         x = self.   ReLU(x)                     # [batch,D,h,w]
         
+        return x
+
+
+""" ResNet 34
+    ---------
+    Ref: He, K., Zhang, X., Ren, S., & Sun, J. (2016). "Deep residual learning 
+         for image recognition". In Proceedings of the IEEE conference on 
+         computer vision and pattern recognition (pp. 770-778).
+    
+        * Input: img [batch,H,W]
+        * Output: xt [batch,L,D]
+"""
+class ResNet34(nn.Module):
+    """ Constructor """
+    def __init__(self,):
+        super(ResNet34, self).__init__()
+        # Layers
+        self.model = models.resnet34(pretrained=False)
+        self.model = torch.nn.Sequential(*(list(self.model.children())[:-3]))
+        
+        self.convHead = nn.Conv2d(256,64, kernel_size=1, bias=False)
+        self.bn       = nn.BatchNorm2d(num_features=64, momentum=0.99, eps=1e-3)
+        self.swish    = MemoryEfficientSwish()
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.convHead.weight)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
+        
+    def cube(self,in_size=(96,192)):
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,64 )
+
+    """ Forward """
+    def forward(self,x):
+        x = self.model(x)                       # [batch,D,h,w]
+        x = self.convHead(x)
+        x = self.bn(x)
+        x = self.swish(x)
+        
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
+
         return x
 
 
@@ -300,9 +344,9 @@ class EfficientNetB0(nn.Module):
 
     # (88,200) -> (96,192)
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/16 )
-        y = int( in_size[1]/16 )
-        return( x,y,112 )
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):
@@ -321,9 +365,9 @@ class EfficientNetB1(nn.Module):
 
     # (88,200) -> (96,192)
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/16 )
-        y = int( in_size[1]/16 )
-        return( x,y,112 )
+        x = int( in_size[0]/8 )
+        y = int( in_size[1]/8 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):

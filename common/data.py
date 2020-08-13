@@ -1,5 +1,6 @@
 import random
 import numpy  as np
+import pandas as pd
 import h5py
 from   torch.utils.data   import Dataset
 from   torchvision        import transforms
@@ -183,6 +184,79 @@ class CoRL2017Dataset(object):
     Ref:
 
 """
+class SumTree(object):
+    """ Constructor """
+    def __init__(self,path):
+        # Read data
+        data = pd.read_csv(path)
+        n_samples = len(data)
+
+        self.n_samples = n_samples
+        self.n_leaf    = int(2**np.ceil(np.log2(n_samples)))
+        self.n_nodes   = 2*self.n_leaf - 1
+
+        # Samples Tree
+        self._tree = np.zeros( self.n_nodes )
+
+        # Initialize
+        self.file = data['file'].to_list()
+        for idx,value in enumerate(data['n'].to_list()):
+            self.update(idx,value)
+
+
+    """ Functions """
+    def _update(self,idx):
+        son1 = self._tree[2*idx + 1]
+        son2 = self._tree[2*idx + 2]
+        self._tree[idx] = son1 + son2
+        # Root
+        if idx == 0: return son1 + son2
+        else: return self._update( int(np.ceil(idx/2)-1) ) 
+    def update(self,idx,value):
+        value = np.floor(value/20)*20
+        idx = idx + (self.n_samples - 1)
+        self._tree[idx] = value
+        
+        # Update fame
+        n = int(np.ceil(idx/2)-1)
+        return self._update( n )
+
+    """ Get sample """
+    def _search(self,value,node):
+        # Root
+        if node == 0 and value>=self._tree[0]:
+            return self.n_nodes - 1 # Last
+        
+        # Branches
+        if node < self.n_samples - 1:
+            son1 = int(2*node + 1)
+            son2 = int(2*node + 2)
+            
+            # Left
+            if value < self._tree[son1]:
+                return self._search(   value  ,son1)
+            # Right
+            else:
+                base = self._tree[son1]
+                return self._search(value-base,son2)
+        else:
+            return node
+
+    def sample(self, s=None):
+        
+        # Roulette
+        if s is not None:
+            s = np.random.uniform()
+            s = int(s * self._tree[0])
+
+        # Index in pow(priority,alpha)
+        idx = self._search(s,0)
+        
+        # Index in data
+        idx = idx - (self.n_samples - 1)
+        return int(idx)
+
+
 class Carla100Dataset(object):
     def __init__(self, setting, files, train = True):
         # Boolean

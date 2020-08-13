@@ -55,7 +55,7 @@ class PrioritizedSamples(object):
             self.beta = min(self.beta,1.0)
             self.n_iter += 1
 
-    """ Constructor """
+    """ Functions """
     def _update(self,idx):
         son1 = self.priorityPowAlpha[2*idx + 1]
         son2 = self.priorityPowAlpha[2*idx + 2]

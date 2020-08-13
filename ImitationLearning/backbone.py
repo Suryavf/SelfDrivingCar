@@ -794,7 +794,7 @@ class EfficientNet(nn.Module):
 
         # Build blocks
         self._blocks = nn.ModuleList([])
-        self._blocks_args = self._blocks_args[:-2]
+        self._blocks_args = self._blocks_args[:-3] # --------------------------------------------------------------
         # print('blocks_args: ',self._blocks_args)
         for block_args in self._blocks_args:
 
@@ -816,7 +816,7 @@ class EfficientNet(nn.Module):
 
         # Head
         in_channels  = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._global_params)
+        out_channels = round_filters(128, self._global_params)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -905,9 +905,9 @@ class EfficientNet(nn.Module):
             # print(x.shape)
         
         # Head
-        # x = self._conv_head(x)
-        # x = self._bn1(x)
-        # x = self._swish(x)
+        x = self._conv_head(x)
+        x = self._bn1(x)
+        x = self._swish(x)
         
         return x
 
