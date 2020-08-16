@@ -184,16 +184,16 @@ class CoRL2017Dataset(object):
     Ref:
 
 """
-class SumTree(object):
+class FileTree(object):
     """ Constructor """
     def __init__(self,path):
         # Read data
         data = pd.read_csv(path)
-        n_samples = len(data)
+        n_files = len(data)
 
-        self.n_samples = n_samples
-        self.n_leaf    = int(2**np.ceil(np.log2(n_samples)))
-        self.n_nodes   = 2*self.n_leaf - 1
+        self.n_files = n_files
+        self.n_leaf  = int(2**np.ceil(np.log2(n_files)))
+        self.n_nodes = 2*self.n_leaf - 1
 
         # Samples Tree
         self._tree = np.zeros( self.n_nodes )
@@ -201,10 +201,10 @@ class SumTree(object):
         # Initialize
         self.file = data['file'].to_list()
         for idx,value in enumerate(data['n'].to_list()):
+            value = int(np.floor(value/20)*20)
             self.update(idx,value)
 
-
-    """ Functions """
+    """ Update """
     def _update(self,idx):
         son1 = self._tree[2*idx + 1]
         son2 = self._tree[2*idx + 2]
@@ -213,14 +213,29 @@ class SumTree(object):
         if idx == 0: return son1 + son2
         else: return self._update( int(np.ceil(idx/2)-1) ) 
     def update(self,idx,value):
-        value = np.floor(value/20)*20
-        idx = idx + (self.n_samples - 1)
+        idx = idx + (self.n_files - 1)
         self._tree[idx] = value
         
         # Update fame
         n = int(np.ceil(idx/2)-1)
         return self._update( n )
 
+    """ Previous account """
+    def _father(self,node):
+        # Is it right branch?
+        _right = (node%2 == 0)
+        # Where is dad?
+        _dad = int( (node-1)/2 )
+        return _dad, _right
+    def _previousSum(self,node,sum=0):
+        # Root
+        if node == 0: return sum
+        # Calcule father
+        father, right = self._father(node)
+        # Accumulate sum 
+        if right: sum += self._tree[2*father + 1]
+        return self._previousSum(father,sum)
+    
     """ Get sample """
     def _search(self,value,node):
         # Root
@@ -228,7 +243,7 @@ class SumTree(object):
             return self.n_nodes - 1 # Last
         
         # Branches
-        if node < self.n_samples - 1:
+        if node < self.n_files - 1:
             son1 = int(2*node + 1)
             son2 = int(2*node + 2)
             
@@ -242,20 +257,26 @@ class SumTree(object):
         else:
             return node
 
-    def sample(self, s=None):
+    def sample(self, idsample=None):
         
         # Roulette
-        if s is not None:
-            s = np.random.uniform()
-            s = int(s * self._tree[0])
-
-        # Index in pow(priority,alpha)
-        idx = self._search(s,0)
+        if idsample is None:
+            idsample = np.random.uniform()
+            idsample = int(idsample * self._tree[0])
+        # idsample to [general position]
+        else:
+            idsample = idsample * 20 # Position of frame
+            
+        # Find idsample [general position]
+        idx  = self._search(idsample,0)
+        prev = self._previousSum(idx)
+        pos  = idsample - prev
         
-        # Index in data
-        idx = idx - (self.n_samples - 1)
-        return int(idx)
-
+        # File name
+        idx = idx - (self.n_leaf - 1)  # Index in data
+        filename = self.file[idx]
+        
+        return int(pos),filename
 
 class Carla100Dataset(object):
     def __init__(self, setting, files, train = True):

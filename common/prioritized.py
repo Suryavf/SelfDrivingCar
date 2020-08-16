@@ -126,7 +126,7 @@ class PrioritizedSamples(object):
             weight = 1
         
         # Index in data
-        idx = idx - (self.n_samples - 1)
+        idx = idx - (self.n_leaf - 1)
         return int(idx),weight
         
 
@@ -259,6 +259,6 @@ class PrioritizedExperienceReplay(object):
             self.n_iter += 1
 
         # Index in data
-        idx = idx - (self.n_samples - 1)
+        idx = idx - (self.n_leaf - 1)
         return int(idx),weight
         
