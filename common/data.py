@@ -340,7 +340,7 @@ class Carla100Dataset(object):
     def __len__(self):
         return len( self.files )
 
-    def routine(self,img,actions,command,speed):
+    def routine(self,img,_actions,command,speed):
         # Parameters
         max_steering = self.setting.preprocessing.max_steering
         max_speed    = self.setting.preprocessing.max_speed
@@ -355,10 +355,12 @@ class Carla100Dataset(object):
         inputs['frame'] = img
 
         # Actions
-        actions[0] = actions[0]/max_steering   # Steering angle (max 1.2 rad)
+        _actions[0] = _actions[0]/max_steering   # Steering angle (max 1.2 rad)
         if self.isBranches: 
             actions = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
-            actions[command,:] = actions
+            actions[command,:] = _actions
+        else:
+            actions = _actions
         inputs['actions'] = actions.reshape(-1)
 
         # Mask
