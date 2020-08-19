@@ -33,6 +33,7 @@ from   common.DiffGrad    import DiffGrad
 from   common.DiffRGrad   import DiffRGrad
 from   common.DeepMemory  import DeepMemory
 from   common.data        import CoRL2017Dataset
+from   common.data        import CARLA100Dataset
 from   common.data        import  GeneralDataset as Dataset
 from   common.prioritized import PrioritizedSamples
 
@@ -99,10 +100,23 @@ class ImitationModel(object):
         self.weightLoss = None
         self.lossFunc   = None
         
-        # Path files
-        self.  trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
-        self.validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
-        
+        # Training data
+        self.CoRL2017 = False
+        samplesPerFile  = int( self.setting.general.framePerFile/self.setting.general.slidingWindow )
+        if self.CoRL2017:
+            trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+            self.trainDataset = CoRL2017Dataset(setting,trainingFiles,train= True)
+            self.n_training = len(trainingFiles)*samplesPerFile
+        else:
+            fileindex = self.setting.general.trainPath
+            self.trainDataset = CARLA100Dataset(setting,   fileindex,train= True)
+            self.n_training = len(self.trainDataset)
+
+        # Validation data
+        validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
+        self.n_validation = len(validationFiles)*samplesPerFile
+
         # Prioritized sampling
         self.framePerFile = self.setting.general.framePerFile
         self.sequence_len = self.setting.general.sequence_len 
@@ -112,17 +126,14 @@ class ImitationModel(object):
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
             self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-        self.samplePriority = PrioritizedSamples( n_samples=len(self.trainingFiles)*self.samplesByTrainingFile, 
+        self.samplePriority = PrioritizedSamples( n_samples = self.n_training, 
                                                   alpha = self.setting.sampling.alpha,
                                                   beta  = self.setting.sampling. beta,
                                                   betaUniform = self.setting.sampling.beta_uniform,
                                                   betaPhase   = self.setting.sampling.beta_phase,
-                                                  UCB = self.setting.sampling.UCB,
-                                                  c   = self.setting.sampling.c)
-
-        # Datasets
-        self.trainDataset = CoRL2017Dataset(setting,self.  trainingFiles,train= True)
-        self.validDataset = CoRL2017Dataset(setting,self.validationFiles,train=False)
+                                                  UCB  = self.setting.sampling.UCB,
+                                                  c    = self.setting.sampling.c,
+                                                  fill = not self.CoRL2017)
 
 
     """ Check folders to save """
@@ -404,7 +415,7 @@ class ImitationModel(object):
     """
     def _Exploration(self):
         # Parameters
-        n_samples    = len(self.trainingFiles)*self.samplesByTrainingFile
+        n_samples    = self.n_training
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
@@ -463,7 +474,7 @@ class ImitationModel(object):
     """
     def _Train(self,epoch):
         # Parameters
-        n_samples    = int(len(self.trainingFiles)*self.samplesByTrainingFile*0.3)
+        n_samples    = int(self.n_training*0.3)
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
@@ -533,7 +544,7 @@ class ImitationModel(object):
     """
     def _Validation(self,epoch):
         # Parameters
-        n_samples    = len(self.validationFiles)*self.samplesByValidationFile
+        n_samples    = self.n_validation
         stepView     = self.setting.general.stepView
 
         # Loss
@@ -617,8 +628,9 @@ class ImitationModel(object):
         tb = SummaryWriter('runs/'+self.setting.model+'/'+self.codename )
 
         # Exploration
-        print("\nExploration")
-        self._Exploration()
+        if self.CoRL2017:
+            print("\nExploration")
+            self._Exploration()
 
         # Loop over the dataset multiple times
         for epoch in range(self.epoch,n_epoch):
@@ -707,7 +719,7 @@ class ImitationModel(object):
         self.model.load_state_dict(checkpoint['state_dict'])
 
         # Parameters
-        n_samples = len(self.validationFiles)*self.samplesByValidationFile
+        n_samples = self.n_validation
 
         # ID list
         IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)

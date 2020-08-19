@@ -283,7 +283,7 @@ class FileTree(object):
         return int(pos),filename
 
 
-class Carla100Dataset(object):
+class CARLA100Dataset(object):
     def __init__(self, setting, fileindex, train = True):
         # Boolean
         self.isTrain         = train

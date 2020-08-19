@@ -6,7 +6,7 @@ class PrioritizedSamples(object):
     def __init__(self,n_samples,alpha=1.0,beta=0.9,
                         betaUniform=True,betaPhase=50,
                         UCB=False,c=1.0,
-                        init=None):
+                        fill=False):
         # Parameters
         self.n_samples = n_samples
         self.alpha     =     alpha
@@ -19,10 +19,10 @@ class PrioritizedSamples(object):
         self.priorityPowAlpha = np.zeros( self.n_nodes )
         
         # Fill tree
-        if init is not None:
+        if fill:
             for i in range(self.n_leaf):
                 idx = i + (self.n_leaf - 1)
-                self.priorityPowAlpha[idx] = init
+                self.priorityPowAlpha[idx] = 2.0
                 
                 n = int(np.ceil(idx/2)-1)
                 self._update( n )
