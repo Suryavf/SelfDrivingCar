@@ -5,7 +5,8 @@ class PrioritizedSamples(object):
     """ Constructor """
     def __init__(self,n_samples,alpha=1.0,beta=0.9,
                         betaUniform=True,betaPhase=50,
-                        UCB=False,c=1.0):
+                        UCB=False,c=1.0,
+                        init=None):
         # Parameters
         self.n_samples = n_samples
         self.alpha     =     alpha
@@ -16,6 +17,15 @@ class PrioritizedSamples(object):
 
         # Samples Tree
         self.priorityPowAlpha = np.zeros( self.n_nodes )
+        
+        # Fill tree
+        if init is not None:
+            for i in range(self.n_leaf):
+                idx = i + (self.n_leaf - 1)
+                self.priorityPowAlpha[idx] = init
+                
+                n = int(np.ceil(idx/2)-1)
+                self._update( n )
 
         # Beta
         self.betaUniform = betaUniform
@@ -71,7 +81,7 @@ class PrioritizedSamples(object):
         if idx == 0: return son1 + son2
         else: return self._like( int(np.ceil(idx/2)-1) ) 
     def update(self,idx,p = None):
-        idx = idx + (self.n_samples - 1)
+        idx = idx + (self.n_leaf - 1)
 
         if self.UCB: value = p**self.alpha + self.c*np.sqrt( np.log(self.sampleFame[0]) / ( 1 + self.sampleFame[idx]) )
         else       : value = p**self.alpha 
@@ -96,7 +106,7 @@ class PrioritizedSamples(object):
             return self.n_nodes - 1 # Last
         
         # Branches
-        if node < self.n_samples - 1:
+        if node < self.n_leaf - 1:
             son1 = int(2*node + 1)
             son2 = int(2*node + 2)
             

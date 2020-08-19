@@ -204,6 +204,9 @@ class FileTree(object):
             value = int(np.floor(value/20)*20)
             self.update(idx,value)
 
+    def __len__(self):
+        return int(self._tree[0])
+
     """ Update """
     def _update(self,idx):
         son1 = self._tree[2*idx + 1]
@@ -262,7 +265,8 @@ class FileTree(object):
         # Roulette
         if idsample is None:
             idsample = np.random.uniform()
-            idsample = int(idsample * self._tree[0])
+            idsample = idsample * self._tree[0]
+            idsample = int(idsample/20)*20
         # idsample to [general position]
         else:
             idsample = idsample * 20 # Position of frame
@@ -278,8 +282,9 @@ class FileTree(object):
         
         return int(pos),filename
 
+
 class Carla100Dataset(object):
-    def __init__(self, setting, files, train = True):
+    def __init__(self, setting, fileindex, train = True):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
@@ -291,7 +296,7 @@ class Carla100Dataset(object):
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.files = files
+        self.files = FileTree(fileindex) # = fileindex
 
         # Objects
         self.transform = None
@@ -328,25 +333,21 @@ class Carla100Dataset(object):
         trans = list()
         if   self.isTrain: trans.append(self.transformDataAug)
         trans.append(transforms.ToPILImage())
-        if   self.setting.boolean.backbone ==         'CNN5': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone ==     'ResNet50': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone == 'WideResNet50': trans.append(transforms.Resize(self.setting.boolean.shape))
-        elif self.setting.boolean.backbone ==        'VGG19': trans.append(transforms.Resize(self.setting.boolean.shape))
+        trans.append(transforms.Resize(self.setting.boolean.shape))
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 
-
     def __len__(self):
-        return self.samplesPerFile * len(self.files)
+        return len( self.files )
 
-    def routine(self,img,target):
+    def routine(self,img,actions,command,speed):
         # Parameters
         max_steering = self.setting.preprocessing.max_steering
         max_speed    = self.setting.preprocessing.max_speed
         inputs       = {}
 
         # Command control 
-        command = int(target[24])-2
+        command = int(command)-2
         if not self.isTrain:
             inputs['command'] = command
 
@@ -354,12 +355,10 @@ class Carla100Dataset(object):
         inputs['frame'] = img
 
         # Actions
-        target[0] = target[0]/max_steering   # Steering angle (max 1.2 rad)
+        actions[0] = actions[0]/max_steering   # Steering angle (max 1.2 rad)
         if self.isBranches: 
             actions = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
-            actions[command,:] = target[:3]
-        else:
-            actions = target[:3]
+            actions[command,:] = actions
         inputs['actions'] = actions.reshape(-1)
 
         # Mask
@@ -370,7 +369,7 @@ class Carla100Dataset(object):
         
         # Speed input/output (max 90km/h)
         if self.includeSpeed or not self.isTrain:
-            speed = np.array([target[10]/max_speed,]).astype(np.float32)
+            speed = np.array([speed/max_speed,]).astype(np.float32)
             inputs['speed'] = speed
 
         return inputs
@@ -378,21 +377,27 @@ class Carla100Dataset(object):
 
     def __getitem__(self, idx):
         # File / Frame
-        idx_file   = idx // self.framePerFile
-        idx_sample = idx  % self.framePerFile
-        file_name  = self.files[idx_file]
+        idx_sample,filename = self.files.sample(idx)
         
         # Read
-        with h5py.File(file_name, 'r') as h5_file:
+        with h5py.File(filename, 'r') as h5_file:
             # Image input [88,200,3]
             img = np.array(h5_file['rgb'])[idx_sample]
             img = self.transform(img)
 
             # Target dataframe
-            target = np.array(h5_file['targets'])[idx_sample]
-            target = target.astype(np.float32)
+            actions = np.array(h5_file['actions'])[idx_sample]
+            actions = actions.astype(np.float32)
 
-            return self.routine(img,target) 
+            # Command
+            command = np.array(h5_file['command'])[idx_sample]
+            command = command.astype(np.float32)
+
+            # Velocity
+            speed = np.array(h5_file['velocity'])[idx_sample]
+            speed = speed.astype(np.float32)
+
+            return self.routine(img,actions,command,speed) 
             
 
 class GeneralDataset(Dataset):
