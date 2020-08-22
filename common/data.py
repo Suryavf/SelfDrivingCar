@@ -120,11 +120,11 @@ class CoRL2017Dataset(object):
         self.transform = transforms.Compose(trans)
 
 
-    def generateIDs(self):
+    def generateIDs(self,isTrainsequence=True):
         # Temporal
         # IDs = [file 1][file 2]....
         # len([file 1]) = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 ) 
-        if self.isTemporalModel:
+        if isTrainsequence:
             framePerFile  = self.framePerFile
             sequence_len  = self.sequence_len
             slidingWindow = self.slidingWindow
@@ -389,7 +389,7 @@ class CARLA100Dataset(object):
     """ Sample to sampleFile-ID vector """
     def sample2Idx(self,IDs):
         return self.slidingWindow*IDs
-    
+
     def __len__(self):
         return len( self.files )
 

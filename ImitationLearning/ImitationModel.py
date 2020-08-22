@@ -319,7 +319,7 @@ class ImitationModel(object):
 
         # Init IDs
         else:
-            IDs = self.trainDataset.generateIDs()
+            IDs = self.trainDataset.generateIDs(sequence)
             return IDs.astype(int)
         
 
