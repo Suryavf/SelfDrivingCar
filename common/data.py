@@ -129,7 +129,7 @@ class CoRL2017Dataset(object):
             sequence_len  = self.sequence_len
             slidingWindow = self.slidingWindow
             n_files       = len(self.files)
-            n_samples     = n_files*int( framePerFile/slidingWindow  )
+            n_samples     = n_files*int( (framePerFile-sequence_len)/slidingWindow + 1 )
 
             IDs = slidingWindow*np.array( range(n_samples) )
             IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs if (idx%framePerFile) < (framePerFile-sequence_len)+1]
