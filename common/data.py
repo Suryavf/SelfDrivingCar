@@ -141,6 +141,7 @@ class CoRL2017Dataset(object):
             n_samples = len(self.files)*self.framePerFile
             return np.array( range(n_samples) )
 
+    """ Sample to sampleFile-ID vector """
     def sample2Idx(self,arr):
         framePerFile  = self.framePerFile
         sequence_len  = self.sequence_len
@@ -212,11 +213,10 @@ class CoRL2017Dataset(object):
             return self.routine(img,target) 
 
 
-""" CARLA 100 Dataset
+""" File Tree (CARLA 100)
     ----------------
-    Data generator for Carla Dataset.
-    Ref:
-
+    Tree for [prioritized] samples. Each leaf correspond to a training file.
+    IMPORTANTE: El codigo asume sequence_len = slidingWindow
 """
 class FileTree(object):
     """ Constructor """
@@ -278,7 +278,7 @@ class FileTree(object):
         return self._previousSum(father,sum)
     
     """ Get sample """
-    def _search(self,value,node):
+    def _search(self,value,node=0):
         # Root
         if node == 0 and value>=self._tree[0]:
             return self.n_nodes - 1 # Last
@@ -304,13 +304,13 @@ class FileTree(object):
         if idsample is None:
             idsample = np.random.uniform()
             idsample = idsample * self._tree[0]
-            idsample = int(idsample/20)*20
+            # idsample = int(idsample/self.sequence_len)*self.sequence_len
         # idsample to [general position]
-        else:
-            idsample = idsample * 20 # Position of frame
+        # else:
+            # idsample = idsample * self.sequence_len # Position of frame
             
         # Find idsample [general position]
-        idx  = self._search(idsample,0)
+        idx  = self._search(idsample)
         prev = self._previousSum(idx)
         pos  = idsample - prev
         
@@ -318,9 +318,17 @@ class FileTree(object):
         idx = idx - (self.n_leaf - 1)  # Index in data
         filename = self.file[idx]
         
+        # Return file and frame position in file
+        # Only one frame!!! (no sequence)
         return int(pos),filename
 
 
+""" CARLA 100 Dataset
+    ----------------
+    Data generator for Carla Dataset.
+    Ref:
+
+"""
 class CARLA100Dataset(object):
     def __init__(self, setting, fileindex, train = True):
         # Boolean
@@ -375,6 +383,13 @@ class CARLA100Dataset(object):
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 
+    def generateIDs(self):
+        return np.array( range( len(self.files) ) )
+
+    """ Sample to sampleFile-ID vector """
+    def sample2Idx(self,IDs):
+        return self.slidingWindow*IDs
+    
     def __len__(self):
         return len( self.files )
 
