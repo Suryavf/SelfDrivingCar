@@ -168,18 +168,17 @@ class ResNet34(nn.Module):
         self.model = models.resnet34(pretrained=False)
         self.model = torch.nn.Sequential(*(list(self.model.children())[:-3]))
         
-        self.convHead = nn.Conv2d(256,64, kernel_size=1, bias=False)
-        self.bn       = nn.BatchNorm2d(num_features=64, momentum=0.99, eps=1e-3)
+        self.convHead = nn.Conv2d(256,128, kernel_size=1, bias=False)
+        self.bn       = nn.BatchNorm2d(num_features=128, momentum=0.99, eps=1e-3)
         self.swish    = MemoryEfficientSwish()
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.convHead.weight)
-        torch.nn.init.xavier_uniform_(self.linear2.weight)
         
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
-        return( x,y,64 )
+        x = int( in_size[0]/16 )
+        y = int( in_size[1]/16 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):
@@ -208,35 +207,31 @@ class ResNet50(nn.Module):
     def __init__(self,):
         super(ResNet50, self).__init__()
         # Layers
-        self.model = models.resnet50(pretrained=True)
-        self.model = torch.nn.Sequential(*(list(self.model.children())[:-4]))
-        self.linear1   = nn.Linear(512,256,bias=True)
-        self.linear2   = nn.Linear(256,128,bias=True)
-        self.linear3   = nn.Linear(128, 64,bias=True)
-        self.LeakyReLu = nn.LeakyReLU()
+        self.model = models.resnet50(pretrained=False)
+        self.model = torch.nn.Sequential(*(list(self.model.children())[:-3]))
+        
+        self.convHead = nn.Conv2d(1024,128, kernel_size=1, bias=False)
+        self.bn       = nn.BatchNorm2d(num_features=128, momentum=0.99, eps=1e-3)
+        self.swish    = MemoryEfficientSwish()
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.linear1.weight)
-        torch.nn.init.xavier_uniform_(self.linear2.weight)
-        torch.nn.init.xavier_uniform_(self.linear3.weight)
+        torch.nn.init.xavier_uniform_(self.convHead.weight)
         
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
-        return( x,y,64 )
+        x = int( in_size[0]/16 )
+        y = int( in_size[1]/16 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):
-        with torch.no_grad():
-            x = self.model(x)                       # [batch,D,h,w]
-            x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
-            x = x.transpose(1, 2)                   # [batch,L,D]
-        x = self.linear1(x.detach())
-        x = self.LeakyReLu(x)
-        x = self.linear2(x)
-        x = self.LeakyReLu(x)
-        x = self.linear3(x)
-        x = self.LeakyReLu(x)
+        x = self.model(x)                       # [batch,D,h,w]
+        x = self.convHead(x)
+        x = self.bn(x)
+        x = self.swish(x)
+        
+        x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
+        x = x.transpose(1, 2)                   # [batch,L,D]
+
         return x
 
 

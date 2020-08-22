@@ -101,10 +101,14 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Training data
-        self.CoRL2017 = False
-        samplesPerFile  = int( self.setting.general.framePerFile/self.setting.general.slidingWindow )
+        self.CoRL2017 = True
+        self.framePerFile  = self.setting.general. framePerFile
+        self.sequence_len  = self.setting.general. sequence_len 
+        self.slidingWindow = self.setting.general.slidingWindow
+        samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
         if self.CoRL2017:
             trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+            trainingFiles.sort()
             self.trainDataset = CoRL2017Dataset(setting,trainingFiles,train= True)
             self.n_training = len(trainingFiles)*samplesPerFile
         else:
@@ -114,14 +118,11 @@ class ImitationModel(object):
 
         # Validation data
         validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+        validationFiles.sort()
         self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
         self.n_validation = len(validationFiles)*samplesPerFile
 
         # Prioritized sampling
-        self.framePerFile = self.setting.general.framePerFile
-        self.sequence_len = self.setting.general.sequence_len 
-
-        self.slidingWindow           = self.setting.general.slidingWindow
         self.samplesByTrainingFile   = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
@@ -298,27 +299,28 @@ class ImitationModel(object):
         if prioritized:
             val = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
             val = val.T
-            IDs = val[0]
+            IDs     = val[0]
             weights = val[1]
-        else:
-            IDs = np.array( range(n_samples) )
-        
-        # Sequence
-        if sequence:
-            # Temporal sliding window
-            IDs = IDs*self.slidingWindow
-            IDs = IDs.astype(int)
 
-            sequence_len = self.setting.general.sequence_len
-            IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
-            IDs = np.concatenate(IDs)
+            # Sequence
+            if sequence:
+                sequence_len = self.setting.general.sequence_len
 
-            if prioritized:
+                # sample-ID to idx
+                IDs = self.trainDataset.sample2Idx(IDs)
+                IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
+                IDs = np.concatenate(IDs)
+
+                # Weights
                 weights = [ w*np.ones(sequence_len) for w in weights ]
                 weights = np.concatenate(weights)
 
-        if prioritized: return IDs.astype(int),weights 
-        else:           return IDs.astype(int)
+            return IDs.astype(int),weights 
+
+        # Init IDs
+        else:
+            IDs = self.trainDataset.generateIDs()
+            return IDs.astype(int)
         
 
     """ Validation metrics """

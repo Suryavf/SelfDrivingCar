@@ -73,7 +73,8 @@ class CoRL2017Dataset(object):
 
         # Settings
         self.setting = setting
-        self.framePerFile = self.setting.general.framePerFile
+        self.framePerFile  = self.setting.general. framePerFile
+        self.slidingWindow = self.setting.general.slidingWindow
 
         # Files (paths)
         self.files = files
@@ -104,7 +105,7 @@ class CoRL2017Dataset(object):
         
         if self.isTemporalModel and self.isTrain:
             self.sequence_len   = setting.general.sequence_len
-            self.slidingWindow  = 5 
+            self.slidingWindow  = setting.general.slidingWindow
             self.samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
         else:
             self.samplesPerFile = self.framePerFile
@@ -117,6 +118,36 @@ class CoRL2017Dataset(object):
         trans.append(transforms.Resize(self.setting.boolean.shape))
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
+
+
+    def generateIDs(self):
+        # Temporal
+        # IDs = [file 1][file 2]....
+        # len([file 1]) = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 ) 
+        if self.isTemporalModel:
+            framePerFile  = self.framePerFile
+            sequence_len  = self.sequence_len
+            slidingWindow = self.slidingWindow
+            n_files       = len(self.files)
+            n_samples     = n_files*int( framePerFile/slidingWindow  )
+
+            IDs = slidingWindow*np.array( range(n_samples) )
+            IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs if (idx%framePerFile) < (framePerFile-sequence_len)+1]
+            
+            return np.concatenate(IDs)
+
+        # No temporal
+        else:
+            n_samples = len(self.files)*self.framePerFile
+            return np.array( range(n_samples) )
+
+    def sample2Idx(self,arr):
+        framePerFile  = self.framePerFile
+        sequence_len  = self.sequence_len
+        slidingWindow = self.slidingWindow
+        k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
+        k2 = sequence_len-slidingWindow
+        return [ slidingWindow*x + int(x/k1)*k2 for x in arr ]
 
 
     def __len__(self):
@@ -159,14 +190,17 @@ class CoRL2017Dataset(object):
         return inputs
 
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx, filename=None):
         # File / Frame
-        idx_file   = idx // self.framePerFile
-        idx_sample = idx  % self.framePerFile
-        file_name  = self.files[idx_file]
-        
+        if filename is None:
+            idx_file   = idx // self.framePerFile
+            idx_sample = idx  % self.framePerFile 
+            filename   = self.files[idx_file]
+        else:
+            idx_file = idx
+
         # Read
-        with h5py.File(file_name, 'r') as h5_file:
+        with h5py.File(filename, 'r') as h5_file:
             # Image input [88,200,3]
             img = np.array(h5_file['rgb'])[idx_sample]
             img = self.transform(img)
@@ -186,7 +220,7 @@ class CoRL2017Dataset(object):
 """
 class FileTree(object):
     """ Constructor """
-    def __init__(self,path):
+    def __init__(self,path,setting):
         # Read data
         data = pd.read_csv(path)
         n_files = len(data)
@@ -194,6 +228,10 @@ class FileTree(object):
         self.n_files = n_files
         self.n_leaf  = int(2**np.ceil(np.log2(n_files)))
         self.n_nodes = 2*self.n_leaf - 1
+        
+        if setting.boolean.temporalModel:
+            self.sequence_len   = setting.general.sequence_len
+            self.slidingWindow  = setting.general.slidingWindow
 
         # Samples Tree
         self._tree = np.zeros( self.n_nodes )
@@ -201,7 +239,7 @@ class FileTree(object):
         # Initialize
         self.file = data['file'].to_list()
         for idx,value in enumerate(data['n'].to_list()):
-            value = int(np.floor(value/20)*20)
+            value = int(np.floor(value/self.sequence_len)*self.sequence_len)
             self.update(idx,value)
 
     def __len__(self):
@@ -296,7 +334,7 @@ class CARLA100Dataset(object):
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.files = FileTree(fileindex) # = fileindex
+        self.files = FileTree(fileindex,setting) # = fileindex
 
         # Objects
         self.transform = None
