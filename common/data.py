@@ -133,13 +133,14 @@ class CoRL2017Dataset(object):
 
             IDs = slidingWindow*np.array( range(n_samples) )
             IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs if (idx%framePerFile) < (framePerFile-sequence_len)+1]
-            
-            return np.concatenate(IDs)
+            IDs = np.concatenate(IDs)
 
         # No temporal
         else:
             n_samples = len(self.files)*self.framePerFile
-            return np.array( range(n_samples) )
+            IDs = np.array( range(n_samples) )
+
+        return IDs.astype(int)
 
     """ Sample to sampleFile-ID vector """
     def sample2Idx(self,arr):
@@ -148,9 +149,9 @@ class CoRL2017Dataset(object):
         slidingWindow = self.slidingWindow
         k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
         k2 = sequence_len-slidingWindow
-        return [ slidingWindow*x + int(x/k1)*k2 for x in arr ]
-
-
+        arr = [ slidingWindow*x + int(x/k1)*k2 for x in arr ]
+        return arr.astype(int)
+        
     def __len__(self):
         return self.samplesPerFile * len(self.files)
 
@@ -384,11 +385,13 @@ class CARLA100Dataset(object):
         self.transform = transforms.Compose(trans)
 
     def generateIDs(self):
-        return np.array( range( len(self.files) ) )
+        IDs = np.array( range( len(self.files) ) )
+        return IDs.astype(int)
 
     """ Sample to sampleFile-ID vector """
     def sample2Idx(self,IDs):
-        return self.slidingWindow*IDs
+        IDs = self.slidingWindow*IDs
+        return IDs.astype(int)
 
     def __len__(self):
         return len( self.files )

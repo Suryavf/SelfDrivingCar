@@ -727,7 +727,8 @@ class ImitationModel(object):
         n_samples = self.n_validation
 
         # ID list
-        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
+        IDs = self._generateIDlist(self.validDataset,n_samples,
+                                   prioritized=False,sequence=False)
         loader = DataLoader(Dataset(self.validDataset,IDs),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
