@@ -120,7 +120,7 @@ class ImitationModel(object):
         validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
         validationFiles.sort()
         self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
-        self.n_validation = len(validationFiles)*samplesPerFile
+        self.n_validation = len(validationFiles)*self.framePerFile
 
         # Prioritized sampling
         self.samplesByTrainingFile   = self.framePerFile
