@@ -294,7 +294,7 @@ class ImitationModel(object):
 
 
     """ Generate ID list """
-    def _generateIDlist(self,n_samples,prioritized=False,sequence=False):
+    def _generateIDlist(self,dataset,n_samples,prioritized=False,sequence=False):
         # IDs/weights
         if prioritized:
             val = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
@@ -307,7 +307,7 @@ class ImitationModel(object):
                 sequence_len = self.setting.general.sequence_len
 
                 # sample-ID to idx
-                IDs = self.trainDataset.sample2Idx(IDs)
+                IDs = dataset.sample2Idx(IDs)
                 IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
                 IDs = np.concatenate(IDs)
 
@@ -319,7 +319,7 @@ class ImitationModel(object):
 
         # Init IDs
         else:
-            IDs = self.trainDataset.generateIDs(sequence)
+            IDs = dataset.generateIDs(sequence)
             return IDs.astype(int)
         
 
@@ -431,7 +431,8 @@ class ImitationModel(object):
         prioritized = False
         sequence    = self.setting.boolean.temporalModel
         
-        IDs = self._generateIDlist(n_samples,prioritized=prioritized,sequence=sequence)
+        IDs = self._generateIDlist(self.trainDataset,n_samples,
+                                   prioritized=prioritized,sequence=sequence)
         loader = DataLoader(Dataset(self.trainDataset,IDs),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
@@ -490,7 +491,8 @@ class ImitationModel(object):
         prioritized = True
         sequence    = self.setting.boolean.temporalModel
         
-        IDs,weights = self._generateIDlist(n_samples,prioritized=prioritized,sequence=sequence)
+        IDs,weights = self._generateIDlist(self.trainDataset,n_samples,
+                                           prioritized=prioritized,sequence=sequence)
         loader = DataLoader(Dataset(self.trainDataset,IDs,weights),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
@@ -558,7 +560,8 @@ class ImitationModel(object):
         metrics    = U.BigDict ( )
 
         # ID list
-        IDs = self._generateIDlist(n_samples,prioritized=False,sequence=False)
+        IDs = self._generateIDlist(self.validDataset,n_samples,
+                                   prioritized=False,sequence=False)
         loader = DataLoader(Dataset(self.validDataset,IDs),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
