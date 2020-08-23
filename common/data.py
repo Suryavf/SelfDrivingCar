@@ -149,9 +149,9 @@ class CoRL2017Dataset(object):
         slidingWindow = self.slidingWindow
         k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
         k2 = sequence_len-slidingWindow
-        arr = [ slidingWindow*x + int(x/k1)*k2 for x in arr ]
+        arr = np.array([ slidingWindow*x + int(x/k1)*k2 for x in arr ])
         return arr.astype(int)
-        
+
     def __len__(self):
         return self.samplesPerFile * len(self.files)
 

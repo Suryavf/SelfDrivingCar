@@ -339,8 +339,8 @@ class EfficientNetB0(nn.Module):
 
     # (88,200) -> (96,192)
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
+        x = int( in_size[0]/16 )
+        y = int( in_size[1]/16 )
         return( x,y,128 )
 
     """ Forward """
@@ -360,8 +360,8 @@ class EfficientNetB1(nn.Module):
 
     # (88,200) -> (96,192)
     def cube(self,in_size=(96,192)):
-        x = int( in_size[0]/8 )
-        y = int( in_size[1]/8 )
+        x = int( in_size[0]/16 )
+        y = int( in_size[1]/16 )
         return( x,y,128 )
 
     """ Forward """
@@ -383,7 +383,7 @@ class EfficientNetB2(nn.Module):
     def cube(self,in_size=(96,192)):
         x = int( in_size[0]/16 )
         y = int( in_size[1]/16 )
-        return( x,y,120 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):
@@ -404,7 +404,7 @@ class EfficientNetB3(nn.Module):
     def cube(self,in_size=(96,192)):
         x = int( in_size[0]/16 )
         y = int( in_size[1]/16 )
-        return( x,y,136 )
+        return( x,y,128 )
 
     """ Forward """
     def forward(self,x):
