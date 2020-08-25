@@ -107,7 +107,7 @@ class PrioritizedSamples(object):
             # Importance-sampling (IS) weights
             weight = ( 1/(self.n_samples*p) )**self.beta
         else:
-            weight = 1
+            weight = 1 
         
         # Index in data
         idx = idx - (self.n_leaf - 1)

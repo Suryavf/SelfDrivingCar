@@ -22,7 +22,7 @@ class SumTree(object):
         else: return self._update( int(np.ceil(idx/2)-1) ) 
 
     def __setitem__(self, idx, data):
-        idx = idx + (self.n_leaf - 1)
+        idx = idx + (self.n_leaf - 1) 
         self._data[idx] = data
         
         # Update priority
