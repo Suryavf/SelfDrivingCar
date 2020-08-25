@@ -1,3 +1,4 @@
+import os
 import random
 import numpy  as np
 import pandas as pd
@@ -223,7 +224,7 @@ class FileTree(object):
     """ Constructor """
     def __init__(self,path,setting):
         # Read data
-        data = pd.read_csv(path)
+        data = pd.read_csv(os.path.join(path,'index.csv'))
         n_files = len(data)
 
         self.n_files = n_files
@@ -255,7 +256,7 @@ class FileTree(object):
         if idx == 0: return son1 + son2
         else: return self._update( int(np.ceil(idx/2)-1) ) 
     def update(self,idx,value):
-        idx = idx + (self.n_files - 1)
+        idx = idx + (self.n_leaf - 1)
         self._tree[idx] = value
         
         # Update fame
@@ -331,7 +332,7 @@ class FileTree(object):
 
 """
 class CARLA100Dataset(object):
-    def __init__(self, setting, fileindex, train = True):
+    def __init__(self, setting, path, train = True):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
@@ -340,10 +341,11 @@ class CARLA100Dataset(object):
 
         # Settings
         self.setting = setting
+        self.path    = path
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.files = FileTree(fileindex,setting) # = fileindex
+        self.files = FileTree(path,setting) # = fileindex
 
         # Objects
         self.transform = None
@@ -438,7 +440,7 @@ class CARLA100Dataset(object):
         idx_sample,filename = self.files.sample(idx)
         
         # Read
-        with h5py.File(filename, 'r') as h5_file:
+        with h5py.File(os.path.join(self.path,filename), 'r') as h5_file:
             # Image input [88,200,3]
             img = np.array(h5_file['rgb'])[idx_sample]
             img = self.transform(img)

@@ -114,7 +114,7 @@ class ImitationModel(object):
         else:
             fileindex = self.setting.general.trainPath
             self.trainDataset = CARLA100Dataset(setting,   fileindex,train= True)
-            self.n_training = len(self.trainDataset)
+            self.n_training = int(len(self.trainDataset)/self.sequence_len)
 
         # Validation data
         validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))

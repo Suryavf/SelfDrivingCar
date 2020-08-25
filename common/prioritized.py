@@ -205,7 +205,7 @@ class PrioritizedExperienceReplay(object):
         if idx == 0: return son1 + son2
         else: return self._like( int(np.ceil(idx/2)-1) ) 
     def update(self,idx,p = None):
-        idx = idx + (self.n_samples - 1)
+        idx = idx + (self.n_leaf - 1)
 
         # Priority
         p = abs(p) + self.e
