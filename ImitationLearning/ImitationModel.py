@@ -633,9 +633,9 @@ class ImitationModel(object):
         tb = SummaryWriter('runs/'+self.setting.model+'/'+self.codename )
 
         # Exploration
-        if self.CoRL2017:
-            print("\nExploration")
-            self._Exploration()
+        #if self.CoRL2017:
+        print("\nExploration")
+        self._Exploration()
 
         # Loop over the dataset multiple times
         for epoch in range(self.epoch,n_epoch):

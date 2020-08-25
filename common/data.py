@@ -386,7 +386,7 @@ class CARLA100Dataset(object):
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 
-    def generateIDs(self):
+    def generateIDs(self,foo=True):
         IDs = np.array( range( len(self.files) ) )
         return IDs.astype(int)
 
