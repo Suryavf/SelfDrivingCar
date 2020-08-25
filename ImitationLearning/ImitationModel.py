@@ -132,7 +132,7 @@ class ImitationModel(object):
                                                   beta  = self.setting.sampling. beta,
                                                   betaUniform = self.setting.sampling.beta_uniform,
                                                   betaPhase   = self.setting.sampling.beta_phase,
-                                                  UCB  = self.setting.sampling.UCB,
+                                                  balance = self.setting.sampling.UCB,
                                                   c    = self.setting.sampling.c,
                                                   fill = not self.CoRL2017)
 
