@@ -134,8 +134,8 @@ class ImitationModel(object):
         self.samplePriority = PrioritizedSamples( n_samples = self.n_training, 
                                                   alpha = self.setting.sampling.alpha,
                                                   beta  = self.setting.sampling. beta,
-                                                  betaUniform = self.setting.sampling.betaLinear,
-                                                  betaPhase   = self.setting.sampling.betaPhase,
+                                                  betaLinear = self.setting.sampling.betaLinear,
+                                                  betaPhase  = self.setting.sampling.betaPhase,
                                                   balance = self.setting.sampling.balance,
                                                   c    = self.setting.sampling.c,
                                                   fill = not self.CoRL2017)

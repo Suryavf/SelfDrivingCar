@@ -5,7 +5,7 @@ from   common.graph import SumTree
 class PrioritizedSamples(object):
     """ Constructor """
     def __init__(self,n_samples,alpha=1.0,beta=0.9,
-                        betaUniform=True,betaPhase=50,
+                        betaLinear=False,betaPhase=50,
                         balance=False,c=1.0,
                         fill=False):
         # Parameters
@@ -23,8 +23,8 @@ class PrioritizedSamples(object):
         self.priority = SumTree( self.n_nodes,val=_fill )
         
         # Beta
-        self.betaUniform = betaUniform
-        if not betaUniform: 
+        self.betaLinear = betaLinear
+        if betaLinear: 
             self.beta_m  = (1.0-self.beta)/betaPhase
             self.beta_b  = self.beta
             self.n_iter  = 0
@@ -61,7 +61,7 @@ class PrioritizedSamples(object):
 
     """ Step """
     def step(self):
-        if not self.betaUniform: 
+        if self.betaLinear: 
             self.beta = self.beta_b + self.beta_m*self.n_iter
             self.beta = min(self.beta,1.0)
             self.n_iter += 1
