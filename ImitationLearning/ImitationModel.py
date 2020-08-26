@@ -105,6 +105,10 @@ class ImitationModel(object):
         self.framePerFile  = self.setting.general. framePerFile
         self.sequence_len  = self.setting.general. sequence_len 
         self.slidingWindow = self.setting.general.slidingWindow
+
+        self.dataset  = self.setting.general.dataset
+        self.CoRL2017 = (self.dataset == 'CoRL2017')
+
         samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
         if self.CoRL2017:
             trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
@@ -130,9 +134,9 @@ class ImitationModel(object):
         self.samplePriority = PrioritizedSamples( n_samples = self.n_training, 
                                                   alpha = self.setting.sampling.alpha,
                                                   beta  = self.setting.sampling. beta,
-                                                  betaUniform = self.setting.sampling.beta_uniform,
-                                                  betaPhase   = self.setting.sampling.beta_phase,
-                                                  balance = self.setting.sampling.UCB,
+                                                  betaUniform = self.setting.sampling.betaLinear,
+                                                  betaPhase   = self.setting.sampling.betaPhase,
+                                                  balance = self.setting.sampling.balance,
                                                   c    = self.setting.sampling.c,
                                                   fill = not self.CoRL2017)
 
@@ -232,9 +236,9 @@ class ImitationModel(object):
             txt = self.setting.train.optimizer.type
             raise NameError('ERROR 404: Optimizer no found ('+txt+')')
         self.optimizer = optFun(    self.model.parameters(),
-                                    lr    =  self.setting.train.optimizer.learning_rate, 
-                                    betas = (self.setting.train.optimizer.beta_1, 
-                                             self.setting.train.optimizer.beta_2 ) )
+                                    lr    =  self.setting.train.optimizer.learningRate, 
+                                    betas = (self.setting.train.optimizer.beta1, 
+                                             self.setting.train.optimizer.beta2 ) )
 
         # Scheduler
         self.scheduler = optim.lr_scheduler.StepLR( self.optimizer,
@@ -326,7 +330,7 @@ class ImitationModel(object):
     """ Validation metrics """
     def _metrics(self,measure,prediction):
         # Parameters
-        max_steering = self.setting.preprocessing.max_steering
+        max_steering = self.setting.preprocessing.maxSteering
         
         # if branch then reshape
         command    = measure   ['command']

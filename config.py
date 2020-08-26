@@ -30,12 +30,20 @@ class Setting(object):
         with open(path) as json_file:
             data = json.load(json_file)
 
-            self.model = data["model"]
-            self.preprocessing.load(data["preprocessing"])
-            self.evaluation   .load(data[   "evaluation"])
-            self.sampling     .load(data[     "sampling"])
-            self.general      .load(data[      "general"])
-            self.train        .load(data[        "train"])
+            if "model" in data:
+                self.model = data["model"]
+            if "preprocessing" in data:
+                self.preprocessing.load(data["preprocessing"])
+            if "evaluation" in data:
+                self.evaluation   .load(data[   "evaluation"])
+            if "sampling" in data:
+                self.sampling     .load(data[     "sampling"])
+            if "general" in data:
+                self.general      .load(data[      "general"])
+            if "train" in data:
+                self.train        .load(data[        "train"])
+
+            self.boolean = BooleanConditions(self.model,self.modules)
 
     def print(self):
         print("="*80,"\n\n","\t"+self.model+" Model\n","\t"+"-"*64,"\n")
@@ -99,11 +107,16 @@ class Init(object):
         with open(path) as json_file:
             data = json.load(json_file)
             # Multitask
-            self.num_workers = data["num_workers"]
+            if "num_workers" in data:
+                self.num_workers = data["num_workers"]
             # Device
-            self.device_(data["device_name"])
+            if "device_name" in data:
+                self.device_(data["device_name"])
             # Seed
-            self.set_seed(data["seed"])
+            if "seed" in data:
+                self.set_seed(data["seed"])
+            else:
+                self.set_seed()
 
     def print(self):
         pass
@@ -133,22 +146,37 @@ class General_settings(object):
         self.slidingWindow  = 5
 
         # Path files
+        self.dataset   = "CoRL2017" # CoRL2017 CARLA100
         self.validPath = "./data/h5file/SeqVal/"
         self.trainPath = "./data/h5file/SeqTrain/"
-        self.savedPath = "/media/victor/Datos/Saved/"#"/media/victor/TOSHIBA EXT/Tesis/Saved/"#"/media/victor/Datos/Saved/"
+        self.savedPath = "/media/victor/Datos/Saved/"
 
     def load(self,data):
-        self.stepView       = data[      "stepView"]
-        self.framePerFile   = data[  "framePerFile"]
-        self.framePerSecond = data["framePerSecond"]
+        if "stepView" in data:
+            self.stepView       = data[      "stepView"]
+        if "framePerFile" in data:
+            self.framePerFile   = data[  "framePerFile"]
+        if "framePerSecond" in data:
+            self.framePerSecond = data["framePerSecond"]
         
-        self.n_epoch      = data[     "n_epoch"]
-        self.batch_size   = data[  "batch_size"]
-        self.sequence_len = data["sequence_len"]
+        if "n_epoch" in data:
+            self.n_epoch      = data[     "n_epoch"]
+        if "batch_size" in data:
+            self.batch_size   = data[  "batch_size"]
+        if "sequence_len" in data:
+            self.sequence_len = data["sequence_len"]
 
-        self.validPath = data["validPath"]
-        self.trainPath = data["trainPath"]
-        self.savedPath = data["savedPath"]
+        if "slidingWindow" in data:
+            self.slidingWindow = data["slidingWindow"]
+
+        if "dataset" in data:
+            self.dataset   = data[  "dataset"]
+        if "validPath" in data:
+            self.validPath = data["validPath"]
+        if "trainPath" in data:
+            self.trainPath = data["trainPath"]
+        if "savedPath" in data:
+            self.savedPath = data["savedPath"]
 
     def print(self):
         print("\t"*2,"Train Path:\t\t"   ,self.trainPath)
@@ -182,27 +210,33 @@ class Sampling_settings(object):
         self. beta = 0.0
 
         # Beta function
-        self.beta_uniform = False
-        self.beta_phase   = 50 # epochs
+        self.betaLinear = True
+        self.betaPhase  = 50 # epochs
 
-        # Upper Confidence Bound (UCB)
-        self.UCB = True
-        self.c   = 5.0
+        # Upper Confidence Bound 1 applied to trees (UCT)
+        self.balance = True
+        self.c       = 5.0
 
         
     def load(self,data):
-        self.alpha = data["alpha"]
-        self.beta  = data[ "beta"]
-        self.beta_uniform = data["BetaUniform"]
-        self.beta_phase   = data[ "BetaPhase" ]
-        self.UCB = data["UCB"]
-        self.c   = data[ "c" ]
+        if "alpha" in data:
+            self.alpha = data["alpha"]
+        if "beta" in data:
+            self.beta  = data[ "beta"]
+        if "betaLinear" in data:
+            self.betaLinear = data["betaLinear"]
+        if "betaPhase" in data:
+            self.betaPhase = data[ "betaPhase"]
+        if "balance" in data:
+            self.balance = data["balance"]
+        if "c" in data:
+            self.c   = data[ "c" ]
 
     def print(self):
         print("\t"*2,"Alpha:\t",self.alpha)
-        if self.beta_uniform: print("\t"*2,"Beta:\t",self.beta)
-        else                : print("\t"*2,"Beta:\t",self.beta,' (Phase:',self.beta_phase,')')
-        if self.UCB:
+        if self.betaLinear: print("\t"*2,"Beta:\t",self.beta,' (Phase:',self.betaPhase,')')
+        else              : print("\t"*2,"Beta:\t",self.beta)
+        if self.balance:
             print("\t"*2,"Use UCB. C factor:\t",self.c)
         print("")
 
@@ -210,43 +244,47 @@ class Sampling_settings(object):
         return {
             "alpha" : self.alpha,
             "beta"  : self. beta,
-            "BetaUniform": self.beta_uniform,
-            "BetaPhase"  : self.beta_phase,
-            "UCB": self.UCB,
-            "c"  : self.c
+            "betaLinear": self.betaLinear,
+            "betaPhase" : self.betaPhase,
+            "balance": self.balance,
+            "c": self.c
         }
 
 
 class Preprocessing_settings(object):
     def __init__(self):
-        self.data_aug      = True
-        self.Laskey_noise  = False
+        self.dataAug      = True
+        self.LaskeyNoise  = False
         
         # Normalize
-        self.max_speed    =  90
-        self.max_steering = 1.2
+        self.maxSpeed    =  90
+        self.maxSteering = 1.2
 
     def load(self,data):
-        self.data_aug      = data[     "data_aug"]
-        self.Laskey_noise  = data[ "Laskey_noise"]
+        if "dataAug" in data:
+            self.dataAug     = data[    "dataAug"]
+        if "LaskeyNoise" in data:
+            self.LaskeyNoise = data["LaskeyNoise"]
 
-        self.max_steering = data["max_steering"]
-        self.max_speed    = data[   "max_speed"]
+        if "maxSteering" in data:
+            self.maxSteering = data["maxSteering"]
+        if "maxSpeed" in data:
+            self.maxSpeed    = data[   "maxSpeed"]
 
     def print(self):
-        print("\t"*2,"Data augmentation:\t",self.data_aug)
-        print("\t"*2,"Laskey noise:\t\t"   ,self.Laskey_noise)
-        print("\t"*2,"Maximum steering:\t" ,self.max_steering)
-        print("\t"*2,"Maximum speed:\t\t"  ,self.max_speed)
+        print("\t"*2,"Data augmentation:\t",self.dataAug)
+        print("\t"*2,"Laskey noise:\t\t"   ,self.LaskeyNoise)
+        print("\t"*2,"Maximum steering:\t" ,self.maxSteering)
+        print("\t"*2,"Maximum speed:\t\t"  ,self.maxSpeed)
         print("")
 
     def save(self):
         return {
-            "data_aug"     : self.     data_aug,
-            "Laskey_noise" : self. Laskey_noise,
+            "data_aug"     : self.     dataAug,
+            "Laskey_noise" : self. LaskeyNoise,
 
-            "max_speed"    : self.   max_speed,
-            "max_steering" : self.max_steering
+            "max_speed"    : self.   maxSpeed,
+            "max_steering" : self.maxSteering
         }
 
 
@@ -254,19 +292,19 @@ class _Scheduler_settings(object):
     def __init__(self):
         self.available = True
 
-        self.learning_rate_initial      = 0.0001
-        self.learning_rate_decay_steps  = 20
+        self.learning_rate_decay_steps  =  20
         self.learning_rate_decay_factor = 0.5
 
     def load(self,data):
-        self.available = data["available"]
+        if "available" in data:
+            self.available = data["available"]
 
-        self.learning_rate_initial      = data["learning_rate_initial"     ]
-        self.learning_rate_decay_steps  = data["learning_rate_decay_steps" ]
-        self.learning_rate_decay_factor = data["learning_rate_decay_factor"]
+        if "learning_rate_decay_steps" in data:
+            self.learning_rate_decay_steps  = data["learning_rate_decay_steps" ]
+        if "learning_rate_decay_factor" in data:
+            self.learning_rate_decay_factor = data["learning_rate_decay_factor"]
 
     def print(self):
-        print("\t"*3,"Learning rate initial:\t\t"   , self.learning_rate_initial)
         print("\t"*3,"Learning rate decay factor:\t", self.learning_rate_decay_factor)
         print("\t"*3,"Learning rate decay steps:\t" , self.learning_rate_decay_steps)
         print("")
@@ -275,36 +313,38 @@ class _Scheduler_settings(object):
         return {
             "learning_rate_decay_factor" : self.learning_rate_decay_factor,
             "learning_rate_decay_steps"  : self. learning_rate_decay_steps,
-            "learning_rate_initial"      : self.     learning_rate_initial,
             "available"                  : self.                 available
         }
 
 
 class _Optimizer_settings(object):
     def __init__(self):
-        self.type          = "Adam" # Adam, RAdam, Ranger
-        self.learning_rate = 0.0001
-        self.beta_1        = 0.70  #0.9   #0.7 
-        self.beta_2        = 0.85  #0.999 #0.85
+        self.type         = "Adam" # Adam, RAdam, Ranger
+        self.learningRate = 0.0001
+        self.beta1        = 0.70  #0.9   #0.7 
+        self.beta2        = 0.85  #0.999 #0.85
 
     def load(self,data):
-        self.type          = data[         "type"]
-        self.beta_1        = data[       "beta_1"]
-        self.beta_2        = data[       "beta_2"]
-        self.learning_rate = data["learning_rate"]
+        if "type" in data:
+            self.type         = data[        "type"]
+        if "beta1" in data:
+            self.beta1        = data[       "beta1"]
+        if "beta2" in data:
+            self.beta2        = data[       "beta2"]
+        if "learningRate" in data:
+            self.learningRate = data["learningRate"]
 
     def print(self):
-        print("\t"*3,"Learning rate:\t", self.learning_rate)
-        print("\t"*3,"Beta 1:\t", self.beta_1)
-        print("\t"*3,"Beta 2:\t", self.beta_2)
+        print("\t"*3,"Learning rate:\t", self.learningRate)
+        print("\t"*3,'Beta:\t(%1.2f,%1.2f)' % (self.beta1,self.beta2))
         print("")
 
     def save(self):
         return {
-            "type"          : self.         type,
-            "beta_1"        : self.       beta_1,
-            "beta_2"        : self.       beta_2,
-            "learning_rate" : self.learning_rate
+            "type"         : self.       type,
+            "beta1"        : self.      beta1,
+            "beta2"        : self.      beta2,
+            "learningRate" : self.learningRate
         }
 
 
@@ -318,20 +358,26 @@ class _Loss_settings(object):
         self.lambda_speed  = 0.05
 
     def load(self,data):
-        self.type          = data[         "type"]
-        self.lambda_gas    = data[   "lambda_gas"]
-        self.lambda_steer  = data[ "lambda_steer"]
-        self.lambda_brake  = data[ "lambda_brake"]
-        self.lambda_speed  = data[ "lambda_speed"]
-        self.lambda_action = data["lambda_action"]
+        if "type" in data:
+            self.type          = data[         "type"]
+        if "lambda_gas" in data:
+            self.lambda_gas    = data[   "lambda_gas"]
+        if "lambda_steer" in data:
+            self.lambda_steer  = data[ "lambda_steer"]
+        if "lambda_brake" in data:
+            self.lambda_brake  = data[ "lambda_brake"]
+        if "lambda_speed" in data:
+            self.lambda_speed  = data[ "lambda_speed"]
+        if "lambda_action" in data:
+            self.lambda_action = data["lambda_action"]
 
     def print(self):
         if self.type is "Weight":
-            print("\t"*3,"Lambda steer:\t" , self.lambda_steer)
-            print("\t"*3,"Lambda gas:\t"   , self.lambda_gas)
-            print("\t"*3,"Lambda brake:\t" , self.lambda_brake)
+            print("\t"*3,"Lambda steer:\t" , self.lambda_steer )
+            print("\t"*3,"Lambda gas:\t"   , self.lambda_gas   )
+            print("\t"*3,"Lambda brake:\t" , self.lambda_brake )
             print("\t"*3,"Lambda action:\t", self.lambda_action)
-            print("\t"*3,"Lambda speed:\t" , self.lambda_speed)
+            print("\t"*3,"Lambda speed:\t" , self.lambda_speed )
             print("")
 
     def save(self):
@@ -354,11 +400,15 @@ class Train_settings(object):
         self.dropout = 0.5
 
     def load(self,data):
-        self.scheduler.load(data["scheduler"])
-        self.optimizer.load(data["optimizer"])
-        self.loss     .load(data[     "loss"])
+        if "scheduler" in data:
+            self.scheduler.load(data["scheduler"])
+        if "optimizer" in data:
+            self.optimizer.load(data["optimizer"])
+        if "loss" in data:
+            self.loss     .load(data[     "loss"])
 
-        self.dropout   = data[     "dropout"]
+        if "dropout" in data:
+            self.dropout   = data[     "dropout"]
 
     def print(self):
         print("\t"*2,"Dropout:\t", self.dropout)
@@ -385,7 +435,8 @@ class Evaluation_settings(object):
         self.metric = "MAE"
 
     def load(self,data):
-        self.metric = data["metric"]
+        if "metric" in data:
+            self.metric = data["metric"]
     
     def print(self):
         print("\t"*2,"Metric:\t",self.metric)
