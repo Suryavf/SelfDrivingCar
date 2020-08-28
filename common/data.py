@@ -286,7 +286,7 @@ class FileTree(object):
             return self.n_nodes - 1 # Last
         
         # Branches
-        if node < self.n_files - 1:
+        if node < self.n_leaf - 1:
             son1 = int(2*node + 1)
             son2 = int(2*node + 2)
             
