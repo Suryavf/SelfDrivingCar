@@ -54,5 +54,5 @@ class SumTree(object):
                 base = self._data[son1]
                 return self.search(value-base,son2)
         else:
-            return node
+            return int(node)
             

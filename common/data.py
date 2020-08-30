@@ -144,14 +144,30 @@ class CoRL2017Dataset(object):
         return IDs.astype(int)
 
     """ Sample to sampleFile-ID vector """
-    def sample2Idx(self,arr):
+    def sampleID2imageID(self,arr):
         framePerFile  = self.framePerFile
         sequence_len  = self.sequence_len
         slidingWindow = self.slidingWindow
         k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
         k2 = sequence_len-slidingWindow
         arr = np.array([ slidingWindow*x + int(x/k1)*k2 for x in arr ])
-        return arr.astype(int)
+
+        # Expand
+        IDs = [ np.array(range(idx,idx+sequence_len)) for idx in arr ]
+        IDs = np.concatenate(IDs)
+
+        return IDs.astype(int)
+    
+    def imageID2sampleID(self,IDs):
+        framePerFile  = self.framePerFile
+        sequence_len  = self.sequence_len
+        slidingWindow = self.slidingWindow
+        k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
+        k2 = sequence_len-slidingWindow
+
+        # Contract
+        arr = [int(IDs[i]/slidingWindow) for i in range(0,len(IDs),sequence_len)]
+        return arr
 
     def __len__(self):
         return self.samplesPerFile * len(self.files)

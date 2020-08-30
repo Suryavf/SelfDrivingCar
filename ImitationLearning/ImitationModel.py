@@ -303,7 +303,7 @@ class ImitationModel(object):
         if prioritized:
             val = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
             val = val.T
-            IDs     = val[0]
+            spIDs   = val[0]
             weights = val[1]
 
             # Sequence
@@ -311,20 +311,17 @@ class ImitationModel(object):
                 sequence_len = self.setting.general.sequence_len
 
                 # sample-ID to idx
-                IDs = dataset.sample2Idx(IDs)
-                IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
-                IDs = np.concatenate(IDs)
-
+                imIDs = dataset.sampleID2imageID(spIDs)
                 # Weights
                 weights = [ w*np.ones(sequence_len) for w in weights ]
                 weights = np.concatenate(weights)
 
-            return IDs.astype(int),weights 
+            return spIDs.astype(int),imIDs.astype(int),weights 
 
         # Init IDs
         else:
-            IDs = dataset.generateIDs(sequence)
-            return IDs.astype(int)
+            spIDs = dataset.generateIDs(sequence)
+            return spIDs.astype(int)
         
 
     """ Validation metrics """
@@ -398,10 +395,10 @@ class ImitationModel(object):
                 dev_batch[ko] = batch[ko].to(self.device)
         return dev_batch
 
-    def _updatePriority(self,prediction,batchID):
+    def _updatePriority(self,prediction,sampleID):
         # Index to update
-        IDs = np.array(batchID) # batchID.reshape(-1)
-        IDs = [int(IDs[i]/self.slidingWindow) for i in range(0,len(IDs),self.sequence_len)]
+        #IDs = np.array(batchID) # batchID.reshape(-1)
+        #IDs = [int(IDs[i]/self.slidingWindow) for i in range(0,len(IDs),self.sequence_len)]
 
         # Losses to update
         losses = prediction['loss']
@@ -409,7 +406,7 @@ class ImitationModel(object):
         losses = losses.data.cpu().numpy()
 
         # Update priority
-        for idx,p in zip(IDs,losses):
+        for idx,p in zip(sampleID,losses):
             self.samplePriority.update(idx,p)
 
 
@@ -495,9 +492,9 @@ class ImitationModel(object):
         prioritized = True
         sequence    = self.setting.boolean.temporalModel
         
-        IDs,weights = self._generateIDlist(self.trainDataset,n_samples,
+        spIDs,imIDs,weights = self._generateIDlist(self.trainDataset,n_samples,
                                            prioritized=prioritized,sequence=sequence)
-        loader = DataLoader(Dataset(self.trainDataset,IDs,weights),
+        loader = DataLoader(Dataset(self.trainDataset,imIDs,weights),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
         
@@ -506,7 +503,7 @@ class ImitationModel(object):
         with tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
-                batch,batchID,weight = sample
+                batch,_,weight = sample
                 dev_batch = self._transfer2device(batch)
 
                 # Model
@@ -514,7 +511,7 @@ class ImitationModel(object):
                 dev_loss = self.lossFunc(dev_batch,dev_pred,weight)
                 
                 # Update priority
-                self._updatePriority(dev_pred,batchID)
+                self._updatePriority(dev_pred,spIDs[batch_size*i:batch_size*(i+1)])
 
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
