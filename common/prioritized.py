@@ -78,16 +78,14 @@ class PrioritizedSamples(object):
     """ Functions """
     def update(self,idx,p = None):
         # Prioritized sampling
-        if self.balance: tree = self.UTC
-        else           : tree = self.priority
-        tree[idx] = p**self.alpha
+        self.priority[idx] = p**self.alpha
 
         # UCT
         if self.balance:
             self.sampleCounter[idx]+=1
             self. totalCounter     +=1
 
-            p = tree[idx]/tree.sum()
+            p = self.priority[idx]/self.priority.sum()
             u = self.c*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
 
             self.UTC[idx] = p+u
@@ -104,6 +102,8 @@ class PrioritizedSamples(object):
 
         # Index in pow(priority,alpha)
         idx = tree.search(s)
+        idx = idx - (self.n_leaf - 1)
+
         if self.beta > 0:
             # Probability
             p = tree[idx]/tree.sum()
@@ -112,8 +112,6 @@ class PrioritizedSamples(object):
         else:
             weight = 1 
         
-        # Index in data
-        idx = idx - (self.n_leaf - 1)
         return int(idx),weight
         
 
