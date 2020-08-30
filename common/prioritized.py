@@ -74,17 +74,20 @@ class PrioritizedSamples(object):
 
                 self.UTC[idx] = p+u
 
+
     """ Functions """
     def update(self,idx,p = None):
         # Prioritized sampling
-        self.priority[idx] = p**self.alpha
+        if self.balance: tree = self.UTC
+        else           : tree = self.priority
+        tree[idx] = p**self.alpha
 
         # UCT
         if self.balance:
             self.sampleCounter[idx]+=1
             self. totalCounter     +=1
 
-            p = self.priority[idx]/self.priority.sum()
+            p = tree[idx]/tree.sum()
             u = self.c*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
 
             self.UTC[idx] = p+u
@@ -97,7 +100,7 @@ class PrioritizedSamples(object):
 
         # Roulette
         s = np.random.uniform()
-        s = int(s * tree.sum())
+        s = s * tree.sum()
 
         # Index in pow(priority,alpha)
         idx = tree.search(s)

@@ -55,4 +55,4 @@ class SumTree(object):
                 return self.search(value-base,son2)
         else:
             return node
-
+            

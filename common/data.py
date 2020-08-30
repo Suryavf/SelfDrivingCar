@@ -158,8 +158,8 @@ class CoRL2017Dataset(object):
 
     def routine(self,img,target):
         # Parameters
-        max_steering = self.setting.preprocessing.max_steering
-        max_speed    = self.setting.preprocessing.max_speed
+        max_steering = self.setting.preprocessing.maxSteering
+        max_speed    = self.setting.preprocessing.maxSpeed
         inputs       = {}
 
         # Command control 
