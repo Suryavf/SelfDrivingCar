@@ -120,28 +120,24 @@ class CoRL2017Dataset(object):
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 
+    # Por ahora solo sequence
+    def generateIDs(self,eval=False):
+        n_samples = len(self.files)*self.samplesPerFile
+        if eval:
+            # All samples of image
+            imageID = np.array( range(n_samples) )
 
-    def generateIDs(self,isTrainsequence=True):
-        # Temporal
-        # IDs = [file 1][file 2]....
-        # len([file 1]) = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 ) 
-        if isTrainsequence:
-            framePerFile  = self.framePerFile
-            sequence_len  = self.sequence_len
-            slidingWindow = self.slidingWindow
-            n_files       = len(self.files)
-            n_samples     = n_files*int( (framePerFile-sequence_len)/slidingWindow + 1 )
+            # Don't worry, be happy
+            return imageID.astype(int)
 
-            IDs = slidingWindow*np.array( range(n_samples) )
-            IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs if (idx%framePerFile) < (framePerFile-sequence_len)+1]
-            IDs = np.concatenate(IDs)
-
-        # No temporal
         else:
-            n_samples = len(self.files)*self.framePerFile
-            IDs = np.array( range(n_samples) )
+            # Temporal
+            # IDs = [file 1][file 2]....
+            # len([file 1]) = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 ) 
+            sampleID = np.array( range(n_samples) )
+            imageID  = self.sampleID2imageID(sampleID)
 
-        return IDs.astype(int)
+            return sampleID.astype(int),imageID.astype(int)
 
     """ Sample to sampleFile-ID vector """
     def sampleID2imageID(self,arr):

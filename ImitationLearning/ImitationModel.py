@@ -431,10 +431,8 @@ class ImitationModel(object):
         # ID list
         prioritized = False
         sequence    = self.setting.boolean.temporalModel
-        
-        IDs = self._generateIDlist(self.trainDataset,n_samples,
-                                   prioritized=prioritized,sequence=sequence)
-        loader = DataLoader(Dataset(self.trainDataset,IDs),
+        spID,imID = self.trainDataset.generateIDs(False)
+        loader = DataLoader(Dataset(self.trainDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
 
@@ -443,7 +441,7 @@ class ImitationModel(object):
         with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
-                batch,batchID = sample
+                batch,_ = sample
                 dev_batch = self._transfer2device(batch)
 
                 # Model
@@ -451,7 +449,7 @@ class ImitationModel(object):
                 dev_loss = self.lossFunc(dev_batch,dev_pred)
                 
                 # Update priority
-                self._updatePriority(dev_pred,batchID)
+                self._updatePriority(dev_pred,spID[batch_size*i:batch_size*(i+1)])
                 
                 # Print statistics
                 runtime_loss = dev_loss.item()
@@ -561,9 +559,8 @@ class ImitationModel(object):
         metrics    = U.BigDict ( )
 
         # ID list
-        IDs = self._generateIDlist(self.validDataset,n_samples,
-                                   prioritized=False,sequence=False)
-        loader = DataLoader(Dataset(self.validDataset,IDs),
+        imID = self.validDataset.generateIDs(True)
+        loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
         
