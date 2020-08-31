@@ -480,7 +480,7 @@ class ImitationModel(object):
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
-        batch_size   = batch_size/sequence_len
+        batch_size   = int(batch_size/sequence_len)
 
         # Loss
         running_loss = 0
