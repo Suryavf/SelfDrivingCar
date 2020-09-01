@@ -1,46 +1,40 @@
 {
-    "model": "Kim2017",
+    "model": "ExpBranch",
+    "modules": {
+        "Encoder"  : "CNN5",
+        "Decoder"  : "TVADecoder",
+        "Attention": "Atten11",
+        "Control"  : "BranchesModule"
+    },
+    "sampling": {
+        "alpha": 1.0,
+        "beta" : 0.0,
+        "betaLinear": true,
+        "betaPhase": 50,
+        "balance": true,
+        "c": 5.0
+    },
     "general": {
-        "n_epoch"     : 400,
+        "stepView":   5,
+        "n_epoch" : 400,
         "batch_size"  : 120,
         "sequence_len":  20,
+        "dataset"  : "CoRL2017",
         "validPath": "./data/h5file/SeqVal/",
         "trainPath": "./data/h5file/SeqTrain/",
         "savedPath": "/media/victor/Datos/Saved/"
     },
-    "sampling": {
-        "alpha": 0.7,
-        "beta" : 0.0,
-        "BetaUniform": true,
-        "BetaPhase"  : 50,
-        "UCB": false,
-        "c"  : 1.0
-    },
     "train": {
         "scheduler": {
-            "learning_rate_decay_factor":   0.5,
-            "learning_rate_decay_steps" :    10,
-            "learning_rate_initial"     : 0.0001
+            "learning_rate_decay_factor": 0.5,
+            "learning_rate_decay_steps" : 20,
+            "available": true
         },
         "optimizer": {
-            "type"  : "Adam",
-            "beta_1":   0.70,
-            "beta_2":   0.85,
-            "learning_rate": 0.0001
-        },
-        "loss": {
-            "type": "Weight",
-            "lambda": {
-                "gas"   : 0.45,
-                "steer" : 0.45,
-                "brake" : 0.10
-            }
+            "type": "Adam",
+            "beta1": 0.70,
+            "beta2": 0.85,
+            "learningRate": 0.0001
         }
-    },
-    "preprocessing": {
-        "reshape" : false,
-        "data_aug":  true,
-        "input_size": [88,200,3],
-        "Laskey_noise": false
     }
 }

@@ -3,7 +3,6 @@ import json
 import numpy as np
 import torch
 
-
 class Setting(object):
     def __init__(self):
         self.preprocessing = Preprocessing_settings()
@@ -197,7 +196,8 @@ class General_settings(object):
             "n_epoch"      : self.     n_epoch,
             "batch_size"   : self.  batch_size,
             "sequence_len" : self.sequence_len,
-
+            
+            "dataset"   : self.  dataset,
             "validPath" : self.validPath,
             "trainPath" : self.trainPath,
             "savedPath" : self.savedPath

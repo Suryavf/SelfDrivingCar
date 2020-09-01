@@ -97,18 +97,18 @@ class PrioritizedSamples(object):
         else           : tree = self.priority
 
         # Roulette
-        s = np.random.uniform()
-        s = s * tree.sum()
+        sp = np.random.uniform()
+        sp = sp * tree.sum()
 
         # Index in pow(priority,alpha)
-        idx = tree.search(s)
+        idx = tree.search(sp)
         idx = idx - (self.n_leaf - 1)
 
         if self.beta > 0:
             # Probability
-            p = tree[idx]/tree.sum()
+            prob = tree[idx]/tree.sum()
             # Importance-sampling (IS) weights
-            weight = ( 1/(self.n_samples*p) )**self.beta
+            weight = ( 1/(self.n_samples*prob) )**self.beta
         else:
             weight = 1 
         
