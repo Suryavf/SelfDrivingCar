@@ -153,18 +153,7 @@ class CoRL2017Dataset(object):
         IDs = np.concatenate(IDs)
 
         return IDs.astype(int)
-    
-    def imageID2sampleID(self,IDs):
-        framePerFile  = self.framePerFile
-        sequence_len  = self.sequence_len
-        slidingWindow = self.slidingWindow
-        k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
-        k2 = sequence_len-slidingWindow
-
-        # Contract
-        arr = [int(IDs[i]/slidingWindow) for i in range(0,len(IDs),sequence_len)]
-        return arr
-
+        
     def __len__(self):
         return self.samplesPerFile * len(self.files)
 

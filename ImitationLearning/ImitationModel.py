@@ -396,10 +396,6 @@ class ImitationModel(object):
         return dev_batch
 
     def _updatePriority(self,prediction,sampleID):
-        # Index to update
-        #IDs = np.array(batchID) # batchID.reshape(-1)
-        #IDs = [int(IDs[i]/self.slidingWindow) for i in range(0,len(IDs),self.sequence_len)]
-
         # Losses to update
         losses = prediction['loss']
         losses = losses.view(-1,self.sequence_len).mean(1)
@@ -418,7 +414,6 @@ class ImitationModel(object):
     """
     def _Exploration(self):
         # Parameters
-        n_samples    = self.n_training
         batch_size   = self.setting.general.batch_size
         sequence_len = self.setting.general.sequence_len
         stepView     = self.setting.general.stepView
@@ -429,8 +424,6 @@ class ImitationModel(object):
         lossExp      = U.averager()
 
         # ID list
-        prioritized = False
-        sequence    = self.setting.boolean.temporalModel
         spID,imID = self.trainDataset.generateIDs(False)
         loader = DataLoader(Dataset(self.trainDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
@@ -547,8 +540,7 @@ class ImitationModel(object):
     """
     def _Validation(self,epoch):
         # Parameters
-        n_samples    = self.n_validation
-        stepView     = self.setting.general.stepView
+        stepView = self.setting.general.stepView
 
         # Loss
         running_loss = 0
