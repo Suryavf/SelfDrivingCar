@@ -714,9 +714,10 @@ class ImitationModel(object):
         self.model.load_state_dict(checkpoint['state_dict'])
 
         # Parameters
-        n_samples = self.n_validation
+        n_samples = self.n_training
 
         # ID list
+        imID = self.trainDataset.generateIDs(True)
         IDs = self._generateIDlist(self.validDataset,n_samples,
                                    prioritized=False,sequence=False)
         loader = DataLoader(Dataset(self.validDataset,IDs),
