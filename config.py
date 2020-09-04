@@ -237,7 +237,7 @@ class Sampling_settings(object):
         if self.betaLinear: print("\t"*2,"Beta:\t",self.beta,' (Phase:',self.betaPhase,')')
         else              : print("\t"*2,"Beta:\t",self.beta)
         if self.balance:
-            print("\t"*2,"Use UCB. C factor:\t",self.c)
+            print("\t"*2,"Use balance (UCT, c=%1.1f)"%self.c)
         print("")
 
     def save(self):

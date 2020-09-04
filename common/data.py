@@ -348,6 +348,10 @@ class CARLA100Dataset(object):
         # Files (paths)
         self.files = FileTree(path,setting) # = fileindex
 
+        # TODO Only for CARLA 100 (big dataset)
+        self.slidingWindow = setting.general.sequence_len
+        self.sequence_len  = setting.general.sequence_len
+
         # Objects
         self.transform = None
         
@@ -373,9 +377,7 @@ class CARLA100Dataset(object):
         self.build()
         
         if self.isTemporalModel and self.isTrain:
-            self.sequence_len   = setting.general.sequence_len
-            self.slidingWindow  = 5 
-            self.samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
+            self.samplesPerFile = self.framePerFile/self.slidingWindow
         else:
             self.samplesPerFile = self.framePerFile
 
@@ -387,13 +389,26 @@ class CARLA100Dataset(object):
         trans.append(transforms.ToTensor())
         self.transform = transforms.Compose(trans)
 
-    def generateIDs(self,foo=True):
+    # Por ahora solo sequence
+    def generateIDs(self,eval=False):
+        n_samples = len(self.files)*self.samplesPerFile
+        if eval:
+            imageID = np.array( range(n_samples) )
+            return imageID.astype(int)
+        else:
+            sampleID = np.array( range(n_samples) )
+            imageID  = self.sampleID2imageID(sampleID)
+            return sampleID.astype(int),imageID.astype(int)
+
         IDs = np.array( range( len(self.files) ) )
         return IDs.astype(int)
 
     """ Sample to sampleFile-ID vector """
-    def sample2Idx(self,IDs):
+    def sampleID2imageID(self,IDs):
+        sequence_len  = self.sequence_len
         IDs = self.slidingWindow*IDs
+        IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
+        IDs = np.concatenate(IDs)
         return IDs.astype(int)
 
     def __len__(self):
