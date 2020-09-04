@@ -161,13 +161,13 @@ class ImitationModel(object):
         # Figures Path
         self._figurePath           = os.path.join(execPath,"Figure")
         self._figureSteerErrorPath = os.path.join(self._figurePath,"SteerError")
-        self._figureGasErrorPath   = os.path.join(self._figurePath,  "GasError")
-        self._figureBrakeErrorPath = os.path.join(self._figurePath,"BrakeError")
+        # self._figureGasErrorPath   = os.path.join(self._figurePath,  "GasError")
+        # self._figureBrakeErrorPath = os.path.join(self._figurePath,"BrakeError")
 
         U.checkdirectory(self._figurePath)
         U.checkdirectory(self._figureSteerErrorPath)
-        U.checkdirectory(self._figureGasErrorPath  )
-        U.checkdirectory(self._figureBrakeErrorPath)
+        # U.checkdirectory(self._figureGasErrorPath  )
+        # U.checkdirectory(self._figureBrakeErrorPath)
 
         # Model path
         self._modelPath = os.path.join(execPath,"Model")
@@ -599,13 +599,13 @@ class ImitationModel(object):
         
         # Save figures
         SteerErrorPath = os.path.join(self._figureSteerErrorPath,"SteerErrorPath"+str(epoch)+".png")
-        GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
-        BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
+        # GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
+        # BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
         F.saveColorMershError( metrics[ 'Steer' ], metrics['SteerError'],
                                metrics['Command'], SteerErrorPath,dom=(-1.20, 1.20))
-        F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
-        F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
+        # F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
+        # F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
         return running_loss,avgMetrics
     
 

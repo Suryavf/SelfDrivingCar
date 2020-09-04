@@ -54,10 +54,10 @@ class Setting(object):
         #self.preprocessing.print()
         print("\tTrain")
         self.train.print()
-        print("\tEvaluation")
-        self.evaluation.print()
-        print("="*80)
-
+        #print("\tEvaluation")
+        #self.evaluation.print()
+        print("="*80) 
+        
     def save(self,path):
         setting = {
             "model"  : self.model,

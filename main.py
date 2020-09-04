@@ -45,7 +45,8 @@ if __name__ == "__main__":
     parser.add_argument("--validpath"  ,type=str,help="Data for validation")
     parser.add_argument("--savedpath"  ,type=str,help="Path for saved data")
     parser.add_argument("--modelpath"  ,type=str,help="Model file path")
-    parser.add_argument("--settingpath",type=str,help="Setting folder path")
+    parser.add_argument("--initpath"   ,type=str,help="Init json path")
+    parser.add_argument("--settingpath",type=str,help="Setting json path")
     parser.add_argument("--n_epoch"    ,type=int,help="Number of epoch for train")
     parser.add_argument("--batch_size" ,type=int,help="Batch size for train")
     parser.add_argument("--model"      ,type=str,help="End-to-End model: Basic, Multimodal, Codevilla18, Codevilla19, Kim2017")
@@ -62,8 +63,9 @@ if __name__ == "__main__":
     setting = config.Setting()
 
     # Load setting
-    if args.settingpath is not None:
+    if args.initpath is not None:
         init   .load( os.path.join(args.settingpath,   "init.json") )
+    if args.settingpath is not None:
         setting.load( os.path.join(args.settingpath,"setting.json") )
     
     # Model
