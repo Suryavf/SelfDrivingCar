@@ -448,13 +448,14 @@ class Evaluation_settings(object):
         }
 
 # Boolean conditions (model)
-_branchesList        = ['Codevilla18','Codevilla19','ExpBranch']
+_branchesList        = ['Codevilla18','Codevilla19']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
 _speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
-_temporalModelList   = ['Kim2017','Experimental','ExpBranch']
+_temporalModelList   = ['Kim2017']
 
+_modularModel    = ['Experimental','ExpBranch']
 _branchesModList = ['BranchesModule']
 _temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 
@@ -477,11 +478,19 @@ class BooleanConditions(object):
         
         self.temporalModel   = False
         
-        self.branches        = model in _branchesList      or modules['Control'] in _branchesModList
+        # Branches
+        _model   =  model in _branchesList
+        _modular = (model in _modularModel) and (modules['Control'] in _branchesModList)
+        self.branches = _model or _modular
+
+        # Temporal
+        _model   =  model in _temporalModelList
+        _modular = (model in _modularModel) and (modules['Decoder'] in _temporalModList)
+        self.temporalModel = _model or _modular
+
         self.multimodal      = model in _multimodalList
         self.inputSpeed      = model in _inputSpeedList
         self.outputSpeed     = model in _outputSpeedList
-        self.temporalModel   = model in _temporalModelList or modules['Decoder'] in _temporalModList 
         self.speedRegression = model in _speedRegressionList
         
         self.backbone = modules['Encoder']

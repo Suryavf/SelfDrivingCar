@@ -140,6 +140,8 @@ class ImitationModel(object):
                                                   c    = self.setting.sampling.c,
                                                   fill = not self.CoRL2017)
 
+        # Development settings
+        self.save_priority_history = False
 
     """ Check folders to save """
     def _checkFoldersToSave(self, name = None):
@@ -186,9 +188,15 @@ class ImitationModel(object):
         if self.setting.boolean.speedRegression:
             self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
+        # Save model
         pathMod = os.path.join( self._modelPath, "model" + str(epoch) + ".pth" )
-        pathPri = os.path.join( self._modelPath, "priority.pck" )
         torch.save( self._state, pathMod)
+
+        # Priority save
+        if self.save_priority_history:
+            pathPri = os.path.join( self._modelPath, "priority" + str(epoch) + ".pck" )
+        else: 
+            pathPri = os.path.join( self._modelPath, "priority.pck" )
         self.samplePriority.save(pathPri)
 
 
@@ -457,6 +465,10 @@ class ImitationModel(object):
                 pbar.refresh()
             pbar.close()
 
+        if self.save_priority_history:
+            pathPri = os.path.join( self._modelPath, "priority_init.pck" )
+            self.samplePriority.save(pathPri)
+            
 
     """ Train function
         --------------
