@@ -1,0 +1,35 @@
+{
+    "model": "ExpBranch",
+    "modules": {
+        "Encoder"  : "CNN5",
+        "Decoder"  : "TVADecoder",
+        "Attention": "Atten11",
+        "Control"  : "BranchesModule"
+    },
+    "sampling": {
+        "alpha": 1.0,
+        "beta" : 0.0,
+        "betaLinear": true,
+        "betaPhase": 50,
+        "balance": true,
+        "c": 1.4
+    },
+    "general": {
+        "dataset"  : "CoRL2017",
+        "validPath": "./data/h5file/SeqVal/",
+        "trainPath": "./data/h5file/SeqTrain/",
+        "savedPath": "/media/victor/Datos/Saved/"
+    },
+    "train": {
+        "scheduler": {
+            "learning_rate_decay_factor": 0.5,
+            "learning_rate_decay_steps" : 20
+        },
+        "optimizer": {
+            "type": "Adam",
+            "beta1": 0.70,
+            "beta2": 0.85,
+            "learningRate": 0.0001
+        }
+    }
+}

@@ -12,13 +12,10 @@
         "betaLinear": true,
         "betaPhase": 50,
         "balance": true,
-        "c": 5.0
+        "c": 1.4
     },
     "general": {
-        "stepView":   5,
-        "n_epoch" : 400,
-        "batch_size"  : 120,
-        "sequence_len":  20,
+        "stepView":   1,
         "dataset"  : "CoRL2017",
         "validPath": "./data/h5file/SeqVal/",
         "trainPath": "./data/h5file/SeqTrain/",
@@ -27,14 +24,13 @@
     "train": {
         "scheduler": {
             "learning_rate_decay_factor": 0.5,
-            "learning_rate_decay_steps" : 20,
-            "available": true
+            "learning_rate_decay_steps" : 50
         },
         "optimizer": {
             "type": "Adam",
             "beta1": 0.70,
             "beta2": 0.85,
-            "learningRate": 0.0001
+            "learningRate": 0.00005
         }
     }
 }
