@@ -652,6 +652,7 @@ class Atten10(nn.Module):
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
         
+
 class Atten11(nn.Module):
     """ Constructor """
     def __init__(self, cube_size, n_hidden):
@@ -837,4 +838,94 @@ class Atten12(nn.Module):
         beta  = self.norm4( featurePig*xp )    # [batch,D]
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
+        
+
+class Atten13(nn.Module):
+    """ Constructor """
+    def __init__(self, cube_size, n_hidden):
+        super(Atten13, self).__init__()
+        # Parameters
+        self.D = cube_size[2]               #  depth
+        self.L = cube_size[0]*cube_size[1]  #  h x w
+        self.R = self.L*self.D              #  L x D
+        self.H = n_hidden                   #  hidden_size
+        self.M = n_hidden                   #  hidden_size
+
+        # Filtering 
+        self.filteringLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
+        self.wfL = nn.Linear(1024,self.D,bias=True )
+        self.wfR = nn.Linear( 512,self.D,bias=False)
+
+        self.avgFiltering = nn.AdaptiveAvgPool1d(1)
+        
+        # Pigeonholing 
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
+        self.wpL = nn.Linear(1024,self.D,bias=True )
+        self.wpR = nn.Linear( 512,self.D,bias=False)
+        self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
+        
+        self.wp = nn.Linear(self.D,self.D,bias=True)
+
+        # Initialization
+        self.   filteringLSTM.reset_parameters()
+        self.pigeonholingLSTM.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.wfL.weight)
+        torch.nn.init.xavier_uniform_(self.wfR.weight)
+        torch.nn.init.xavier_uniform_(self.wpL.weight)
+        torch.nn.init.xavier_uniform_(self.wpR.weight)
+        torch.nn.init.xavier_uniform_(self.wp .weight)
+
+        self.ReLu    = nn.ReLU()
+        self.ReLu6   = nn.ReLU6()
+        self.Sigmoid = nn.Sigmoid()
+        self.Tanh    = nn.Tanh()
+        self.Softmax = nn.Softmax(1)
+        self.BNormF  = nn.BatchNorm1d(self.L)
+        self.BNormP  = nn.BatchNorm1d(self.D)
+
+
+    def norm2(self,x):
+        y = self.Tanh(x)**2
+        y = y.mean(1) + 10**-6
+        y = torch.sqrt(y)
+
+        return x/y.view(x.shape[0],1)
+
+    def norm4(self,x):
+        y = self.Tanh(x)**4
+        y = y.mean(1) + 10**-12
+        y = torch.sqrt(y)
+        y = torch.sqrt(y)
+
+        return x/y.view(x.shape[0],1)
+
+    """ Forward """
+    def forward(self,feature,hidden):
+        # Filtering
+        _,(hf,_) = self.filteringLSTM(hidden)
+
+        xfr = self.wfR(hf)      # [1,batch,a]*[a,b] = [1,batch,b]
+        xfl = self.wfL(hidden)  # [1,batch,a]*[a,b] = [1,batch,b]
+        
+        xf = self.ReLu( xfl+xfr )   # [1,batch,b]*[b,L] = [1,batch,L]
+        xf = xf.transpose(0,1)      # [1,batch,D] -> [batch,1,D] 
+
+        # Pigeonholing
+        _,(hb,_) = self.pigeonholingLSTM(hidden)
+
+        xpr = self.wpR(hb)      # [1,batch,h]*[h,D] = [1,batch,D]
+        xpl = self.wpL(hidden)  # [1,batch,h]*[h,D] = [1,batch,D]
+        
+        xb = self.ReLu( xpl+xpr )   # [1,batch,D]
+        xb = xb.permute(1,2,0)      # [1,batch,D] -> [batch,D,1] 
+
+        # Attention maps
+        featureFil = self.avgFiltering ( feature * xf ).squeeze(2)
+        alpha = self.norm4( featureFil )    # [batch,L]
+
+        _p   = self.Sigmoid( self.wp(feature) )         # [batch,L,D]*[D,D] = [batch,L,D]
+        _p   = self.avgPigeonholing(_p.transpose(1,2) ) # [batch,L,D] -> [batch,L,1]
+        beta = self.norm4( _p*xb  )                     # [batch,D]
+        
+        return alpha.unsqueeze(2), beta
         

@@ -16,7 +16,7 @@
     },
     "general": {
         "stepView":   1,
-        "dataset"  : "CoRL2017",
+        "dataset"  : "CARLA100",
         "validPath": "./data/h5file/SeqVal/",
         "trainPath": "./data/h5file/SeqTrain/",
         "savedPath": "/media/victor/Datos/Saved/"
