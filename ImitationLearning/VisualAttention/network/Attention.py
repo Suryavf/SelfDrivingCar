@@ -927,5 +927,5 @@ class Atten13(nn.Module):
         _p   = self.avgPigeonholing(_p.transpose(1,2) ) # [batch,L,D] -> [batch,L,1]
         beta = self.norm4( _p*xb  )                     # [batch,D]
         
-        return alpha.unsqueeze(2), beta
+        return alpha.unsqueeze(2), beta.transpose(1,2) 
         

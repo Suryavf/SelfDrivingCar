@@ -30,7 +30,17 @@ class Setting(object):
             data = json.load(json_file)
 
             if "model" in data:
-                self.model = data["model"]
+                self.model   = data[  "model"]
+            if "modules" in data:
+                modul = data["modules"]
+                if "Encoder" in modul:
+                    self.modules["Encoder"  ] = modul[  "Encoder"]
+                if "Decoder" in modul:
+                    self.modules["Decoder"  ] = modul[  "Decoder"]
+                if "Attention" in modul:
+                    self.modules["Attention"] = modul["Attention"]
+                if "Control" in modul:
+                    self.modules["Control"  ] = modul[  "Control"]
             if "preprocessing" in data:
                 self.preprocessing.load(data["preprocessing"])
             if "evaluation" in data:
@@ -411,8 +421,8 @@ class Train_settings(object):
             self.dropout   = data[     "dropout"]
 
     def print(self):
-        print("\t"*2,"Dropout:\t", self.dropout)
-        print("")
+        # print("\t"*2,"Dropout:\t", self.dropout)
+        # print("")
         print("\t"*2,self.loss.type+" loss")
         self.loss.print()
         print("\t"*2,self.optimizer.type+" optimizer")

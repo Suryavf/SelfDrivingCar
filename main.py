@@ -63,10 +63,8 @@ if __name__ == "__main__":
     setting = config.Setting()
 
     # Load setting
-    if args.initpath is not None:
-        init   .load( os.path.join(args.settingpath,   "init.json") )
-    if args.settingpath is not None:
-        setting.load( os.path.join(args.settingpath,"setting.json") )
+    if args.init    is not None: init   .load(args.   init)
+    if args.setting is not None: setting.load(args.setting)
     
     # Model
     if args.model is not None: setting.model_( args.model )
