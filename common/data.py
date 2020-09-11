@@ -423,8 +423,8 @@ class CARLA100Dataset(object):
 
     def routine(self,img,_actions,command,speed):
         # Parameters
-        max_steering = self.setting.preprocessing.max_steering
-        max_speed    = self.setting.preprocessing.max_speed
+        maxSteering = self.setting.preprocessing.maxSteering
+        maxSpeed    = self.setting.preprocessing.maxSpeed
         inputs       = {}
 
         # Command control 
@@ -436,7 +436,7 @@ class CARLA100Dataset(object):
         inputs['frame'] = img
 
         # Actions
-        _actions[0] = _actions[0]/max_steering   # Steering angle (max 1.2 rad)
+        _actions[0] = _actions[0]/maxSteering   # Steering angle (max 1.2 rad)
         if self.isBranches: 
             actions = np.zeros((4, 3), dtype=np.float32)  # modes x actions (controls)
             actions[command,:] = _actions
@@ -452,7 +452,7 @@ class CARLA100Dataset(object):
         
         # Speed input/output (max 90km/h)
         if self.includeSpeed or not self.isTrain:
-            speed = np.array([speed/max_speed,]).astype(np.float32)
+            speed = np.array([speed/maxSpeed,]).astype(np.float32)
             inputs['speed'] = speed
 
         return inputs

@@ -18,7 +18,7 @@
         "stepView":   1,
         "dataset"  : "CARLA100",
         "validPath": "./data/h5file/SeqVal/",
-        "trainPath": "/media/victor/Datos/carla100/",
+        "trainPath": "/media/victor/Datos/Carla100/",
         "savedPath": "/media/victor/Datos/Saved/"
     },
     "train": {
@@ -30,7 +30,7 @@
             "type": "Adam",
             "beta1": 0.70,
             "beta2": 0.85,
-            "learningRate": 0.00005
+            "learningRate": 0.00001
         }
     }
 }
