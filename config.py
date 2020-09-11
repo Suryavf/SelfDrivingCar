@@ -28,7 +28,6 @@ class Setting(object):
     def load(self,path):
         with open(path) as json_file:
             data = json.load(json_file)
-
             if "model" in data:
                 self.model   = data[  "model"]
             if "modules" in data:

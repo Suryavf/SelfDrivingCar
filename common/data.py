@@ -391,17 +391,24 @@ class CARLA100Dataset(object):
 
     # Por ahora solo sequence
     def generateIDs(self,eval=False):
-        n_samples = len(self.files)*self.samplesPerFile
+        n_samples = len(self.files)
         if eval:
             imageID = np.array( range(n_samples) )
             return imageID.astype(int)
         else:
-            sampleID = np.array( range(n_samples) )
-            imageID  = self.sampleID2imageID(sampleID)
+            sampleID = np.array( range(int(n_samples/self.slidingWindow))  )
+            imageID  = np.array( range(n_samples) )
             return sampleID.astype(int),imageID.astype(int)
 
         IDs = np.array( range( len(self.files) ) )
         return IDs.astype(int)
+
+    """
+    def generateIDs(self,foo=True):
+        IDs = np.array( range( len(self.files) ) )
+        return IDs.astype(int)
+    """
+
 
     """ Sample to sampleFile-ID vector """
     def sampleID2imageID(self,IDs):

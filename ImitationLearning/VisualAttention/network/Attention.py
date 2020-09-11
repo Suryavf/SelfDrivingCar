@@ -917,7 +917,7 @@ class Atten13(nn.Module):
         xpl = self.wpL(hidden)  # [1,batch,h]*[h,D] = [1,batch,D]
         
         xb = self.ReLu( xpl+xpr )   # [1,batch,D]
-        xb = xb.permute(1,2,0)      # [1,batch,D] -> [batch,D,1] 
+        xb = xb.squeeze(0)          # [1,batch,D] -> [batch,D,1] 
 
         # Attention maps
         featureFil = self.avgFiltering ( feature * xf ).squeeze(2)
@@ -925,6 +925,7 @@ class Atten13(nn.Module):
 
         _p   = self.Sigmoid( self.wp(feature) )         # [batch,L,D]*[D,D] = [batch,L,D]
         _p   = self.avgPigeonholing(_p.transpose(1,2) ) # [batch,L,D] -> [batch,L,1]
+        _p   = _p.squeeze(2)                            # [batch,L,1] -> [batch,L]
         beta = self.norm4( _p*xb  )                     # [batch,D]
         
         return alpha.unsqueeze(2), beta.transpose(1,2) 
