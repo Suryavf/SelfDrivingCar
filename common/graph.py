@@ -1,16 +1,17 @@
 import numpy as np
 
 class SumTree(object):
-    def __init__(self,n_nodes,val=None):
+    def __init__(self,n_nodes,val=None,limit=None):
         self.n_nodes = int( n_nodes )
         self.n_leaf  = int((n_nodes+1)/2 )
+        self.limit   = (limit if limit is not None else self.n_leaf)
 
         # Samples Tree
         self._data = np.zeros( self.n_nodes )
 
         # Fill tree
         if val is not None:
-            for i in range(self.n_leaf):
+            for i in range(self.limit):
                 self.__setitem__(i,val)
 
     def _update(self,idx):

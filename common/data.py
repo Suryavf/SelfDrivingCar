@@ -302,15 +302,10 @@ class FileTree(object):
             return node
 
     def sample(self, idsample=None):
-        
         # Roulette
         if idsample is None:
             idsample = np.random.uniform()
             idsample = idsample * self._tree[0]
-            # idsample = int(idsample/self.sequence_len)*self.sequence_len
-        # idsample to [general position]
-        # else:
-            # idsample = idsample * self.sequence_len # Position of frame
             
         # Find idsample [general position]
         idx  = self._search(idsample)
@@ -400,20 +395,11 @@ class CARLA100Dataset(object):
             imageID  = np.array( range(n_samples) )
             return sampleID.astype(int),imageID.astype(int)
 
-        IDs = np.array( range( len(self.files) ) )
-        return IDs.astype(int)
-
-    """
-    def generateIDs(self,foo=True):
-        IDs = np.array( range( len(self.files) ) )
-        return IDs.astype(int)
-    """
-
-
     """ Sample to sampleFile-ID vector """
     def sampleID2imageID(self,IDs):
-        sequence_len  = self.sequence_len
-        IDs = self.slidingWindow*IDs
+        sequence_len  = self. sequence_len
+        slidingWindow = self.slidingWindow
+        IDs = slidingWindow*IDs
         IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
         IDs = np.concatenate(IDs)
         return IDs.astype(int)

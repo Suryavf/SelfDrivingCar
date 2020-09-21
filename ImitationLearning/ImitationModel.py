@@ -116,8 +116,8 @@ class ImitationModel(object):
             self.trainDataset = CoRL2017Dataset(setting,trainingFiles,train= True)
             self.n_training = len(trainingFiles)*samplesPerFile
         else:
-            fileindex = self.setting.general.trainPath
-            self.trainDataset = CARLA100Dataset(setting,   fileindex,train= True)
+            trainPath = self.setting.general.trainPath
+            self.trainDataset = CARLA100Dataset(setting, trainPath,train= True)
             self.n_training = int(len(self.trainDataset)/self.sequence_len)
 
         # Validation data
@@ -306,30 +306,23 @@ class ImitationModel(object):
 
 
     """ Generate ID list """
-    def _generateIDlist(self,dataset,n_samples,prioritized=False,sequence=False):
+    def _samplingPrioritizedSamples(self,n_samples):
         # IDs/weights
-        if prioritized:
-            val = np.array([ np.array(self.samplePriority.sample())  for _ in range(n_samples) ])
-            val = val.T
-            spIDs   = val[0]
-            weights = val[1]
+        val = np.array([ np.array(self.samplePriority.sample()) for _ in range(n_samples) ])
+        spIDs   = val[:,0]
+        weights = val[:,1]
+        
+        # Sequence
+        if self.setting.boolean.temporalModel:
+            # sample-ID to idx
+            imIDs = self.trainDataset.sampleID2imageID(spIDs)
+            
+            # Weights
+            sequence_len = self.setting.general.sequence_len
+            weights = [ w*np.ones(sequence_len) for w in weights ]
+            weights = np.concatenate(weights)
 
-            # Sequence
-            if sequence:
-                sequence_len = self.setting.general.sequence_len
-
-                # sample-ID to idx
-                imIDs = dataset.sampleID2imageID(spIDs)
-                # Weights
-                weights = [ w*np.ones(sequence_len) for w in weights ]
-                weights = np.concatenate(weights)
-
-            return spIDs.astype(int),imIDs.astype(int),weights 
-
-        # Init IDs
-        else:
-            spIDs = dataset.generateIDs(sequence)
-            return spIDs.astype(int)
+        return spIDs.astype(int),imIDs.astype(int),weights 
         
 
     """ Validation metrics """
@@ -491,12 +484,7 @@ class ImitationModel(object):
         running_loss = 0
         lossTrain    = U.averager()
 
-        # ID list
-        prioritized = True
-        sequence    = self.setting.boolean.temporalModel
-        
-        spIDs,imIDs,weights = self._generateIDlist(self.trainDataset,n_samples,
-                                           prioritized=prioritized,sequence=sequence)
+        spIDs,imIDs,weights = self._samplingPrioritizedSamples(n_samples)
         loader = DataLoader(Dataset(self.trainDataset,imIDs,weights),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
@@ -635,7 +623,6 @@ class ImitationModel(object):
         tb = SummaryWriter('runs/'+self.setting.model+'/'+self.codename )
 
         # Exploration
-        #if self.CoRL2017:
         print("\nExploration")
         self._Exploration()
 
@@ -730,9 +717,9 @@ class ImitationModel(object):
 
         # ID list
         imID = self.trainDataset.generateIDs(True)
-        IDs = self._generateIDlist(self.validDataset,n_samples,
-                                   prioritized=False,sequence=False)
-        loader = DataLoader(Dataset(self.validDataset,IDs),
+        # IDs = self._generateIDlist(self.validDataset,n_samples,
+        #                            prioritized=False,sequence=False)
+        loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
         signals = U.BigDict ( )

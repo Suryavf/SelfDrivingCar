@@ -20,7 +20,7 @@ class PrioritizedSamples(object):
         else   : _fill = None
 
         # Samples Tree
-        self.priority = SumTree( self.n_nodes,val=_fill )
+        self.priority = SumTree( self.n_nodes,val=_fill,limit=n_samples )
         
         # Beta
         self.betaLinear = betaLinear
@@ -35,7 +35,7 @@ class PrioritizedSamples(object):
             self.c = c
             self.sampleCounter = np.zeros( self.n_samples )
             self. totalCounter = 0
-            self.UTC = SumTree( self.n_nodes,val=_fill )
+            self.UTC = SumTree( self.n_nodes,val=_fill,limit=n_samples )
 
     """ Save """
     def save(self,path='priority.pck'):
@@ -71,9 +71,8 @@ class PrioritizedSamples(object):
             for idx in range(self.n_samples):
                 p = self.priority[idx]/self.priority.sum()
                 u = self.c*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
-
                 self.UTC[idx] = p+u
-
+                
 
     """ Functions """
     def update(self,idx,p = None):
