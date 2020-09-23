@@ -5,7 +5,6 @@ import pickle
 from   tqdm import tqdm
 import pandas as pd
 import numpy  as np
-# from   tsnecuda import TSNE
 
 import torch
 import torch.optim as optim
@@ -71,7 +70,7 @@ class ImitationModel(object):
             elif _mod[k] in V.Attention: module['Attention'] = eval('A.'+_mod['Attention'])
             else : raise NameError('ERROR 404: module '+k+' no found')
 
-        # Nets
+        # Model
         if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
         elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
         elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
@@ -117,7 +116,7 @@ class ImitationModel(object):
             self.n_training = len(trainingFiles)*samplesPerFile
         else:
             trainPath = self.setting.general.trainPath
-            self.trainDataset = CARLA100Dataset(setting, trainPath,train= True)
+            self.trainDataset = CARLA100Dataset(setting,train= True)
             self.n_training = int(len(self.trainDataset)/self.sequence_len)
 
         # Validation data
@@ -714,6 +713,7 @@ class ImitationModel(object):
 
         # Parameters
         n_samples = self.n_training
+        files = V.FilesForStudy100
 
         # ID list
         imID = self.trainDataset.generateIDs(True)

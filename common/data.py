@@ -223,9 +223,10 @@ class CoRL2017Dataset(object):
 """
 class FileTree(object):
     """ Constructor """
-    def __init__(self,path,setting):
+    def __init__(self,setting,index='index.csv'):
         # Read data
-        data = pd.read_csv(os.path.join(path,'index.csv'))
+        path    = setting.general.trainPath
+        data = pd.read_csv(os.path.join(path,index))
         n_files = len(data)
 
         self.n_files = n_files
@@ -328,7 +329,7 @@ class FileTree(object):
 
 """
 class CARLA100Dataset(object):
-    def __init__(self, setting, path, train = True):
+    def __init__(self, setting, train=True, index='index.csv'):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
@@ -337,11 +338,11 @@ class CARLA100Dataset(object):
 
         # Settings
         self.setting = setting
-        self.path    = path
+        self.path    = setting.general.trainPath
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.files = FileTree(path,setting) # = fileindex
+        self.files = FileTree(setting,index) # = fileindex
 
         # TODO Only for CARLA 100 (big dataset)
         self.slidingWindow = setting.general.sequence_len
