@@ -31,6 +31,7 @@ class CookData(object):
         self.init    =    init
         self.setting = setting
         self.files   = V.FilesForStudy100
+        self.device  = self.init.device
         
         # Modules
         module = {}
@@ -48,18 +49,96 @@ class CookData(object):
         else: print("ERROR: mode no found (" + self.setting.model + ")")
 
         # Load model checkpoint
-        path = os.path.join(self.setting.general.savedPath,name,'Model','model'+epoch+'.pth')
-        checkpoint = torch.load(path)
+        checkpath = os.path.join(self.setting.general.savedPath,name,'Model','model'+epoch+'.pth')
+        checkpoint = torch.load(checkpath)
         self.model.load_state_dict(checkpoint['state_dict'])
         
         # Dataset
         self.dataset = CARLA100Dataset(setting,train=False,index='study.csv')
 
+        # Path outputs
+        self.path = os.path.join(self.setting.general.savedPath,name)
+
+
+    """ Transfer host data to device """
+    def transfer2device(self,batch):
+        inputs    = ['frame','actions','speed','command','mask']
+        dev_batch = {}
+
+        for ko in inputs:
+            if ko in batch:
+                dev_batch[ko] = batch[ko].to(self.device)
+        return dev_batch
+
+
     """ Hidden state study """
-    def hiddenStudy(self,name,epoch):
-        # Load 
+    def hiddenStudy(self):
+        # Loader
         imID = self.dataset.generateIDs(True)
         loader = DataLoader(Dataset(self.dataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers)
+        hiddenControl = list()
+
+        # Model iteration
+        self.model.eval()
+        print('Hidden state study')
+        with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
+            for sample in loader:
+                # Model
+                batch,_ = sample
+                dev_batch = self.transfer2device(batch)
+                dev_pred = self.model(dev_batch)
+
+                # Extract signals
+                host_hc = dev_pred['hidden']['control'].data.cpu().numpy()
+                hiddenControl.append(host_hc)
+
+                pbar. update()
+                pbar.refresh()
+            pbar.close()
+
+        # Save
+        path = os.path.join(self.path,'hidden.pck')
+        with open(path, 'wb') as handle:
+            pickle.dump(hiddenControl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    """ Attention study """
+    def attentionStudy(self):
+        # Loader
+        imID = self.dataset.generateIDs(True)
+        loader = DataLoader(Dataset(self.dataset,imID),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers)
+        spatial     = list()
+        categorical = list()
+
+        # Model iteration
+        self.model.eval()
+        print('Attention study')
+        with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
+            for sample in loader:
+                # Model
+                batch,_ = sample
+                dev_batch = self.transfer2device(batch)
+                dev_pred = self.model(dev_batch)
+
+                # Extract signals
+                host_spt = dev_pred['attention']['alpha'].data.cpu().numpy()
+                host_cat = dev_pred['attention'][ 'beta'].data.cpu().numpy()
+                spatial    .append(host_spt)
+                categorical.append(host_cat)
+
+                pbar. update()
+                pbar.refresh()
+            pbar.close()
+
+        # Save
+        path = os.path.join(self.path,'spatial.pck')
+        with open(path, 'wb') as handle:
+            pickle.dump(spatial, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        path = os.path.join(self.path,'categorical.pck')
+        with open(path, 'wb') as handle:
+            pickle.dump(categorical, handle, protocol=pickle.HIGHEST_PROTOCOL)
 

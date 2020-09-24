@@ -376,10 +376,9 @@ class TVADecoder(nn.Module):
 
         # Study rountime
         if self.study:
-            action = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
-            atten  = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
+            hc = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
         else:
-            action,atten = (None,None)
+            hc = None # hc,ha,hb = (None,None,None)
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -414,8 +413,7 @@ class TVADecoder(nn.Module):
             hdd_[k] = hidden[0].unsqueeze(0)    # [1,batch,H]
 
             if self.study:
-                action[k] = hidden[0].squeeze()
-                atten [k] = hidden[1].squeeze()
+                hc[k] = hidden[0].squeeze()
 
         if self.training: 
             vis_ = vis_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.R)
@@ -423,5 +421,5 @@ class TVADecoder(nn.Module):
             bet_ = bet_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.D)
             hdd_ = hdd_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.H)
 
-        return vis_, hdd_, {'alpha': alp_, 'beta': bet_}, {'action': action, 'attention': atten}
+        return vis_, hdd_, {'alpha': alp_, 'beta': bet_}, {'control': hc}
         
