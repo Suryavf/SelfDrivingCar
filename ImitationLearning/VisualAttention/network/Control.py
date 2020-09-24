@@ -60,6 +60,39 @@ class _Branch(nn.Module):
         out = self.fully3(h2)
         return out
 
+class _Branch2(nn.Module):
+    def __init__(self,n_out):
+        super(_Branch2, self).__init__()
+        # Declare layers
+        self.fully1  = nn.Linear(1024,  256  )
+        self.fully2s = nn.Linear( 256,   64  )
+        self.fully3s = nn.Linear(  64,   1   )
+        self.fully2v = nn.Linear( 256,   64  )
+        self.fully3v = nn.Linear(  64,n_out-1)
+
+        self.Sigmoid = nn.Sigmoid()
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.fully1.weight)
+        torch.nn.init.xavier_uniform_(self.fully2s.weight)
+        torch.nn.init.xavier_uniform_(self.fully3s.weight)
+        torch.nn.init.xavier_uniform_(self.fully2v.weight)
+        torch.nn.init.xavier_uniform_(self.fully3v.weight)
+
+    def forward(self,sig):
+        hd = F.relu(self.fully1(sig))
+        hd = F.dropout(hd, p=0.5, training=self.training)
+
+        # Steering controller
+        hs    = F.relu(self.fully2s( hd))
+        steer = self.fully3s(hs)
+
+        # Velocity controller
+        hv  = F.relu(self.fully2v( hd))
+        vel = self.Sigmoid(self.fully3v(hv))
+
+        return torch.cat([steer,vel],dim=1)
+
 
 class BranchesModule(nn.Module):
     def __init__(self, cube_size, n_hidden, n_out=3):

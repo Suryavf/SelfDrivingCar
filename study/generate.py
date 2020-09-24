@@ -99,9 +99,11 @@ class CookData(object):
             pbar.close()
 
         # Save
+        print('Save hidden state')
         path = os.path.join(self.path,'hidden.pck')
         with open(path, 'wb') as handle:
             pickle.dump(hiddenControl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
     """ Attention study """
     def attentionStudy(self):
@@ -134,11 +136,21 @@ class CookData(object):
             pbar.close()
 
         # Save
+        print('Save spatial attention')
         path = os.path.join(self.path,'spatial.pck')
         with open(path, 'wb') as handle:
             pickle.dump(spatial, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+        print('Save categorical attention')
         path = os.path.join(self.path,'categorical.pck')
         with open(path, 'wb') as handle:
             pickle.dump(categorical, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
+class VisualizingData(object):
+    """ Constructor """
+    def __init__(self,init,setting,name):
+        self.init    =    init
+        self.setting = setting
+        self.files   = V.FilesForStudy100
+        self.device  = self.init.device

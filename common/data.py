@@ -401,7 +401,7 @@ class CARLA100Dataset(object):
         sequence_len  = self. sequence_len
         slidingWindow = self.slidingWindow
         IDs = slidingWindow*IDs
-        IDs = [ np.array(range(idx,idx+sequence_len)) for idx in IDs ]
+        IDs = [ np.array(range(int(idx),int(idx+sequence_len))) for idx in IDs ]
         IDs = np.concatenate(IDs)
         return IDs.astype(int)
 
