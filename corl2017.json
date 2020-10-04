@@ -8,8 +8,8 @@
     },
     "sampling": {
         "alpha": 1.0,
-        "beta" : 0.0,
-        "betaLinear": true,
+        "beta" : 1.0,
+        "betaLinear": false,
         "betaPhase": 50,
         "balance": true,
         "c": 1.4
@@ -23,7 +23,7 @@
     "train": {
         "scheduler": {
             "learning_rate_decay_factor": 0.5,
-            "learning_rate_decay_steps" : 20
+            "learning_rate_decay_steps" : 50
         },
         "optimizer": {
             "type": "Adam",

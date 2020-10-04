@@ -930,3 +930,102 @@ class Atten13(nn.Module):
         
         return alpha.unsqueeze(2), beta.transpose(1,2) 
         
+
+# ------------------------------------------------------------
+class Atten14(nn.Module):
+    """ Constructor """
+    def __init__(self, cube_size, n_hidden):
+        super(Atten14, self).__init__()
+        # Parameters
+        self.D = cube_size[2]               #  depth
+        self.L = cube_size[0]*cube_size[1]  #  h x w
+        self.R = self.L*self.D              #  L x D
+        self.H = n_hidden                   #  hidden_size
+        self.M = n_hidden                   #  hidden_size
+
+        # Spatial 
+        self.spatialLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
+        self.convSC1 = nn.Conv1d(1,1,kernel_size=3, stride=1,padding=1)
+        self.convSC2 = nn.Conv1d(1,1,kernel_size=3, stride=2,padding=1)
+        self.convSR  = nn.Conv1d(1,1,kernel_size=3, padding=1)
+
+        self.convS = nn.Conv1d(1,1,kernel_size=3, stride=2,padding=1)
+        self.maxpool = torch.nn.AdaptiveMaxPool1d(self.D)
+
+        self.avgFiltering = nn.AdaptiveAvgPool1d(1)
+        
+        # Pigeonholing 
+        self.pigeonholingLSTM = nn.LSTM(input_size = self.H, hidden_size = 512)
+        self.wpL = nn.Linear(1024,self.D,bias=True )
+        self.wpR = nn.Linear( 512,self.D,bias=False)
+        self.avgPigeonholing = nn.AdaptiveAvgPool1d(1)
+        
+        self.wp = nn.Linear(self.D,self.D,bias=True)
+
+        # Initialization
+        self.     spatialLSTM.reset_parameters()
+        self.pigeonholingLSTM.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.wfL.weight)
+        torch.nn.init.xavier_uniform_(self.wfR.weight)
+        torch.nn.init.xavier_uniform_(self.wpL.weight)
+        torch.nn.init.xavier_uniform_(self.wpR.weight)
+        torch.nn.init.xavier_uniform_(self.wp .weight)
+
+        self.ReLu    = nn.ReLU()
+        self.ReLu6   = nn.ReLU6()
+        self.Sigmoid = nn.Sigmoid()
+        self.Tanh    = nn.Tanh()
+        self.Softmax = nn.Softmax(1)
+        self.BNormF  = nn.BatchNorm1d(self.L)
+        self.BNormP  = nn.BatchNorm1d(self.D)
+
+
+    def norm2(self,x):
+        y = self.Tanh(x)**2
+        y = y.mean(1) + 10**-6
+        y = torch.sqrt(y)
+
+        return x/y.view(x.shape[0],1)
+
+    def norm4(self,x):
+        y = self.Tanh(x)**4
+        y = y.mean(1) + 10**-12
+        y = torch.sqrt(y)
+        y = torch.sqrt(y)
+
+        return x/y.view(x.shape[0],1)
+
+
+    """ Forward """
+    def forward(self,feature,hidden):
+        # Spatial Attention
+        _,(hs,_) = self.spatialLSTM(hidden)
+        hc = hidden.transpose(0,1)
+        hs =   hs  .transpose(0,1)
+
+        xsc = self.convSC1( hc)     # [batch,1,a] -> [batch,1,a]
+        xsc = self.convSC2(xsc)     # [batch,1,a] -> [batch,1,b]
+        xsr = self.convSR(hs)       # [batch,1,b] -> [batch,1,b]
+
+        xs = self.convS(xsc + xsr)  # [batch,1,b] -> [batch,1,b]
+        xs = self.maxpool(xs)       # [batch,1,b] -> [batch,1,D]
+         
+        featureFil = self.avgFiltering ( feature * xs ).squeeze(2)
+        alpha = self.Softmax( featureFil )    # [batch,L]
+
+        # Pigeonholing
+        _,(hp,_) = self.pigeonholingLSTM(hidden)
+
+        xpr = self.wpR(hp)      # [1,batch,a]*[a,b] = [1,batch,b]
+        xpl = self.wpL(hidden)  # [1,batch,a]*[a,b] = [1,batch,b]
+        
+        xp = self.ReLu( xpl+xpr )    # [1,batch,c]*[c,D] = [1,batch,D]
+        xp = xp.squeeze(0)                      # [1,batch,D] -> [batch,D]    
+
+        # Attention maps
+        featurePig = self.avgPigeonholing(feature.transpose(1,2)).squeeze(2)
+        featurePig = self.Sigmoid( self.wp( featurePig ) )
+        beta  = self.norm4( featurePig*xp )    # [batch,D]
+        
+        return alpha.unsqueeze(2), beta.unsqueeze(1)
+        
