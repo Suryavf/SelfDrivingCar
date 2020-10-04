@@ -88,8 +88,9 @@ class _Branch2(nn.Module):
         steer = self.fully3s(hs)
 
         # Velocity controller
-        hv  = F.relu(self.fully2v( hd))
-        vel = self.Sigmoid(self.fully3v(hv))
+        hv = F.relu(self.fully2v( hd))
+        hv = F.dropout(hv, p=0.1, training=self.training)
+        vel =self.fully3v(hv)
 
         return torch.cat([steer,vel],dim=1)
 

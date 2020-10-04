@@ -2,7 +2,8 @@ import os
 import glob
 
 import pickle
-from   tqdm import tqdm
+import numpy as np
+from   tqdm import tqd
 
 import torch
 from   torch.utils.data import DataLoader
@@ -146,7 +147,11 @@ class CookData(object):
         with open(path, 'wb') as handle:
             pickle.dump(categorical, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
+"""
+    Visualizing data
+    Ref: https://distill.pub/2016/misread-tsne/
+         https://arxiv.org/pdf/1807.01281.pdf
+"""
 class VisualizingData(object):
     """ Constructor """
     def __init__(self,init,setting,name):
@@ -154,3 +159,29 @@ class VisualizingData(object):
         self.setting = setting
         self.files   = V.FilesForStudy100
         self.device  = self.init.device
+
+        # Path outputs
+        self.path = os.path.join(self.setting.general.savedPath,name)
+
+
+    """ Visualize hidden state """
+    def visualizeHiddenState(self,):
+        # Load
+        path = os.path.join(self.path,'hidden.pck')
+        with open(path, 'rb') as handle:
+            hiddenControl = pickle.load(handle)
+            hiddenControl = np.concatenate(hiddenControl,axis=0)
+
+        # t-SNE
+        print('t-SNE execute')
+        embedding = TSNE(perplexity =  30,
+                         n_iter     = 500,
+                         n_jobs=self.init.num_workers).fit(hiddenControl)
+        hiddenControl = None # Free
+
+         # Save
+        print('Save t-SNE')
+        path = os.path.join(self.path,'hidden.tsne')
+        with open(path, 'wb') as handle:
+            pickle.dump(embedding, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
