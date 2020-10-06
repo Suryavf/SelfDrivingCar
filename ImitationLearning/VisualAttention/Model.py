@@ -1,4 +1,5 @@
 import torch.nn as nn
+from   torchvision import models
 import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
@@ -67,3 +68,42 @@ class ExpBranch(nn.Module):
                 'attention' :  attn,
                    'hidden' : lstm}
                     
+
+class Approach(nn.Module):
+    """ Constructor """
+    def __init__(self,module,setting):#(96,192)): 92,196
+        super(Approach, self).__init__()
+        # Parameters
+        n_hidden = 1024
+        
+        # ResNet            18   34   50
+        depth1 = 128    #  128  128  512
+        depth2 = 512    #  512  512 2048
+
+        # Encoder
+        resnet = models.resnet34(pretrained=True)
+        self.encoder1 = nn.Sequential(*(list(resnet.children())[  :-4]))
+        self.encoder2 = nn.Sequential(*(list(resnet.children())[-4:-1]))
+        del resnet
+
+        cube_dim = (12,24,depth1)
+        spaAttn = A.SpatialAttention(cube_dim,n_hidden)
+
+
+        # Decoder
+        self.attention = module['Attention'](cube_dim,n_hidden)
+        self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
+        self.control   = module[  'Control'](cube_dim,n_hidden)
+    
+    """ Forward """
+    def forward(self,batch):
+        x               = self.encoder(batch['frame'])
+        x,hdn,attn,lstm = self.decoder(x)
+        y               = self.control(x,hdn,batch['mask'])
+        return {  'actions' :     y,
+                'attention' :  attn,
+                   'hidden' : lstm}
+                    
+
+
+

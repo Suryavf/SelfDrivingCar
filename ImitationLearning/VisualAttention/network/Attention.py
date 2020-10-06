@@ -945,11 +945,9 @@ class Atten14(nn.Module):
 
         # Spatial 
         self.spatialLSTM = nn.LSTM( input_size = self.H, hidden_size = 512)
-        self.convSC1 = nn.Conv1d(1,1,kernel_size=3, stride=1,padding=1)
-        self.convSC2 = nn.Conv1d(1,1,kernel_size=3, stride=2,padding=1)
-        self.convSR  = nn.Conv1d(1,1,kernel_size=3, padding=1)
-
-        self.convS = nn.Conv1d(1,1,kernel_size=3, stride=2,padding=1)
+        self.convSC  = nn.Conv1d(1,1,kernel_size=11,bias=False,padding=5,stride=2)
+        self.convSR  = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=1)
+        self.convS   = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=2)
         self.maxpool = torch.nn.AdaptiveMaxPool1d(self.D)
 
         self.avgFiltering = nn.AdaptiveAvgPool1d(1)
@@ -965,8 +963,9 @@ class Atten14(nn.Module):
         # Initialization
         self.     spatialLSTM.reset_parameters()
         self.pigeonholingLSTM.reset_parameters()
-        torch.nn.init.xavier_uniform_(self.wfL.weight)
-        torch.nn.init.xavier_uniform_(self.wfR.weight)
+        torch.nn.init.xavier_uniform_(self.convSC.weight)
+        torch.nn.init.xavier_uniform_(self.convSR.weight)
+        torch.nn.init.xavier_uniform_(self.convS.weight)
         torch.nn.init.xavier_uniform_(self.wpL.weight)
         torch.nn.init.xavier_uniform_(self.wpR.weight)
         torch.nn.init.xavier_uniform_(self.wp .weight)
@@ -1003,11 +1002,14 @@ class Atten14(nn.Module):
         hc = hidden.transpose(0,1)
         hs =   hs  .transpose(0,1)
 
-        xsc = self.convSC1( hc)     # [batch,1,a] -> [batch,1,a]
-        xsc = self.convSC2(xsc)     # [batch,1,a] -> [batch,1,b]
+        xsc = self.convSC( hc)     # [batch,1,a] -> [batch,1,a]
+        xsc = self.ReLu(xsc)
+
         xsr = self.convSR(hs)       # [batch,1,b] -> [batch,1,b]
+        xsr = self.ReLu(xsr)
 
         xs = self.convS(xsc + xsr)  # [batch,1,b] -> [batch,1,b]
+        xs = self.ReLu(xs)
         xs = self.maxpool(xs)       # [batch,1,b] -> [batch,1,D]
          
         featureFil = self.avgFiltering ( feature * xs ).squeeze(2)
@@ -1028,4 +1030,66 @@ class Atten14(nn.Module):
         beta  = self.norm4( featurePig*xp )    # [batch,D]
         
         return alpha.unsqueeze(2), beta.unsqueeze(1)
+
+
+
+
+
+
+# ------------------------------------------------------------
+class SpatialAttention(nn.Module):
+    """ Constructor """
+    def __init__(self, cube_size, n_hidden):
+        super(SpatialAttention, self).__init__()
+        # Parameters
+        D = cube_size[2]                #  depth
+        L = cube_size[0]*cube_size[1]   #  h x w
+        R = self.L*self.D               #  L x D
+        hc =     n_hidden               #  hidden_size
+        hs = int(n_hidden/2)            #  hidden_size
+
+        # Spatial 
+        self.attnLSTM = nn.LSTM( input_size=hc, hidden_size=hs )
+        self.convSC   = nn.Conv1d(1,1,kernel_size=11,bias=False,padding=5,stride=2)
+        self.convSR   = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=1)
+        self.convS    = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=2)
+        self.maxpool  = torch.nn.AdaptiveMaxPool1d(D)
+
+        self.average = nn.AdaptiveAvgPool1d(1)
+        
+        # Initialization
+        self.attnLSTM.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.convSC.weight)
+        torch.nn.init.xavier_uniform_(self.convSR.weight)
+        torch.nn.init.xavier_uniform_(self.convS.weight)
+
+        self.ReLu    = nn.ReLU()
+        self.Softmax = nn.Softmax(1)
+
+
+    def norm4(self,x):
+        y = self.Tanh(x)**4
+        y = y.mean(1) + 10**-12
+        y = torch.sqrt(y)
+        y = torch.sqrt(y)
+
+        return x/y.view(x.shape[0],1)
+
+    """ Forward """
+    def forward(self,feature,hidden):
+        # Spatial Attention
+        _,(hs,_) = self.spatialLSTM(hidden)
+        hc = hidden.transpose(0,1)
+        hs =   hs  .transpose(0,1)
+
+        xsc = self.ReLu(self.convSC(hc))   # [batch,1,a] -> [batch,1,a]
+        xsr = self.ReLu(self.convSR(hs))   # [batch,1,b] -> [batch,1,b]
+
+        xs = self.ReLu(self.convS(xsc + xsr))   # [batch,1,b] -> [batch,1,b]
+        xs = self.maxpool(xs)                   # [batch,1,b] -> [batch,1,D]
+         
+        alpha = self.average( feature * xs ).squeeze(2)
+        alpha = self.Softmax( alpha )       # [batch,L]
+        
+        return alpha.unsqueeze(2)
         

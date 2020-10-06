@@ -27,15 +27,6 @@ class CNN5(nn.Module):
     """ Constructor """
     def __init__(self):
         super(CNN5, self).__init__()
-        # Parameters
-        self.D = 64 # cube_size[0]
-        self.L = 90 # cube_size[1]*cube_size[2]
-        self.R = 5760 # self.L*self.D
-        self.H = 1024 # hidden_size
-        self.M = 1024 # hidden_size
-        self.sequence_len =   20
-        self.batch_size   =  120
-        
         # Layers
         self.net = nn.Sequential(
                         nn.Conv2d( 3, 24, kernel_size=5, stride=2),

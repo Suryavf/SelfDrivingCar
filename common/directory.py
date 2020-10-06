@@ -1,7 +1,7 @@
 ImitationModel = ['Basic','Multimodal','Codevilla18','Codevilla19','Kim2017','Experimental','ExpBranch']
 Encoder        = ['CNN5', 'CNN5Max', 'ResNet50', 'WideResNet50', 'VGG19', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3']
 Decoder        = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
-Attention      = ['Atten1','Atten2','Atten3','Atten4','Atten5','Atten6','Atten7','Atten8','Atten9','Atten10','Atten11','Atten12','Atten13']
+Attention      = ['Atten1','Atten2','Atten3','Atten4','Atten5','Atten6','Atten7','Atten8','Atten9','Atten10','Atten11','Atten12','Atten13','Atten14']
 SpatialAttention  = ['MHSA','MHRSA']
 CategoryAttention = ['ECAnet']
 Control        = ['SumHiddenFeature','BranchesModule']
