@@ -81,13 +81,17 @@ class Approach(nn.Module):
         depth2 = 512    #  512  512 2048
 
         # Encoder
-        resnet = models.resnet34(pretrained=True)
-        self.encoder1 = nn.Sequential(*(list(resnet.children())[  :-4]))
-        self.encoder2 = nn.Sequential(*(list(resnet.children())[-4:-1]))
-        del resnet
-
+        mdl,dh = self.backbone('resnet34')
+        self.encoder1 = nn.Sequential(*(list(mdl.children())[  :-4]))
+        self.encoder2 = nn.Sequential(*(list(mdl.children())[-4:-1]))
+        (depth1,depth2) = dh
+        del mdl
+        
         cube_dim = (12,24,depth1)
         spaAttn = A.SpatialAttention(cube_dim,n_hidden)
+
+        
+
 
 
         # Decoder
@@ -95,6 +99,23 @@ class Approach(nn.Module):
         self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
         self.control   = module[  'Control'](cube_dim,n_hidden)
     
+
+    """ Backbone 
+    
+        ResNet    18   34   50
+        ----------------------
+        depth1   128  128  512
+        depth2   512  512 2048
+    """
+    def backbone(self,name):
+        if   name == 'resnet18':
+            return models.resnet18(pretrained=True), (128, 512)
+        elif name == 'resnet34':
+            return models.resnet34(pretrained=True), (128, 512)
+        elif name == 'resnet50':
+            return models.resnet50(pretrained=True), (512,2048)
+        
+
     """ Forward """
     def forward(self,batch):
         x               = self.encoder(batch['frame'])
