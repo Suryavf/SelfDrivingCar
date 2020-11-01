@@ -144,7 +144,7 @@ class CoRL2017Dataset(object):
         framePerFile  = self.framePerFile
         sequence_len  = self.sequence_len
         slidingWindow = self.slidingWindow
-        k1 = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 )
+        k1 = sequence_len * int( (framePerFile-sequence_len)/slidingWindow + 1 )
         k2 = sequence_len-slidingWindow
         arr = np.array([ slidingWindow*x + int(x/k1)*k2 for x in arr ]).astype(int)
 
