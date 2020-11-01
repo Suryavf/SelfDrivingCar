@@ -161,8 +161,8 @@ class SeqModule(nn.Module):
         self.Softmax = nn.Softmax()
         
         # Batch normalization
-        self.normQ = nn.BatchNorm1d(64)
-        self.normK = nn.BatchNorm1d(64)
+        self.normQ = nn.BatchNorm1d( 1)
+        self.normK = nn.BatchNorm1d(16)
         self.normV = nn.BatchNorm1d(64)
         
         # Initialization
@@ -200,8 +200,8 @@ class SeqModule(nn.Module):
         K = self.normK(K)   # [120,16,64]
 
         # Value
-        Vx = self.Wqx(feature)
-        Vh = self.Wqh( hidden)
+        Vx = self.Wvx(feature)
+        Vh = self.Wvh( hidden)
         V = torch.cat([Vx,Vh],dim=1)
         V = V.view(-1,16,64)
         # V = self.normV(V)   # [120,16,64]
@@ -211,6 +211,7 @@ class SeqModule(nn.Module):
         A = self.Softmax(A/8)   # [120,1,16]
         
         y = torch.matmul(A,V)   # [120,1,64]
+        y = y.squeeze()
         
         # Steering controller
         hs    = self.fully1s( y)
