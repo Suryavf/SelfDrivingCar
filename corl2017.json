@@ -4,7 +4,7 @@
         "Encoder"  : "CNN5",
         "Decoder"  : "TVADecoder",
         "Attention": "Atten11",
-        "Control"  : "BranchesModule"
+        "Control"  : "SeqModule"
     },
     "sampling": {
         "alpha": 1.0,
@@ -22,7 +22,7 @@
     },
     "train": {
         "scheduler": {
-            "learning_rate_decay_factor": 0.5,
+            "learning_rate_decay_factor": 0.2,
             "learning_rate_decay_steps" : 50
         },
         "optimizer": {

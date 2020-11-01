@@ -185,6 +185,10 @@ class CoRL2017Dataset(object):
             mask = np.zeros((4, 3), dtype=np.float32)
             mask[command,:] = 1
             inputs[ 'mask' ] = mask.reshape(-1)
+        else:
+            mask = np.zeros(4, dtype=np.float32)
+            mask[command,:] = 1
+            inputs[ 'mask' ] = mask
         
         # Speed input/output (max 90km/h)
         if self.includeSpeed or not self.isTrain:
