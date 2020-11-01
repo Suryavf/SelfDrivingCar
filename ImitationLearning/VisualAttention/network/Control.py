@@ -126,3 +126,102 @@ class BranchesModule(nn.Module):
 
         return y_pred
         
+
+class SequentialModule(nn.Module):
+    def __init__(self, cube_size, n_hidden, n_out=3):
+        super(SequentialModule, self).__init__()
+        # Parameters
+        self.D     = cube_size[2]               # cube_size[0]
+        self.L     = cube_size[0]*cube_size[1]  # cube_size[1]*cube_size[2]
+        self.R     = self.L*self.D              # self.L*self.D
+        self.H     = n_hidden                   # hidden_size
+        self.M     = int(n_hidden/2)            # hidden_size
+        self.n_out = n_out
+
+        # Query
+        self.Wc = nn.Linear( 4,16,bias= True)
+        self.Wq = nn.Linear(16,64,bias=False)
+
+        # Key
+        self.Wkx = nn.Linear(self.R,self.M ,bias=False)
+        self.Wkh = nn.Linear(self.H,self.M ,bias=False)
+        
+        # Value
+        self.Wvx = nn.Linear(self.R,self.M ,bias=False)
+        self.Wvh = nn.Linear(self.H,self.M ,bias=False)
+
+        # Output
+        self.fully1s = nn.Linear(  64 ,   64  )
+        self.fully2s = nn.Linear(  64 ,   1   )
+        self.fully1v = nn.Linear(  64 ,   64  )
+        self.fully2v = nn.Linear(  64 ,n_out-1)
+
+        # Activation function
+        self.ReLU    = nn.ReLU()
+        self.Softmax = nn.Softmax()
+        
+        # Batch normalization
+        self.normQ = nn.BatchNorm1d(64)
+        self.normK = nn.BatchNorm1d(64)
+        self.normV = nn.BatchNorm1d(64)
+        
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.Wc .weight)
+        torch.nn.init.xavier_uniform_(self.Wq .weight)
+        
+        torch.nn.init.xavier_uniform_(self.Wkx.weight)
+        torch.nn.init.xavier_uniform_(self.Wkh.weight)
+
+        torch.nn.init.xavier_uniform_(self.Wvx.weight)
+        torch.nn.init.xavier_uniform_(self.Wvh.weight)
+        
+        torch.nn.init.xavier_uniform_(self.fully1s.weight)
+        torch.nn.init.xavier_uniform_(self.fully2s.weight)
+        
+        torch.nn.init.xavier_uniform_(self.fully1v.weight)
+        torch.nn.init.xavier_uniform_(self.fully2v.weight)
+        
+
+    def forward(self,feature,hidden,control):
+        # Control network
+        c = self.Wc(control)
+        c = self.ReLU(c)
+
+        # Query
+        Q = self.Wq(c)
+        Q = Q.unsqueeze(1)
+        Q = self.normQ(Q)   # [120,1,64]
+
+        # Key 
+        Kx = self.Wkx(feature)
+        Kh = self.Wkh( hidden)
+        K = torch.cat([Kx,Kh],dim=1)
+        K = K.view(-1,16,64)
+        K = self.normK(K)   # [120,16,64]
+
+        # Value
+        Vx = self.Wqx(feature)
+        Vh = self.Wqh( hidden)
+        V = torch.cat([Vx,Vh],dim=1)
+        V = V.view(-1,16,64)
+        # V = self.normV(V)   # [120,16,64]
+
+        # Attention 
+        A = torch.matmul(Q,K.transpose(1,2))
+        A = self.Softmax(A/8)   # [120,1,16]
+        
+        y = torch.matmul(A,V)   # [120,1,64]
+        
+        # Steering controller
+        hs    = self.fully1s( y)
+        hs    = self.   ReLU(hs)
+        steer = self.fully2s(hs)
+
+        # Velocity controller
+        hv  = self.fully1v(y)
+        hv  = self.  ReLU(hv)
+        hv  = F.dropout(hv, p=0.1, training=self.training)
+        vel = self.fully2v(hv)
+
+        return torch.cat([steer,vel],dim=1)
+        
