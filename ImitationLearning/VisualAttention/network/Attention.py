@@ -705,8 +705,9 @@ class Atten11(nn.Module):
         return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
-        y = self.Tanh(x)**4
-        y = y.mean(1) + 10**-12
+        x = self.Tanh(x)
+        y = x**4
+        y = y.sum(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 
@@ -798,8 +799,9 @@ class Atten12(nn.Module):
         return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
-        y = self.Tanh(x)**4
-        y = y.mean(1) + 10**-12
+        x = self.Tanh(x)
+        y = x**4
+        y = y.sum(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 
@@ -892,8 +894,9 @@ class Atten13(nn.Module):
         return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
-        y = self.Tanh(x)**4
-        y = y.mean(1) + 10**-12
+        x = self.Tanh(x)
+        y = x**4
+        y = y.sum(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 
@@ -987,8 +990,9 @@ class Atten14(nn.Module):
         return x/y.view(x.shape[0],1)
 
     def norm4(self,x):
-        y = self.Tanh(x)**4
-        y = y.mean(1) + 10**-12
+        x = self.Tanh(x)
+        y = x**4
+        y = y.sum(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
 

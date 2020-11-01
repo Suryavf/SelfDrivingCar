@@ -391,10 +391,11 @@ class TVADecoder(nn.Module):
             # Visual Attention
             alpha,beta = self.attn(xt,hidden)  # [batch,L,1]
 
-            # Filtering
-            visual =    xt * alpha      # [batch,L,D]x[batch,L,1] = [batch,L,D]
+            # Spatial
+            spatial =  xt * alpha      # [batch,L,D]x[batch,L,1] = [batch,L,D]
+            visual  = spatial + xt
 
-            # Pigeonholing
+            # Categorical
             visual = visual * beta      # [batch,L,D]x[batch,1,D] = [batch,L,D]
 
             visual = visual.reshape(n_visual,self.R)    # [batch,R]

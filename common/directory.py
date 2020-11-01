@@ -4,7 +4,7 @@ Decoder        = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 Attention      = ['Atten1','Atten2','Atten3','Atten4','Atten5','Atten6','Atten7','Atten8','Atten9','Atten10','Atten11','Atten12','Atten13','Atten14']
 SpatialAttention  = ['MHSA','MHRSA']
 CategoryAttention = ['ECAnet']
-Control        = ['SumHiddenFeature','BranchesModule']
+Control        = ['SumHiddenFeature','BranchesModule','SeqModule']
 FilesForStudy100 = ['episode_00044','episode_00219','episode_00350','episode_00406','episode_00555','episode_00592','episode_00670','episode_00751',
                     'episode_01231','episode_01559','episode_01768','episode_01798','episode_02042','episode_04371','episode_05123',
                     'episode_00085','episode_00304','episode_00472','episode_00591','episode_00708','episode_01001',

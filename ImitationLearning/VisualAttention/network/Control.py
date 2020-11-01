@@ -127,9 +127,9 @@ class BranchesModule(nn.Module):
         return y_pred
         
 
-class SequentialModule(nn.Module):
+class SeqModule(nn.Module):
     def __init__(self, cube_size, n_hidden, n_out=3):
-        super(SequentialModule, self).__init__()
+        super(SeqModule, self).__init__()
         # Parameters
         self.D     = cube_size[2]               # cube_size[0]
         self.L     = cube_size[0]*cube_size[1]  # cube_size[1]*cube_size[2]
@@ -218,8 +218,8 @@ class SequentialModule(nn.Module):
         steer = self.fully2s(hs)
 
         # Velocity controller
-        hv  = self.fully1v(y)
-        hv  = self.  ReLU(hv)
+        hv  = self.fully1v( y)
+        hv  = self.   ReLU(hv)
         hv  = F.dropout(hv, p=0.1, training=self.training)
         vel = self.fully2v(hv)
 
