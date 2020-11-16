@@ -3,6 +3,7 @@ import torch.nn as nn
 from   torchvision import models
 from   ImitationLearning.backbone import EfficientNet
 from   ImitationLearning.backbone import MemoryEfficientSwish
+from   ImitationLearning.VisualAttention.network.Lambda import λLayer
 
 """ Convolutional Neuronal Network - 5 layers
     -----------------------------------------
@@ -412,4 +413,123 @@ class EfficientNetB3(nn.Module):
         x = x.flatten(start_dim=2, end_dim=3)   # [batch,D,L]
         x = x.transpose(1, 2)                   # [batch,L,D]
         return x
+
+
+""" Lambda Networks 
+    ---------------
+    Ref: Anonymous (2021). LambdaNetworks: Modeling long-range 
+         Interactions without Attention. ICLR 2021 Conference 
+         Blind Submission.
+         https://github.com/leaderj1001/LambdaNetworks/blob/main/model.py
+"""
+class λBottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self, inDim, hdnDim, stride=1):
+        super(λBottleneck, self).__init__()
+        self.in1x1conv = nn.Conv2d(inDim, hdnDim, kernel_size=1, bias=False)
+        self.BNorm1 = nn.BatchNorm2d(hdnDim)
+
+        self.bottleneck = nn.ModuleList([λLayer(dim_in  = hdnDim, dim_out = hdnDim)])
+        if stride != 1 or inDim != self.expansion * hdnDim:
+            self.bottleneck.append(nn.AvgPool2d(kernel_size=(3, 3), stride=stride, padding=(1, 1)))
+        self.bottleneck.append(nn.BatchNorm2d(hdnDim))
+        self.bottleneck.append(nn.ReLU())
+        self.bottleneck = nn.Sequential(*self.bottleneck)
+
+        self.out_1x1conv = nn.Conv2d(hdnDim, self.expansion * hdnDim, kernel_size=1, bias=False)
+        self.BNorm2 = nn.BatchNorm2d(self.expansion * hdnDim)
         
+        self.ReLU = nn.ReLU()
+
+        self.shortcut = nn.Sequential()
+        if stride != 1 or inDim != self.expansion*hdnDim:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inDim, self.expansion*hdnDim, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(self.expansion*hdnDim)
+            )
+
+    def forward(self, fm):
+        # Input
+        x = self.in1x1conv(fm)
+        x = self.   BNorm1(x)
+        h = self.     ReLU(x)
+
+        #Bottleneck
+        h = self.bottleneck(h)
+
+        # Output
+        y = self.out_1x1conv(h)
+        y = self.     BNorm2(y)
+
+        # Skip connections
+        y += self.shortcut(fm)
+        return self.ReLU(y)
+
+
+class λResNet(nn.Module):
+    def __init__(self, block, n_block, mode='high'):
+        super(λResNet, self).__init__()
+        self.low  = (mode== 'low') | (mode=='total')
+        self.high = (mode=='high') | (mode=='total')
+        self.in_planes = 64
+        
+        if self.low:
+            self.scell = nn.Sequential()
+            self.scell.append(nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False))
+            self.scell.append(nn.BatchNorm2d(64))
+            self.scell.append(nn.ReLU(inplace=True))
+            self.scell = nn.Sequential(*self.scell)
+            self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+            self.layer1 = self._make_layer(block,  64, n_block[0])
+            self.layer2 = self._make_layer(block, 128, n_block[1], stride=2)
+        
+        if self.high:
+            self.layer3 = self._make_layer(block, 256, n_block[2], stride=2)
+            self.layer4 = self._make_layer(block, 512, n_block[3], stride=2)
+
+            self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        
+        # Initialization
+        for m in self.modules():    
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def _make_layer(self, block, n_hidden, num_blocks, stride=1):
+        strides = [stride] + [1]*(num_blocks-1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, n_hidden, stride))
+            self.in_planes = n_hidden * block.expansion
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.low:
+            # Introduction
+            x = self.  scell(x)
+            x = self.maxpool(x)
+
+            # Low level
+            x = self.layer1(x)
+            y = self.layer2(x)
+
+        if self.high:
+            y = self.layer3(y)
+            y = self.layer4(y)
+            y = self.avgpool(y)
+        return y
+        
+
+def λResNet18(mode='total'):
+    return λResNet(λBottleneck, [2, 2, 2, 2], mode)
+
+def λResNet34(mode='total'):
+    return λResNet(λBottleneck, [3, 4, 6, 3], mode)
+
+def λResNet50(mode='total'):
+    return λResNet(λBottleneck, [3, 4, 6, 3], mode)
+    

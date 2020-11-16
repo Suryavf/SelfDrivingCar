@@ -15,14 +15,14 @@ class λLayer(nn.Module):
     def __init__(
         self,
         dim_in,
-        dim_k,
+        dim_out = None,
+        dim_k   = 16,
         n = None,
         r = None,
         heads = 4,
-        dim_out = None,
         dim_u = 1):
         super().__init__()
-        dim_out = default(dim_out, dim)
+        dim_out = default(dim_out, dim_in)
         self.u = dim_u # intra-depth dimension
         self.heads = heads
 

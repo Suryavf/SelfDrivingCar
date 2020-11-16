@@ -138,8 +138,11 @@ class SeqModule(nn.Module):
         self.M     = int(n_hidden/2)            # hidden_size
         self.n_out = n_out
 
+        self.LSTM = nn.LSTM( input_size =  4, 
+                            hidden_size = 16)
+
         # Query
-        self.Wc = nn.Linear( 4,16,bias= True)
+        #self.Wc = nn.Linear( 4,16,bias= True)
         self.Wq = nn.Linear(16,64,bias=False)
 
         # Key
@@ -158,7 +161,7 @@ class SeqModule(nn.Module):
 
         # Activation function
         self.ReLU    = nn.ReLU()
-        self.Softmax = nn.Softmax()
+        self.Softmax = nn.Softmax(2)
         
         # Batch normalization
         self.normQ = nn.BatchNorm1d( 1)
@@ -166,26 +169,28 @@ class SeqModule(nn.Module):
         self.normV = nn.BatchNorm1d(64)
         
         # Initialization
-        torch.nn.init.xavier_uniform_(self.Wc .weight)
+        self.LSTM.reset_parameters()
+        #torch.nn.init.xavier_uniform_(self.Wc .weight)
         torch.nn.init.xavier_uniform_(self.Wq .weight)
-        
+    
         torch.nn.init.xavier_uniform_(self.Wkx.weight)
         torch.nn.init.xavier_uniform_(self.Wkh.weight)
-
         torch.nn.init.xavier_uniform_(self.Wvx.weight)
         torch.nn.init.xavier_uniform_(self.Wvh.weight)
         
         torch.nn.init.xavier_uniform_(self.fully1s.weight)
-        torch.nn.init.xavier_uniform_(self.fully2s.weight)
-        
+        torch.nn.init.xavier_uniform_(self.fully2s.weight)    
         torch.nn.init.xavier_uniform_(self.fully1v.weight)
         torch.nn.init.xavier_uniform_(self.fully2v.weight)
         
 
     def forward(self,feature,hidden,control):
         # Control network
-        c = self.Wc(control)
-        c = self.ReLU(c)
+        # c = self.Wc(control)
+        # c = self.ReLU(c)
+        c   = control.view(6,20,4).transpose(0,1)
+        c,_ = self.LSTM(c)
+        c   = c.transpose(0,1).reshape(120,16)
 
         # Query
         Q = self.Wq(c)
