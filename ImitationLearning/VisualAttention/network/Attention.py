@@ -1046,26 +1046,26 @@ class SpatialAttention(nn.Module):
     def __init__(self, cube_size, n_hidden):
         super(SpatialAttention, self).__init__()
         # Parameters
-        D = cube_size[2]                #  depth
-        L = cube_size[0]*cube_size[1]   #  h x w
-        R = self.L*self.D               #  L x D
-        hc =     n_hidden               #  hidden_size
-        hs = int(n_hidden/2)            #  hidden_size
+        self.D = cube_size[2]                #  depth
+        self.L = cube_size[0]*cube_size[1]   #  h x w
+        self.R = self.L*self.D               #  L x D
+        
+        self.M = 64
+        self.h =  2
+        self.d = self.D/self.h
 
         # Spatial 
-        self.attnLSTM = nn.LSTM( input_size=hc, hidden_size=hs )
-        self.convSC   = nn.Conv1d(1,1,kernel_size=11,bias=False,padding=5,stride=2)
-        self.convSR   = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=1)
-        self.convS    = nn.Conv1d(1,1,kernel_size= 5,bias=False,padding=2,stride=2)
-        self.maxpool  = torch.nn.AdaptiveMaxPool1d(D)
+        # self.to_q = nn.Conv2d( self.D, self.d*self.h, 1, bias = False)
+        # self.to_k = nn.Conv2d( self.M, self.d*self.h,    bias = False)
+        self.to_q = nn.Linear()
 
-        self.average = nn.AdaptiveAvgPool1d(1)
-        
+
+        self.norm_q = nn.BatchNorm2d(D)
+        self.norm_v = nn.BatchNorm2d(D)
+
         # Initialization
-        self.attnLSTM.reset_parameters()
-        torch.nn.init.xavier_uniform_(self.convSC.weight)
-        torch.nn.init.xavier_uniform_(self.convSR.weight)
-        torch.nn.init.xavier_uniform_(self.convS.weight)
+        torch.nn.init.xavier_uniform_(self.to_q.weight)
+        torch.nn.init.xavier_uniform_(self.to_k.weight)
 
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(1)
@@ -1080,20 +1080,13 @@ class SpatialAttention(nn.Module):
         return x/y.view(x.shape[0],1)
 
     """ Forward """
-    def forward(self,feature,hidden):
-        # Spatial Attention
-        _,(hs,_) = self.spatialLSTM(hidden)
-        hc = hidden.transpose(0,1)
-        hs =   hs  .transpose(0,1)
+    def forward(self,eta,F):
+        # F = F.unsqueeze(-1).unsqueeze(-1)
+        # Q = self.to_q(eta)
+        # K = self.to_k( F )
 
-        xsc = self.ReLu(self.convSC(hc))   # [batch,1,a] -> [batch,1,a]
-        xsr = self.ReLu(self.convSR(hs))   # [batch,1,b] -> [batch,1,b]
+        eta = eta.view(-1, self.D, self.L)
 
-        xs = self.ReLu(self.convS(xsc + xsr))   # [batch,1,b] -> [batch,1,b]
-        xs = self.maxpool(xs)                   # [batch,1,b] -> [batch,1,D]
-         
-        alpha = self.average( feature * xs ).squeeze(2)
-        alpha = self.Softmax( alpha )       # [batch,L]
-        
+
         return alpha.unsqueeze(2)
         

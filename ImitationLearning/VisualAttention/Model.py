@@ -81,11 +81,9 @@ class Approach(nn.Module):
         depth2 = 512    #  512  512 2048
 
         # Encoder
-        mdl,dh = self.backbone('resnet34')
-        self.encoder1 = nn.Sequential(*(list(mdl.children())[  :-4]))
-        self.encoder2 = nn.Sequential(*(list(mdl.children())[-4:-1]))
-        (depth1,depth2) = dh
-        del mdl
+        self.encoder1 = self.encoder1.resnet34(pretrained=True)
+        self.encoder1 = nn.Sequential(*(list(self.encoder1.children())[:-4]))       
+        self.encoder2 = E.λResNet34('high')
         
         cube_dim = (12,24,depth1)
         spaAttn = A.SpatialAttention(cube_dim,n_hidden)

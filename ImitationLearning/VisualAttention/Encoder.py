@@ -524,11 +524,8 @@ class λResNet(nn.Module):
         return y
         
 
-def λResNet18(mode='total'):
-    return λResNet(λBottleneck, [2, 2, 2, 2], mode)
-
 def λResNet34(mode='total'):
-    return λResNet(λBottleneck, [3, 4, 6, 3], mode)
+    return λResNet(λBottleneck, [2, 2, 2, 2], mode)
 
 def λResNet50(mode='total'):
     return λResNet(λBottleneck, [3, 4, 6, 3], mode)
