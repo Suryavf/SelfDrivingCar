@@ -1041,34 +1041,43 @@ class Atten14(nn.Module):
 
 
 # ------------------------------------------------------------
-class SpatialAttention(nn.Module):
+class SpaAttn(nn.Module):
     """ Constructor """
-    def __init__(self, cube_size, n_hidden):
-        super(SpatialAttention, self).__init__()
-        # Parameters
-        self.D = cube_size[2]                #  depth
-        self.L = cube_size[0]*cube_size[1]   #  h x w
-        self.R = self.L*self.D               #  L x D
+    def __init__(self, cube_size):
+        super(SpaAttn, self).__init__()
+        # Parameters 
+        self.high  = cube_size[0]
+        self.width = cube_size[1]
+        self.D = cube_size[2]           #  depth
+        self.L = self.high*self.width   #  h x w
+        self.R = self.L*self.D          #  L x D
         
+        # Deberian ser entrada
+        self.batch = 120
         self.M = 64
+
         self.h =  2
-        self.d = self.D/self.h
+        self.d = int(self.D/self.h)
+        self.sqrtd = self.d ** .5
 
         # Spatial 
-        # self.to_q = nn.Conv2d( self.D, self.d*self.h, 1, bias = False)
-        # self.to_k = nn.Conv2d( self.M, self.d*self.h,    bias = False)
-        self.to_q = nn.Linear()
+        self.to_q = nn.Linear(self.D, self.d*self.h, bias = False)
+        self.to_k = nn.Linear(self.M, self.d*self.h, bias = False)
+        self.to_v = nn.Linear(self.D, self.d*self.h, bias = False)
 
+        self.fc = nn.Linear(self.D, self.D)
 
-        self.norm_q = nn.BatchNorm2d(D)
-        self.norm_v = nn.BatchNorm2d(D)
+        self.norm_q = nn.BatchNorm1d(self.d*self.h)
+        self.norm_v = nn.BatchNorm1d(self.d*self.h)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q.weight)
         torch.nn.init.xavier_uniform_(self.to_k.weight)
+        torch.nn.init.xavier_uniform_(self.to_v.weight)
+        torch.nn.init.xavier_uniform_(self. fc .weight)
 
         self.ReLu    = nn.ReLU()
-        self.Softmax = nn.Softmax(1)
+        self.Softmax = nn.Softmax(3)
 
 
     def norm4(self,x):
@@ -1079,14 +1088,32 @@ class SpatialAttention(nn.Module):
 
         return x/y.view(x.shape[0],1)
 
-    """ Forward """
+    """ Forward 
+          - eta [batch,channel,high,width]
+          -  F  [batch,1,M]
+    """
     def forward(self,eta,F):
-        # F = F.unsqueeze(-1).unsqueeze(-1)
-        # Q = self.to_q(eta)
-        # K = self.to_k( F )
-
+        # Visual feature
         eta = eta.view(-1, self.D, self.L)
+        eta = eta.transpose(1,2)    # [batch,L,D]
+        
+        Q = self.to_q(eta)      # [batch,L,hd]
+        K = self.to_k( F )      # [batch,L,hd]
+        V = self.to_v(eta)      # [batch,L,hd]
 
+        Q = self.norm_q(Q)
+        V = self.norm_v(V)
 
-        return alpha.unsqueeze(2)
+        Q, K, V = map(lambda x: x.reshape(self.batch, -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
+        QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
+        
+        # Attention map
+        A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, 1]
+        Z  = torch.einsum('bhnk,bnhd->bnhd', (A,V))     # [batch, L, h, d]
+        
+        # Output
+        Z = Z.view(-1,self.L,self.D)
+        Z = self.fc(Z)
+
+        return Z.reshape(-1,self.D,self.high,self.width)
         

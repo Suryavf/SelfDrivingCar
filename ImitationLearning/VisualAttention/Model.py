@@ -85,13 +85,11 @@ class Approach(nn.Module):
         self.encoder1 = nn.Sequential(*(list(self.encoder1.children())[:-4]))       
         self.encoder2 = E.λResNet34('high')
         
+        # Spatial attention
         cube_dim = (12,24,depth1)
-        spaAttn = A.SpatialAttention(cube_dim,n_hidden)
-
+        self.spaAttn = A.SpaAttn(cube_dim)     
+        self.ReLU = nn.ReLU()
         
-
-
-
         # Decoder
         self.attention = module['Attention'](cube_dim,n_hidden)
         self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
@@ -116,7 +114,16 @@ class Approach(nn.Module):
 
     """ Forward """
     def forward(self,batch):
-        x               = self.encoder(batch['frame'])
+        # Visual encoder
+        x = self.encoder1(batch['frame'])
+
+        # Spatial attention
+        eta = self.spaAttn(x)    # [batch,channel,high,width]
+        eta = self.ReLU(eta + x)
+
+        z = self.encoder2(eta)
+
+        
         x,hdn,attn,lstm = self.decoder(x)
         y               = self.control(x,hdn,batch['mask'])
         return {  'actions' :     y,
