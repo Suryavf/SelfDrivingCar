@@ -137,12 +137,13 @@ class SeqModule(nn.Module):
         self.H     = n_hidden                   # hidden_size
         self.M     = int(n_hidden/2)            # hidden_size
         self.n_out = n_out
+        self.sequence_len =  20
 
-        self.LSTM = nn.LSTM( input_size =  4, 
-                            hidden_size = 16)
-
+        # self.LSTM = nn.LSTM( input_size =  4, 
+        #                     hidden_size = 16)
+        
         # Query
-        #self.Wc = nn.Linear( 4,16,bias= True)
+        self.Wc = nn.Linear( 4,16,bias= True)
         self.Wq = nn.Linear(16,64,bias=False)
 
         # Key
@@ -169,29 +170,34 @@ class SeqModule(nn.Module):
         self.normV = nn.BatchNorm1d(64)
         
         # Initialization
-        self.LSTM.reset_parameters()
-        #torch.nn.init.xavier_uniform_(self.Wc .weight)
+        # self.LSTM.reset_parameters()
+        torch.nn.init.xavier_uniform_(self.Wc .weight)
         torch.nn.init.xavier_uniform_(self.Wq .weight)
-    
+        
         torch.nn.init.xavier_uniform_(self.Wkx.weight)
         torch.nn.init.xavier_uniform_(self.Wkh.weight)
+
         torch.nn.init.xavier_uniform_(self.Wvx.weight)
         torch.nn.init.xavier_uniform_(self.Wvh.weight)
         
         torch.nn.init.xavier_uniform_(self.fully1s.weight)
-        torch.nn.init.xavier_uniform_(self.fully2s.weight)    
+        torch.nn.init.xavier_uniform_(self.fully2s.weight)
+        
         torch.nn.init.xavier_uniform_(self.fully1v.weight)
         torch.nn.init.xavier_uniform_(self.fully2v.weight)
         
 
     def forward(self,feature,hidden,control):
-        # Control network
-        # c = self.Wc(control)
-        # c = self.ReLU(c)
-        c   = control.view(6,20,4).transpose(0,1)
-        c,_ = self.LSTM(c)
-        c   = c.transpose(0,1).reshape(120,16)
+        # sequence_len = self.sequence_len
+        # batch_size = int(feature.shape[0]/sequence_len)
 
+        # Control network
+        c = control*2-1
+        c = self.Wc(c)
+        c = self.ReLU(c)
+        # c   = control.view(batch_size,sequence_len,4).transpose(0,1)
+        # c,_ = self.LSTM(c)
+        # c   = c.transpose(0,1).reshape(batch_size*sequence_len,16)
         # Query
         Q = self.Wq(c)
         Q = Q.unsqueeze(1)
@@ -217,7 +223,7 @@ class SeqModule(nn.Module):
         
         y = torch.matmul(A,V)   # [120,1,64]
         y = y.squeeze()
-        
+
         # Steering controller
         hs    = self.fully1s( y)
         hs    = self.   ReLU(hs)
@@ -225,8 +231,8 @@ class SeqModule(nn.Module):
 
         # Velocity controller
         hv  = self.fully1v( y)
-        hv  = self.   ReLU(hv)
         hv  = F.dropout(hv, p=0.1, training=self.training)
+        hv  = self.   ReLU(hv)
         vel = self.fully2v(hv)
 
         return torch.cat([steer,vel],dim=1)
