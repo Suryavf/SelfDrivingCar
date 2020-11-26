@@ -425,28 +425,30 @@ class EfficientNetB3(nn.Module):
 class λBottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inDim, hdnDim, stride=1):
+    def __init__(self, d_in, dhdn, h_x_w, stride=1):
         super(λBottleneck, self).__init__()
-        self.in1x1conv = nn.Conv2d(inDim, hdnDim, kernel_size=1, bias=False)
-        self.BNorm1 = nn.BatchNorm2d(hdnDim)
+        dout = dhdn*self.expansion
+        # inDim, hdnDim
+        self.in1x1conv = nn.Conv2d(d_in, dhdn, kernel_size=1, bias=False)
+        self.BNorm1 = nn.BatchNorm2d(dhdn)
 
-        self.bottleneck = nn.ModuleList([λLayer(dim_in  = hdnDim, dim_out = hdnDim)])
-        if stride != 1 or inDim != self.expansion * hdnDim:
+        self.bottleneck = nn.ModuleList([λLayer(dim_in  = dhdn, dim_out = dhdn, n = h_x_w)])
+        if stride != 1 or d_in != dhdn:
             self.bottleneck.append(nn.AvgPool2d(kernel_size=(3, 3), stride=stride, padding=(1, 1)))
-        self.bottleneck.append(nn.BatchNorm2d(hdnDim))
+        self.bottleneck.append(nn.BatchNorm2d(dhdn))
         self.bottleneck.append(nn.ReLU())
         self.bottleneck = nn.Sequential(*self.bottleneck)
 
-        self.out_1x1conv = nn.Conv2d(hdnDim, self.expansion * hdnDim, kernel_size=1, bias=False)
-        self.BNorm2 = nn.BatchNorm2d(self.expansion * hdnDim)
+        self.out_1x1conv = nn.Conv2d(dhdn, dout, kernel_size=1, bias=False)
+        self.BNorm2 = nn.BatchNorm2d(dout)
         
         self.ReLU = nn.ReLU()
 
         self.shortcut = nn.Sequential()
-        if stride != 1 or inDim != self.expansion*hdnDim:
+        if stride != 1 or d_in != dout:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(inDim, self.expansion*hdnDim, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(self.expansion*hdnDim)
+                nn.Conv2d(d_in, dout, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(dout)
             )
 
     def forward(self, fm):
@@ -499,12 +501,12 @@ class λResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, n_hidden, num_blocks, stride=1):
+    def _make_layer(self, block, n_hidden, num_blocks, stride=1):   
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, n_hidden, stride))
-            self.in_planes = n_hidden * block.expansion
+        self.in_planes = n_hidden * block.expansion
         return nn.Sequential(*layers)
 
     def forward(self, x):

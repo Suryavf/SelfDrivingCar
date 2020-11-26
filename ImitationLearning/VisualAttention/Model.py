@@ -81,7 +81,7 @@ class Approach(nn.Module):
         depth2 = 512    #  512  512 2048
 
         # Encoder
-        self.encoder1 = self.encoder1.resnet34(pretrained=True)
+        self.encoder1 = models.resnet18(pretrained=True)
         self.encoder1 = nn.Sequential(*(list(self.encoder1.children())[:-4]))       
         self.encoder2 = E.λResNet34('high')
         
