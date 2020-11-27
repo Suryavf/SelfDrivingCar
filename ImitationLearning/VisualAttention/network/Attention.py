@@ -1104,7 +1104,7 @@ class SpaAttn(nn.Module):
         Q = self.norm_q(Q)
         V = self.norm_v(V)
 
-        Q, K, V = map(lambda x: x.reshape(self.batch, -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
+        Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
         QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
         
         # Attention map
@@ -1117,3 +1117,71 @@ class SpaAttn(nn.Module):
 
         return Z.reshape(-1,self.D,self.high,self.width)
         
+
+class FtrAttn(nn.Module):
+    """ Constructor """
+    def __init__(self, n_encode, n_hidden, n_command):
+        super(FtrAttn, self).__init__()
+        self.n_features = 32
+        self.n_depth    = 64
+
+        self.M = self.n_depth*int(self.n_features/2)
+
+        # Feature 
+        self.to_q  = nn.Linear(n_command, self.n_depth, bias = False)
+        self.to_kz = nn.Linear( n_encode, self.   M   , bias = False)
+        self.to_kh = nn.Linear( n_hidden, self.   M   , bias = False)
+        self.to_vz = nn.Linear( n_encode, self.   M   , bias = False)
+        self.to_vh = nn.Linear( n_hidden, self.   M   , bias = False)
+
+        self.Softmax = nn.Softmax(2)
+
+        # Batch normalization
+        self.normQ = nn.BatchNorm1d( 1)
+        self.normK = nn.BatchNorm1d(16)
+        self.normV = nn.BatchNorm1d(64)
+
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.to_q .weight)
+        torch.nn.init.xavier_uniform_(self.to_kz.weight)
+        torch.nn.init.xavier_uniform_(self.to_kh.weight)
+        torch.nn.init.xavier_uniform_(self.to_vz.weight)
+        torch.nn.init.xavier_uniform_(self.to_vh.weight)
+
+    def forward(self,feature,hidden,command):
+        # Query
+        Q = self.to_q(command)
+        Q = Q.unsqueeze(1)
+        Q = self.normQ(Q)   # [120,1,64]
+
+        # Key
+        Kz, Kh = self.to_kz(feature), self.to_kh(feature)
+        K = torch.cat([Kz,Kh],dim=1)
+        K = K.view(-1,self.n_features,self.n_depth)
+        K = self.normK(K)   # [120,32,64]
+
+        # Value
+        Vz, Vh = self.to_vz(feature), self.to_vh(feature)
+        V = torch.cat([Vz,Vh],dim=1)
+        V = V.view(-1,self.n_features,self.n_depth)
+
+        # Attention 
+        A = torch.matmul(Q,K.transpose(1,2))
+        A = self.Softmax(A/8)   # [120,1,16]
+
+        s = torch.matmul(A,V)   # [120,1,64]
+        return s.squeeze()
+        
+
+class CommandNet(nn.Module):
+    """ Constructor """
+    def __init__(self,n_encode=16):
+        super(CommandNet, self).__init__()
+        self.Wc = nn.Linear( 4, n_encode, bias= True)
+        self.ReLU    = nn.ReLU()
+
+    def forward(self,control):
+        c = control*2-1
+        c = self.Wc(c)
+        return self.ReLU(c)
+

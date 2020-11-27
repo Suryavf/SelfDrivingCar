@@ -71,9 +71,11 @@ class ExpBranch(nn.Module):
 
 class Approach(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting):#(96,192)): 92,196
+    def __init__(self,module,setting,n_hidden = 1024):#(96,192)): 92,196
         super(Approach, self).__init__()
         # Parameters
+        self.H =     n_hidden       # 1024
+        self.R = int(n_hidden/4)    #  256
         n_hidden = 1024
         
         # ResNet            18   34   50
@@ -89,11 +91,19 @@ class Approach(nn.Module):
         cube_dim = (12,24,depth1)
         self.spaAttn = A.SpaAttn(cube_dim)     
         self.ReLU = nn.ReLU()
-        
+
+        self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
+
+        self.convRed = nn.Conv2d(depth2,self.R, kernel_size=1, bias=False)
+        self.lstm = nn.LSTM(  input_size = self.R,
+                             hidden_size = self.H,
+                              num_layers =      1)
+
         # Decoder
-        self.attention = module['Attention'](cube_dim,n_hidden)
-        self.decoder   = module[  'Decoder'](self.attention,cube_dim,n_hidden)
-        self.control   = module[  'Control'](cube_dim,n_hidden)
+        self.attention = module['Attention'](cube_dim,self.H)
+        self.decoder   = module[  'Decoder'](self.attention,cube_dim,self.H)
+        self.control   = module[  'Control'](cube_dim,self.H)
     
 
     """ Backbone 
@@ -121,7 +131,13 @@ class Approach(nn.Module):
         eta = self.spaAttn(x)    # [batch,channel,high,width]
         eta = self.ReLU(eta + x)
 
-        z = self.encoder2(eta)
+        # High-level
+        z1 = self.encoder2(eta)
+        z1 = self. avgpool1(z1)
+
+        z2 = self. convRed(z1)
+        z2 = self.avgpool2(z2)
+        h  = self.    lstm(z2)
 
         
         x,hdn,attn,lstm = self.decoder(x)
