@@ -1184,4 +1184,4 @@ class CommandNet(nn.Module):
         c = control*2-1
         c = self.Wc(c)
         return self.ReLU(c)
-
+        

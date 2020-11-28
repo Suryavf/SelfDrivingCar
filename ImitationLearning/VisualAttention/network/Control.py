@@ -237,3 +237,48 @@ class SeqModule(nn.Module):
 
         return torch.cat([steer,vel],dim=1)
         
+
+""" Policy: DenseNet
+    -------------------
+    Ref: https://sites.google.com/view/d2rl/home
+        * Input: feature [batch,L,D]
+                 hidden  [1,batch,H]
+        * Output: alpha  [batch,L,1]
+"""
+class Policy(nn.Module):
+    def __init__(self, n_depth):
+        super(Policy, self).__init__()
+
+        self.n_input  = 2*n_depth
+        self.n_hidden =   n_depth
+        
+        self.wz1 = nn.Linear(self.n_hidden,self.n_hidden)
+        self.wz2 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wz3 = nn.Linear(self.n_input ,self.n_hidden)
+
+        self.ws1 = nn.Linear(self.n_input ,self.n_hidden)
+        self.ws2 = nn.Linear(self.n_hidden,      2      )
+
+        self.wv1 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wv2 = nn.Linear(self.n_hidden,      1      )
+
+
+    def forward(self,state):
+        # State
+        z = F.relu(self. wz1(state))
+        torch.cat([z, state],dim=1)
+        z = F.relu(self. wz2(z))
+        torch.cat([z, state],dim=1)
+        z = F.relu(self. wz3(z))
+        torch.cat([z, state],dim=1)
+
+        # Steering controller
+        steer = F.relu(self. ws1(  z  ))
+        steer =        self. ws2(steer)
+
+        # Velocity controller
+        vel = F.relu(self. wv1( z ))
+        vel =        self. wv2(vel)
+
+        return torch.cat([steer,vel],dim=1)
+        

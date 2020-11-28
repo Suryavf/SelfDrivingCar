@@ -76,7 +76,6 @@ class Approach(nn.Module):
         # Parameters
         self.H =     n_hidden       # 1024
         self.R = int(n_hidden/4)    #  256
-        n_hidden = 1024
         
         # ResNet            18   34   50
         depth1 = 128    #  128  128  512
@@ -132,12 +131,12 @@ class Approach(nn.Module):
         eta = self.ReLU(eta + x)
 
         # High-level
-        z1 = self.encoder2(eta)
-        z1 = self. avgpool1(z1)
+        z = self.encoder2(eta)
+        z = self. avgpool1( z)
 
-        z2 = self. convRed(z1)
-        z2 = self.avgpool2(z2)
-        h  = self.    lstm(z2)
+        h = self. convRed(z)
+        h = self.avgpool2(h)
+        h = self.    lstm(h)
 
         
         x,hdn,attn,lstm = self.decoder(x)
