@@ -431,31 +431,35 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,SpatialNet,FeatureNet,cube_size,n_hidden):
+    def __init__(self,SpatialNet,FeatureNet,midCube,highDim,n_hidden):
         super(CatDecoder, self).__init__()
         
         # Parameters
-        self.D = cube_size[2]               #   64 
-        self.L = cube_size[0]*cube_size[1]  #   90 
-        self.R = self.L*self.D              # 5760 
-        self.H = n_hidden                   #  512 
-        self.M = n_hidden                   #  512 
-        self.sequence_len =  20
-        self.batch_size   = 120
-        self.n_out        =   3
-        self.study = False
+        self.H =     n_hidden       # output LSTM   1024
+        self.R = int(n_hidden/4)    #  input LSTM    256
+
+        depth1 = midCube[2]
+        depth2 = highDim
         
-        # Declare layers
-        self.spaAttn = SpatialNet
+        # Attention
+        self.SpatialAttn = SpatialNet
+        self.FeatureAttn = FeatureNet
+
+        # Output
+        self.dimReduction = nn.Conv2d(depth2,self.R, kernel_size=1, bias=False)
         self.lstm = nn.LSTM(  input_size = self.R,
                              hidden_size = self.H,
                               num_layers =      1)
-        
         self.init_Wh   = nn.Linear(self.D,self.H,bias=True )
         self.init_Wc   = nn.Linear(self.D,self.H,bias=True )
         self.init_tanh = nn.Tanh()
 
+        self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
+        self.ReLU     = nn.ReLU()  
+
         # Initialization
+        torch.nn.init.xavier_uniform_(self.convRed.weight)
         torch.nn.init.xavier_uniform_(self.init_Wh.weight)
         torch.nn.init.xavier_uniform_(self.init_Wc.weight)
         self.lstm.reset_parameters()
@@ -466,14 +470,14 @@ class CatDecoder(nn.Module):
             image caption generation with visual attention." 
             International conference on machine learning. 2015.
 
-            * Input:  feature [batch,L,D]
+            * Input:  feature [batch,D,h,w]
             * Output: hidden  [1,batch,H]
                       cell    [1,batch,H]
     """
     def initializeLSTM(self,feature):
         with torch.no_grad():
             # Mean features
-            feature = torch.mean(feature,1) # [batch,L,D] -> [batch,D]
+            feature = torch.mean(feature,(2,3)) # [batch,D,h,w] -> [batch,D]
             
             hidden = self.init_Wh(feature)  # [batch,D]*[D,H] -> [batch,H]
             hidden = self.init_tanh(hidden) # [batch,H]
@@ -486,37 +490,38 @@ class CatDecoder(nn.Module):
             # (h,c) ~ [num_layers, batch, hidden_size]
             return hidden.contiguous(),cell.contiguous()
         
-    """ Forward """
+    """ Forward 
+          - eta [batch,channel,high,width]
+    """
     def forward(self,feature):
         # Parameters
         sequence_len = self.sequence_len
         if self.training: batch_size = int(feature.shape[0]/sequence_len)
         else            : batch_size =     feature.shape[0]
+        _,C,H,W = feature.shape # Batch of Tensor Images is a tensor of (B, C, H, W) shape
         
         # Data
-        if self.training: sequence = feature.view(batch_size,sequence_len,self.L,self.D).transpose_(0,1) # [sequence,batch,L,D]
-        else            : sequence = feature  # [batch,L,D]
+        if self.training: sequence = feature.view(batch_size,sequence_len,C,H,W).transpose_(0,1) # [sequence,batch, ...]
+        else            : sequence = feature  # [batch, ...]
         
-        # Input to inicialize LSTM 
-        if self.training: xt = sequence[0]
-        else            : xt = sequence[0].unsqueeze(0)
-
         # Inicialize hidden state and cell state
         #   * hidden ~ [1,batch,H]
         #   * cell   ~ [1,batch,H]
-        hidden,cell = self.initializeLSTM(xt)
+        if self.training: xt = sequence[0]  # Input to inicialize LSTM 
+        else            : xt = sequence[0].unsqueeze(0)
+        ht,ct = self.initializeLSTM(xt)
 
         # Prediction container
         if self.training:
             vis_ = torch.zeros([sequence_len,batch_size,self.R]).to( torch.device('cuda:0') )
-            alp_ = torch.zeros([sequence_len,batch_size,self.L]).to( torch.device('cuda:0') )
-            bet_ = torch.zeros([sequence_len,batch_size,self.D]).to( torch.device('cuda:0') )
-            hdd_ = torch.zeros([sequence_len,batch_size,self.H]).to( torch.device('cuda:0') )
+            # alp_ = torch.zeros([sequence_len,batch_size,self.L]).to( torch.device('cuda:0') )
+            # bet_ = torch.zeros([sequence_len,batch_size,self.D]).to( torch.device('cuda:0') )
+            # hdd_ = torch.zeros([sequence_len,batch_size,self.H]).to( torch.device('cuda:0') )
         else:
             vis_ = torch.zeros([batch_size,self.R]).to( torch.device('cuda:0') )
-            alp_ = torch.zeros([batch_size,self.L]).to( torch.device('cuda:0') )
-            bet_ = torch.zeros([batch_size,self.D]).to( torch.device('cuda:0') )
-            hdd_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
+            # alp_ = torch.zeros([batch_size,self.L]).to( torch.device('cuda:0') )
+            # bet_ = torch.zeros([batch_size,self.D]).to( torch.device('cuda:0') )
+            # hdd_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # Study rountime
         if self.study:
@@ -531,7 +536,29 @@ class CatDecoder(nn.Module):
             # One time
             if self.training: xt = sequence[k]              # [batch,L,D]
             else            : xt = sequence[k].unsqueeze(0) # [  1  ,L,D]
+
+            # Spatial Attention
+            ηt = self.SpatialAttn(xt)
+            ηt = self.ReLU(ηt + xt)
+
+            # High-level encoder
+            zt = self. encoder2(ηt)
+
+            rt = self.dimReduction(zt)
+            rt = self.    avgpool2(rt)
+
+            # LSTM
+            #  * yt     ~ [sequence,batch,H]
+            #  * hidden ~ [ layers ,batch,H]
+            #  * cell   ~ [ layers ,batch,H]
+            _,(ht,cell)= self.lstm(rt,(ht,ct))
             
+            # Feature-based attention
+            st = self.FeatureAttn(zt,ht)
+
+
+            # -----------------------------------------------------------------------------------------
+
             # Visual Attention
             alpha,beta = self.attn(xt,hidden)  # [batch,L,1]
 
