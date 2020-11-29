@@ -1092,14 +1092,14 @@ class SpaAttn(nn.Module):
           - eta [batch,channel,high,width]
           -  F  [batch,1,M]
     """
-    def forward(self,eta,F):
+    def forward(self,ηt,F):
         # Visual feature
-        eta = eta.view(-1, self.D, self.L)
-        eta = eta.transpose(1,2)    # [batch,L,D]
+        ηt = ηt.view(-1, self.D, self.L)
+        ηt = ηt.transpose(1,2)    # [batch,L,D]
         
-        Q = self.to_q(eta)      # [batch,L,hd]
-        K = self.to_k( F )      # [batch,L,hd]
-        V = self.to_v(eta)      # [batch,L,hd]
+        Q = self.to_q(ηt)      # [batch,L,hd]
+        K = self.to_k( F)      # [batch,L,hd]
+        V = self.to_v(ηt)      # [batch,L,hd]
 
         Q = self.norm_q(Q)
         V = self.norm_v(V)

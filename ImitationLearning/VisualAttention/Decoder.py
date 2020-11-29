@@ -431,22 +431,20 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,SpatialNet,FeatureNet,midCube,highDim,n_hidden):
+    def __init__(self,SpatialNet,FeatureNet,CmdNet, HighLevelDim=512, n_hidden=1024):
         super(CatDecoder, self).__init__()
         
         # Parameters
         self.H =     n_hidden       # output LSTM   1024
         self.R = int(n_hidden/4)    #  input LSTM    256
-
-        depth1 = midCube[2]
-        depth2 = highDim
         
         # Attention
         self.SpatialAttn = SpatialNet
         self.FeatureAttn = FeatureNet
+        self. CmdDecoder =     CmdNet
 
         # Output
-        self.dimReduction = nn.Conv2d(depth2,self.R, kernel_size=1, bias=False)
+        self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
         self.lstm = nn.LSTM(  input_size = self.R,
                              hidden_size = self.H,
                               num_layers =      1)
@@ -493,7 +491,7 @@ class CatDecoder(nn.Module):
     """ Forward 
           - eta [batch,channel,high,width]
     """
-    def forward(self,feature):
+    def forward(self,feature,command):
         # Parameters
         sequence_len = self.sequence_len
         if self.training: batch_size = int(feature.shape[0]/sequence_len)
@@ -501,7 +499,7 @@ class CatDecoder(nn.Module):
         _,C,H,W = feature.shape # Batch of Tensor Images is a tensor of (B, C, H, W) shape
         
         # Data
-        if self.training: sequence = feature.view(batch_size,sequence_len,C,H,W).transpose_(0,1) # [sequence,batch, ...]
+        if self.training: sequence = feature.view(batch_size,sequence_len,C,H,W).transpose(0,1) # [sequence,batch, ...]
         else            : sequence = feature  # [batch, ...]
         
         # Inicialize hidden state and cell state
@@ -511,87 +509,57 @@ class CatDecoder(nn.Module):
         else            : xt = sequence[0].unsqueeze(0)
         ht,ct = self.initializeLSTM(xt)
 
+        # Command decoder
+        cmd = self.CmdDecoder(command)
+        if self.training: cmd = cmd.view(sequence_len,batch_size,-1).transpose(0,1) # [sequence,batch,4]
+
         # Prediction container
         if self.training:
-            vis_ = torch.zeros([sequence_len,batch_size,self.R]).to( torch.device('cuda:0') )
-            # alp_ = torch.zeros([sequence_len,batch_size,self.L]).to( torch.device('cuda:0') )
-            # bet_ = torch.zeros([sequence_len,batch_size,self.D]).to( torch.device('cuda:0') )
-            # hdd_ = torch.zeros([sequence_len,batch_size,self.H]).to( torch.device('cuda:0') )
+            st_ = torch.zeros([sequence_len,batch_size,self.R]).to( torch.device('cuda:0') )
+            ht_ = torch.zeros([sequence_len,batch_size,self.H]).to( torch.device('cuda:0') )
         else:
-            vis_ = torch.zeros([batch_size,self.R]).to( torch.device('cuda:0') )
-            # alp_ = torch.zeros([batch_size,self.L]).to( torch.device('cuda:0') )
-            # bet_ = torch.zeros([batch_size,self.D]).to( torch.device('cuda:0') )
-            # hdd_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
+            st_ = torch.zeros([batch_size,self.R]).to( torch.device('cuda:0') )
+            ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
-        # Study rountime
-        if self.study:
-            hc = torch.zeros([self.batch_size,self.H]).to( torch.device('cuda:0') )
-        else:
-            hc = None # hc,ha,hb = (None,None,None)
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
-        n_visual =        batch_size if self.training else     1
         for k in range(n_range):
             # One time
-            if self.training: xt = sequence[k]              # [batch,L,D]
-            else            : xt = sequence[k].unsqueeze(0) # [  1  ,L,D]
+            if self.training: ηt = sequence[k]              # [batch,L,D]
+            else            : ηt = sequence[k].unsqueeze(0) # [  1  ,L,D]
+            if self.training: ct = cmd[k]                   # [batch, 4 ]
+            else            : ct = cmd[k].unsqueeze(0)      # [  1  , 4 ]
 
             # Spatial Attention
-            ηt = self.SpatialAttn(xt)
-            ηt = self.ReLU(ηt + xt)
+            xt = self.SpatialAttn(ηt)
+            xt = self.ReLU(ηt + xt)
 
             # High-level encoder
-            zt = self. encoder2(ηt)
+            zt = self. encoder2(xt)
 
+            # Feature-based attention
+            # s[t] = f(z[t],h[t-1])
+            st = self.FeatureAttn(zt,ht)    # [batch,S]
+            
+            # Dimension reduction to LSTM
             rt = self.dimReduction(zt)
             rt = self.    avgpool2(rt)
-
-            # LSTM
-            #  * yt     ~ [sequence,batch,H]
-            #  * hidden ~ [ layers ,batch,H]
-            #  * cell   ~ [ layers ,batch,H]
-            _,(ht,cell)= self.lstm(rt,(ht,ct))
             
-            # Feature-based attention
-            st = self.FeatureAttn(zt,ht)
-
-
-            # -----------------------------------------------------------------------------------------
-
-            # Visual Attention
-            alpha,beta = self.attn(xt,hidden)  # [batch,L,1]
-
-            # Spatial
-            spatial =  xt * alpha      # [batch,L,D]x[batch,L,1] = [batch,L,D]
-            visual  = spatial + xt
-
-            # Categorical
-            visual = visual * beta      # [batch,L,D]x[batch,1,D] = [batch,L,D]
-
-            visual = visual.reshape(n_visual,self.R)    # [batch,R]
-            visual = visual.unsqueeze(0)                # [1,batch,R]
-
             # LSTM
             #  * yt     ~ [sequence,batch,H]
             #  * hidden ~ [ layers ,batch,H]
             #  * cell   ~ [ layers ,batch,H]
-            _,(hidden,cell) = self.lstm(visual,(hidden,cell))
+            _,(ht,ct)= self.lstm(rt,(ht,ct))
+            ht = ht[0]         # [1,batch,H]
             
             # Output
-            vis_[k] = visual                    # [1,batch,R]
-            alp_[k] =  alpha.squeeze()          # [1,batch,L]
-            bet_[k] =   beta.squeeze()          # [1,batch,D]
-            hdd_[k] = hidden[0].unsqueeze(0)    # [1,batch,H]
-
-            if self.study:
-                hc[k] = hidden[0].squeeze()
+            st_[k] = st.unsqueeze(0)    # [1,batch,S]
+            ht_[k] = ht.unsqueeze(0)    # [1,batch,H]
 
         if self.training: 
-            vis_ = vis_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.R)
-            alp_ = alp_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.L)
-            bet_ = bet_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.D)
-            hdd_ = hdd_.transpose(0,1).contiguous().view(batch_size*sequence_len,self.H)
+            st_ = st_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
+            ht_ = ht_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
 
-        return vis_, hdd_, {'alpha': alp_, 'beta': bet_}, {'control': hc}
+        return st_, ht_, {}, {} #, {'alpha': alp_, 'beta': bet_}, {'control': hc}
         
