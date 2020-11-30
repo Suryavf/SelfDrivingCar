@@ -526,9 +526,9 @@ class λResNet(nn.Module):
         return x
         
 
-def λResNet34(mode='total'):
-    return λResNet(λBottleneck, [2, 2, 2, 2], mode)
+def λResNet34(cube_dim,mode='total'):
+    return λResNet(λBottleneck, [2, 2, 2, 2], cube_dim, mode)
 
-def λResNet50(mode='total'):
-    return λResNet(λBottleneck, [3, 4, 6, 3], mode)
+def λResNet50(cube_dim,mode='total'):
+    return λResNet(λBottleneck, [3, 4, 6, 3], cube_dim, mode)
     

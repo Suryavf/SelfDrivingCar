@@ -86,7 +86,7 @@ class Approach(nn.Module):
         # Encoder
         self.lowEncoder = models.resnet18(pretrained=True)
         self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
-        HighEncoder = E.λResNet34('high')
+        HighEncoder = E.λResNet34(cube_dim,'high')
         
         # Decoder
         cmdNet  = A.CommandNet(n_command)                   # Command decoder
