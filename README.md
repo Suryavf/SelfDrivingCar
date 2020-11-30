@@ -19,6 +19,7 @@ pip install efficientnet_pytorch
 pip install matplotlib
 pip install imgaug
 pip install tqdm
+pip install einops
 pip install ipython
 ```
 
