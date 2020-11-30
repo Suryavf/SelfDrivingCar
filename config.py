@@ -466,7 +466,7 @@ _temporalModelList   = ['Kim2017']
 
 _modularModel    = ['Experimental','ExpBranch']
 _branchesModList = ['BranchesModule']
-_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
+_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder','ExpBranch']
 
 _shape = {  'CNN5'          : (92,196), 
             'ResNet50'      : (96,192), 
