@@ -459,9 +459,9 @@ class CatDecoder(nn.Module):
         self.ReLU     = nn.ReLU()  
 
         # Initialization
-        torch.nn.init.xavier_uniform_(self.convRed.weight)
-        torch.nn.init.xavier_uniform_(self.init_Wh.weight)
-        torch.nn.init.xavier_uniform_(self.init_Wc.weight)
+        torch.nn.init.xavier_uniform_(self.dimReduction.weight)
+        torch.nn.init.xavier_uniform_(self.     init_Wh.weight)
+        torch.nn.init.xavier_uniform_(self.     init_Wc.weight)
         self.lstm.reset_parameters()
         
         
