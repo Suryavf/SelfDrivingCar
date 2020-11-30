@@ -437,6 +437,7 @@ class CatDecoder(nn.Module):
         # Parameters
         self.H =     n_hidden       # output LSTM   1024
         self.R = int(n_hidden/4)    #  input LSTM    256
+        self.S = 64
         
         # Attention
         self.SpatialAttn = SpatialNet
@@ -515,12 +516,14 @@ class CatDecoder(nn.Module):
 
         # Prediction container
         if self.training:
-            st_ = torch.zeros([sequence_len,batch_size,self.R]).to( torch.device('cuda:0') )
+            st_ = torch.zeros([sequence_len,batch_size,self.S]).to( torch.device('cuda:0') )
             ht_ = torch.zeros([sequence_len,batch_size,self.H]).to( torch.device('cuda:0') )
         else:
-            st_ = torch.zeros([batch_size,self.R]).to( torch.device('cuda:0') )
+            st_ = torch.zeros([batch_size,self.S]).to( torch.device('cuda:0') )
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
+        # State initialization
+        st = torch.rand([batch_size,self.R]).to( torch.device('cuda:0') )
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -532,7 +535,7 @@ class CatDecoder(nn.Module):
             else            : ct = cmd[k].unsqueeze(0)      # [  1  , 4 ]
 
             # Spatial Attention
-            xt = self.SpatialAttn(ηt)
+            xt = self.SpatialAttn(ηt,st)
             xt = self.ReLU(ηt + xt)
 
             # High-level encoder

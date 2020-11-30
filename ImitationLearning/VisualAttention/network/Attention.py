@@ -1041,10 +1041,10 @@ class Atten14(nn.Module):
 
 
 # ------------------------------------------------------------
-class SpaAttn(nn.Module):
+class SpatialAttnNet(nn.Module):
     """ Constructor """
     def __init__(self, cube_size):
-        super(SpaAttn, self).__init__()
+        super(SpatialAttnNet, self).__init__()
         # Parameters 
         self.high  = cube_size[0]
         self.width = cube_size[1]
@@ -1092,18 +1092,18 @@ class SpaAttn(nn.Module):
           - eta [batch,channel,high,width]
           -  F  [batch,1,M]
     """
-    def forward(self,ηt,F):
+    def forward(self,ηt,Ft0):
         # Visual feature
         ηt = ηt.view(-1, self.D, self.L)
         ηt = ηt.transpose(1,2)    # [batch,L,D]
         
-        Q = self.to_q(ηt)      # [batch,L,hd]
-        K = self.to_k( F)      # [batch,L,hd]
-        V = self.to_v(ηt)      # [batch,L,hd]
+        Q = self.to_q(ηt )     # [batch,L,hd]
+        K = self.to_k(Ft0)     # [batch,L,hd]
+        V = self.to_v(ηt )     # [batch,L,hd]
 
         Q = self.norm_q(Q)
         V = self.norm_v(V)
-
+        
         Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
         QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
         
@@ -1118,12 +1118,13 @@ class SpaAttn(nn.Module):
         return Z.reshape(-1,self.D,self.high,self.width)
         
 
-class FtrAttn(nn.Module):
+class FeatureAttnNet(nn.Module):
     """ Constructor """
     def __init__(self, n_encode, n_hidden, n_command):
-        super(FtrAttn, self).__init__()
+        super(FeatureAttnNet, self).__init__()
         self.n_features = 32
         self.n_depth    = 64
+        self.sqrtDepth  = int( math.sqrt(self.n_depth) )
 
         self.M = self.n_depth*int(self.n_features/2)
 
@@ -1155,19 +1156,19 @@ class FtrAttn(nn.Module):
         Q = self.normQ(Q)   # [120,1,64]
 
         # Key
-        Kz, Kh = self.to_kz(feature), self.to_kh(feature)
+        Kz, Kh = self.to_kz(feature), self.to_kh(hidden)
         K = torch.cat([Kz,Kh],dim=1)
         K = K.view(-1,self.n_features,self.n_depth)
         K = self.normK(K)   # [120,32,64]
 
         # Value
-        Vz, Vh = self.to_vz(feature), self.to_vh(feature)
+        Vz, Vh = self.to_vz(feature), self.to_vh(hidden)
         V = torch.cat([Vz,Vh],dim=1)
         V = V.view(-1,self.n_features,self.n_depth)
 
         # Attention 
         A = torch.matmul(Q,K.transpose(1,2))
-        A = self.Softmax(A/8)   # [120,1,16]
+        A = self.Softmax(A/self.sqrtDepth)   # [120,1,16]
 
         s = torch.matmul(A,V)   # [120,1,64]
         return s.squeeze()
