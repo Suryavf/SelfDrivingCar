@@ -80,30 +80,23 @@ class Approach(nn.Module):
         # ResNet            18   34   50
         depth1 = 128    #  128  128  512
         depth2 = 512    #  512  512 2048
+        cube_dim = (12,24,depth1)
+        n_command = 16
 
         # Encoder
-        self.encoder1 = models.resnet18(pretrained=True)
-        self.encoder1 = nn.Sequential(*(list(self.encoder1.children())[:-4]))       
-        self.encoder2 = E.λResNet34('high')
+        self.lowEncoder = models.resnet18(pretrained=True)
+        self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
+        HighEncoder = E.λResNet34('high')
         
-        # Spatial attention
-        cube_dim = (12,24,depth1)
-        self.spaAttn = A.SpaAttn(cube_dim)     
-        self.ReLU = nn.ReLU()
-
-        self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
-        self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
-
-        self.convRed = nn.Conv2d(depth2,self.R, kernel_size=1, bias=False)
-        self.lstm = nn.LSTM(  input_size = self.R,
-                             hidden_size = self.H,
-                              num_layers =      1)
-
         # Decoder
-        self.attention = module['Attention'](cube_dim,self.H)
-        self.decoder   = module[  'Decoder'](self.attention,cube_dim,self.H)
-        self.control   = module[  'Control'](cube_dim,self.H)
-    
+        cmdNet  = A.CommandNet(n_command)                   # Command decoder
+        spaAttn = A.SpatialAttnNet(cube_dim)                # Spatial attention
+        ftrAttn = A.FeatureAttnNet(depth2,self.H,n_command) # Feature attention
+        self.decoder = D.CatDecoder(HighEncoder,spaAttn,ftrAttn,cmdNet)
+
+        # Policy
+        self.policy = C.Policy(64)
+        
 
     """ Backbone 
     
@@ -124,27 +117,11 @@ class Approach(nn.Module):
     """ Forward """
     def forward(self,batch):
         # Visual encoder
-        x = self.encoder1(batch['frame'])
+        ηt = self.lowEncoder(batch['frame'])
+        st = self.decoder(ηt,batch['mask'])
+        at = self.policy(st)
 
-        # Spatial attention
-        eta = self.spaAttn(x)    # [batch,channel,high,width]
-        eta = self.ReLU(eta + x)
-
-        # High-level
-        z = self.encoder2(eta)
-        z = self. avgpool1( z)
-
-        h = self. convRed(z)
-        h = self.avgpool2(h)
-        h = self.    lstm(h)
-
-        
-        x,hdn,attn,lstm = self.decoder(x)
-        y               = self.control(x,hdn,batch['mask'])
-        return {  'actions' :     y,
-                'attention' :  attn,
-                   'hidden' : lstm}
-                    
-
-
+        return {  'actions' :    at},
+                #'attention' :  None,
+                #   'hidden' :  None}
 

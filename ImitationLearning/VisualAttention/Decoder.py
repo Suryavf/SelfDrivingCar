@@ -431,7 +431,7 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,SpatialNet,FeatureNet,CmdNet, HighLevelDim=512, n_hidden=1024):
+    def __init__(self,HighEncoder,SpatialNet,FeatureNet,CmdNet, HighLevelDim=512, n_hidden=1024):
         super(CatDecoder, self).__init__()
         
         # Parameters
@@ -440,9 +440,10 @@ class CatDecoder(nn.Module):
         self.S = 64
         
         # Attention
-        self.SpatialAttn = SpatialNet
-        self.FeatureAttn = FeatureNet
-        self. CmdDecoder =     CmdNet
+        self.HighEncoder = HighEncoder
+        self.SpatialAttn =  SpatialNet
+        self.FeatureAttn =  FeatureNet
+        self. CmdDecoder =      CmdNet
 
         # Output
         self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
@@ -523,7 +524,7 @@ class CatDecoder(nn.Module):
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        st = torch.rand([batch_size,self.R]).to( torch.device('cuda:0') )
+        st = torch.rand([batch_size,self.S]).to( torch.device('cuda:0') )
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -539,7 +540,7 @@ class CatDecoder(nn.Module):
             xt = self.ReLU(ηt + xt)
 
             # High-level encoder
-            zt = self. encoder2(xt)
+            zt = self.HighEncoder(xt)
 
             # Feature-based attention
             # s[t] = f(z[t],h[t-1])
