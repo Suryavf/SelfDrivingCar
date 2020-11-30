@@ -78,6 +78,7 @@ class ImitationModel(object):
         elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
         elif self.setting.model == 'Experimental': self.model = exper. Experimental(module,setting)
         elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(module,setting)
+        elif self.setting.model == 'Approach'    : self.model = exper.     Approach(module,setting)
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")

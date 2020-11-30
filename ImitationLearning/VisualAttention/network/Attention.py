@@ -1103,7 +1103,7 @@ class SpatialAttnNet(nn.Module):
 
         Q = self.norm_q(Q)
         V = self.norm_v(V)
-        
+
         Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
         QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
         
@@ -1124,7 +1124,7 @@ class FeatureAttnNet(nn.Module):
         super(FeatureAttnNet, self).__init__()
         self.n_features = 32
         self.n_depth    = 64
-        self.sqrtDepth  = int( math.sqrt(self.n_depth) )
+        self.sqrtDepth  = math.sqrt(self.n_depth)
 
         self.M = self.n_depth*int(self.n_features/2)
 
