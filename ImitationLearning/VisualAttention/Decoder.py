@@ -450,8 +450,8 @@ class CatDecoder(nn.Module):
         self.lstm = nn.LSTM(  input_size = self.R,
                              hidden_size = self.H,
                               num_layers =      1)
-        self.init_Wh   = nn.Linear(self.D,self.H,bias=True )
-        self.init_Wc   = nn.Linear(self.D,self.H,bias=True )
+        self.init_Wh   = nn.Linear(HighLevelDim,self.H,bias=True )
+        self.init_Wc   = nn.Linear(HighLevelDim,self.H,bias=True )
         self.init_tanh = nn.Tanh()
 
         self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
