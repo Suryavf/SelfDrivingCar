@@ -431,13 +431,14 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,HighEncoder,SpatialNet,FeatureNet,CmdNet, HighLevelDim=512, n_hidden=1024):
+    def __init__(self,HighEncoder,SpatialNet,FeatureNet,CmdNet, LowLevelDim=128, HighLevelDim=512, n_hidden=1024):
         super(CatDecoder, self).__init__()
         
         # Parameters
         self.H =     n_hidden       # output LSTM   1024
         self.R = int(n_hidden/4)    #  input LSTM    256
         self.S = 64
+        self.sequence_len =  20
         
         # Attention
         self.HighEncoder = HighEncoder
@@ -450,8 +451,8 @@ class CatDecoder(nn.Module):
         self.lstm = nn.LSTM(  input_size = self.R,
                              hidden_size = self.H,
                               num_layers =      1)
-        self.init_Wh   = nn.Linear(HighLevelDim,self.H,bias=True )
-        self.init_Wc   = nn.Linear(HighLevelDim,self.H,bias=True )
+        self.init_Wh   = nn.Linear(LowLevelDim,self.H,bias=True )
+        self.init_Wc   = nn.Linear(LowLevelDim,self.H,bias=True )
         self.init_tanh = nn.Tanh()
 
         self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
@@ -524,7 +525,8 @@ class CatDecoder(nn.Module):
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        st = torch.rand([batch_size,self.S]).to( torch.device('cuda:0') )
+        if self.training: st = torch.zeros([sequence_len,1,self.S]).to( torch.device('cuda:0') )
+        else            : st = torch.zeros([             1,self.S]).to( torch.device('cuda:0') )
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -532,34 +534,37 @@ class CatDecoder(nn.Module):
             # One time
             if self.training: ηt = sequence[k]              # [batch,L,D]
             else            : ηt = sequence[k].unsqueeze(0) # [  1  ,L,D]
-            if self.training: ct = cmd[k]                   # [batch, 4 ]
-            else            : ct = cmd[k].unsqueeze(0)      # [  1  , 4 ]
+            if self.training: cm = cmd[k]                   # [batch, 4 ]
+            else            : cm = cmd[k].unsqueeze(0)      # [  1  , 4 ]
 
             # Spatial Attention
             xt = self.SpatialAttn(ηt,st)
             xt = self.ReLU(ηt + xt)
-
+            
             # High-level encoder
             zt = self.HighEncoder(xt)
 
             # Feature-based attention
             # s[t] = f(z[t],h[t-1])
-            st = self.FeatureAttn(zt,ht)    # [batch,S]
+            _zt = self.avgpool1( zt)
+            _zt = torch.flatten(_zt, 1)
+            st = self.FeatureAttn(_zt,ht[0],cm) # [batch,S]
             
             # Dimension reduction to LSTM
             rt = self.dimReduction(zt)
             rt = self.    avgpool2(rt)
+            rt = torch.flatten(rt , 1)
+            rt = rt.unsqueeze(0)
             
             # LSTM
             #  * yt     ~ [sequence,batch,H]
             #  * hidden ~ [ layers ,batch,H]
             #  * cell   ~ [ layers ,batch,H]
             _,(ht,ct)= self.lstm(rt,(ht,ct))
-            ht = ht[0]         # [1,batch,H]
             
             # Output
             st_[k] = st.unsqueeze(0)    # [1,batch,S]
-            ht_[k] = ht.unsqueeze(0)    # [1,batch,H]
+            ht_[k] = ht#.unsqueeze(0)    # [1,batch,H]
 
         if self.training: 
             st_ = st_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)

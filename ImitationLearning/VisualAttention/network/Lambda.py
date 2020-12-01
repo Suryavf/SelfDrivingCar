@@ -47,7 +47,6 @@ class λLayer(nn.Module):
 
     def forward(self, x):
         b, c, hh, ww, u, h = *x.shape, self.u, self.heads
-
         q = self.to_q(x)
         k = self.to_k(x)
         v = self.to_v(x)

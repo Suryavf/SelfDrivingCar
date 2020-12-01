@@ -1058,17 +1058,20 @@ class SpatialAttnNet(nn.Module):
 
         self.h =  2
         self.d = int(self.D/self.h)
+        self.hd = self.d*self.h
         self.sqrtd = self.d ** .5
 
         # Spatial 
-        self.to_q = nn.Linear(self.D, self.d*self.h, bias = False)
-        self.to_k = nn.Linear(self.M, self.d*self.h, bias = False)
-        self.to_v = nn.Linear(self.D, self.d*self.h, bias = False)
+        self.to_q = nn.Conv2d(self.D, self.hd, 1, bias = False)
+        self.to_v = nn.Conv2d(self.D, self.hd, 1, bias = False)
+        # self.to_q = nn.Linear(self.D, self.hd, bias = False)
+        # self.to_v = nn.Linear(self.D, self.hd, bias = False)
+        self.to_k = nn.Linear(self.M, self.hd, bias = False)
 
-        self.fc = nn.Linear(self.D, self.D)
+        self.fc = nn.Linear(self.hd, self.D)
 
-        self.norm_q = nn.BatchNorm1d(self.d*self.h)
-        self.norm_v = nn.BatchNorm1d(self.d*self.h)
+        self.norm_q = nn.BatchNorm2d(self.d*self.h)
+        self.norm_v = nn.BatchNorm2d(self.d*self.h)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q.weight)
@@ -1094,26 +1097,33 @@ class SpatialAttnNet(nn.Module):
     """
     def forward(self,ηt,Ft0):
         # Visual feature
-        ηt = ηt.view(-1, self.D, self.L)
-        ηt = ηt.transpose(1,2)    # [batch,L,D]
+        # ηt = ηt.view(-1, self.D, self.L)
+        # ηt = ηt.transpose(1,2)    # [batch,L,D]
         
-        Q = self.to_q(ηt )     # [batch,L,hd]
+        Q = self.to_q(ηt )     # [batch,hd,L]
         K = self.to_k(Ft0)     # [batch,L,hd]
-        V = self.to_v(ηt )     # [batch,L,hd]
+        V = self.to_v(ηt )     # [batch,hd,L]
 
         Q = self.norm_q(Q)
         V = self.norm_v(V)
 
-        Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
-        QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
-        
+        Q = Q.view(-1, self.hd, self.L)#.transpose(1,2)  # [batch,L,hd]
+        V = V.view(-1, self.hd, self.L)#.transpose(1,2)  # [batch,L,hd]
+
+        Q, K, V = map(lambda x: x.reshape(x.shape[0], self.h, self.d, -1), [Q,K,V])  # [batch,h,d,L]
+        # Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
+        # QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
+        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))
+
         # Attention map
         A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, 1]
-        Z  = torch.einsum('bhnk,bnhd->bnhd', (A,V))     # [batch, L, h, d]
+        # Z  = torch.einsum('bhnk,bnhd->bnhd', (A,V))     # [batch, L, h, d]
+        Z  = torch.einsum('bhnk,bhdn->bnhd', (A,V))     # [batch, L, h, d]
         
         # Output
-        Z = Z.view(-1,self.L,self.D)
-        Z = self.fc(Z)
+        Z = Z.view(-1,self.L,self.hd)
+        Z = self.fc(Z)          # [batch, L, D]
+        Z = Z.transpose(1,2)    # [batch, D, L]
 
         return Z.reshape(-1,self.D,self.high,self.width)
         
@@ -1138,8 +1148,8 @@ class FeatureAttnNet(nn.Module):
         self.Softmax = nn.Softmax(2)
 
         # Batch normalization
-        self.normQ = nn.BatchNorm1d( 1)
-        self.normK = nn.BatchNorm1d(16)
+        self.normQ = nn.BatchNorm1d(64)
+        self.normK = nn.BatchNorm1d(64)
         self.normV = nn.BatchNorm1d(64)
 
         # Initialization
@@ -1153,25 +1163,27 @@ class FeatureAttnNet(nn.Module):
         # Query
         Q = self.to_q(command)
         Q = Q.unsqueeze(1)
-        Q = self.normQ(Q)   # [120,1,64]
+        Q = self.normQ(Q.transpose(1,2))   # [120,1,64]
 
         # Key
-        Kz, Kh = self.to_kz(feature), self.to_kh(hidden)
+        Kz = self.to_kz(feature) 
+        Kh = self.to_kh( hidden)
         K = torch.cat([Kz,Kh],dim=1)
         K = K.view(-1,self.n_features,self.n_depth)
-        K = self.normK(K)   # [120,32,64]
+        K = self.normK(K.transpose(1,2))   # [120,32,64]
 
         # Value
-        Vz, Vh = self.to_vz(feature), self.to_vh(hidden)
+        Vz = self.to_vz(feature)
+        Vh = self.to_vh(hidden)
         V = torch.cat([Vz,Vh],dim=1)
         V = V.view(-1,self.n_features,self.n_depth)
 
         # Attention 
-        A = torch.matmul(Q,K.transpose(1,2))
+        A = torch.matmul(Q.transpose(1,2),K)
         A = self.Softmax(A/self.sqrtDepth)   # [120,1,16]
 
         s = torch.matmul(A,V)   # [120,1,64]
-        return s.squeeze()
+        return s.view(-1,64)#.squeeze()
         
 
 class CommandNet(nn.Module):

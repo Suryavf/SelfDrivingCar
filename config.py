@@ -464,9 +464,9 @@ _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
 
-_modularModel    = ['Experimental','ExpBranch']
+_modularModel    = ['Experimental','ExpBranch','Approach']
 _branchesModList = ['BranchesModule']
-_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder','ExpBranch']
+_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
 
 _shape = {  'CNN5'          : (92,196), 
             'ResNet50'      : (96,192), 

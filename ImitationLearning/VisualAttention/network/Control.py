@@ -262,15 +262,26 @@ class Policy(nn.Module):
         self.wv1 = nn.Linear(self.n_input ,self.n_hidden)
         self.wv2 = nn.Linear(self.n_hidden,      1      )
 
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.wz1.weight)
+        torch.nn.init.xavier_uniform_(self.wz2.weight)
+        torch.nn.init.xavier_uniform_(self.wz3.weight)
+
+        torch.nn.init.xavier_uniform_(self.ws1.weight)
+        torch.nn.init.xavier_uniform_(self.ws2.weight)
+
+        torch.nn.init.xavier_uniform_(self.wv1.weight)
+        torch.nn.init.xavier_uniform_(self.wv2.weight)
+        
 
     def forward(self,state):
         # State
         z = F.relu(self. wz1(state))
-        torch.cat([z, state],dim=1)
+        z = torch.cat([z, state],dim=1)
         z = F.relu(self. wz2(z))
-        torch.cat([z, state],dim=1)
+        z = torch.cat([z, state],dim=1)
         z = F.relu(self. wz3(z))
-        torch.cat([z, state],dim=1)
+        z = torch.cat([z, state],dim=1)
 
         # Steering controller
         steer = F.relu(self. ws1(  z  ))
