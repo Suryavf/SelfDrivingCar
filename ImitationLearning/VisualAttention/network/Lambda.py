@@ -43,11 +43,6 @@ class λLayer(nn.Module):
         else:
             assert exists(n), 'You must specify the total sequence length (h x w)'
             self.pos_emb = nn.Parameter(torch.randn(n, n, dim_k, dim_u))
-            
-        # Initialization
-        torch.nn.init.xavier_uniform_(self.to_q.weight)
-        torch.nn.init.xavier_uniform_(self.to_k.weight)
-        torch.nn.init.xavier_uniform_(self.to_v.weight)
 
 
     def forward(self, x):

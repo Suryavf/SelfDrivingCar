@@ -540,8 +540,8 @@ class CatDecoder(nn.Module):
 
             # Spatial Attention
             xt = self.SpatialAttn(ηt,st)
-            xt = self.ReLU(ηt + xt)
             xt = self.normSpa(xt)
+            xt = self.ReLU(ηt + xt)
             
             # High-level encoder
             zt = self.HighEncoder(xt)
