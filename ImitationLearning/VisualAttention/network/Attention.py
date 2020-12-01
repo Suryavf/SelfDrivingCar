@@ -1096,10 +1096,7 @@ class SpatialAttnNet(nn.Module):
           -  F  [batch,1,M]
     """
     def forward(self,ηt,Ft0):
-        # Visual feature
-        # ηt = ηt.view(-1, self.D, self.L)
-        # ηt = ηt.transpose(1,2)    # [batch,L,D]
-        
+        # Query, key, value
         Q = self.to_q(ηt )     # [batch,hd,L]
         K = self.to_k(Ft0)     # [batch,L,hd]
         V = self.to_v(ηt )     # [batch,hd,L]
@@ -1107,17 +1104,16 @@ class SpatialAttnNet(nn.Module):
         Q = self.norm_q(Q)
         V = self.norm_v(V)
 
-        Q = Q.view(-1, self.hd, self.L)#.transpose(1,2)  # [batch,L,hd]
-        V = V.view(-1, self.hd, self.L)#.transpose(1,2)  # [batch,L,hd]
-
-        Q, K, V = map(lambda x: x.reshape(x.shape[0], self.h, self.d, -1), [Q,K,V])  # [batch,h,d,L]
-        # Q, K, V = map(lambda x: x.reshape(x.shape[0], -1, self.h, self.d), [Q,K,V])  # [batch,L,h,d]
-        # QK = torch.einsum('bnhd,bmhd->bhnm', (Q,K))
-        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))
+        Q = Q.view(-1, self.hd, self.L).transpose(1,2) # [batch,hd,L]
+        V = V.view(-1, self.hd, self.L).transpose(1,2) # [batch,hd,L]
 
         # Attention map
+        Q,K,V = map(lambda x: x.reshape(x.shape[0],self.h,self.d,-1),[Q,K,V])   # Q,V -> [batch,h,d,L]
+                                                                                #  K  -> [batch,h,d,1]
+        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch, h, L, 1]
         A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, 1]
-        # Z  = torch.einsum('bhnk,bnhd->bnhd', (A,V))     # [batch, L, h, d]
+
+        # Apply
         Z  = torch.einsum('bhnk,bhdn->bnhd', (A,V))     # [batch, L, h, d]
         
         # Output

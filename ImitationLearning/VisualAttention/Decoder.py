@@ -457,6 +457,7 @@ class CatDecoder(nn.Module):
 
         self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
         self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
+        self.normSpa  = nn.BatchNorm2d(128)
         self.ReLU     = nn.ReLU()  
 
         # Initialization
@@ -540,6 +541,7 @@ class CatDecoder(nn.Module):
             # Spatial Attention
             xt = self.SpatialAttn(ηt,st)
             xt = self.ReLU(ηt + xt)
+            xt = self.normSpa(xt)
             
             # High-level encoder
             zt = self.HighEncoder(xt)
