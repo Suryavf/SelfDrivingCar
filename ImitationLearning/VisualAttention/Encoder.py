@@ -469,16 +469,6 @@ class λBottleneck(nn.Module):
         return self.ReLU(y)
 
 
-def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=dilation, groups=groups, bias=False, dilation=dilation)
-
-
-def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
-    """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-
 class Bottleneck(nn.Module):
     # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
     # while original implementation places the stride at the first 1x1 convolution(self.conv1)
@@ -488,29 +478,35 @@ class Bottleneck(nn.Module):
 
     expansion: int = 4
 
-    def __init__(
-        self,
-        inplanes: int,      # d_in
-        planes: int,        # n_hidden, dhdn
-        stride: int = 1,
-        downsample = None,
-        groups: int = 1,
-        base_width: int = 64,
-        dilation: int = 1,
-        norm_layer = None
-    ) -> None:
+    def __init__( self,
+                  inplanes: int,      # d_in
+                  planes: int,        # n_hidden, dhdn
+                  stride: int = 1,
+                  downsample = None,
+                  groups: int = 1,
+                  base_width: int = 64,
+                  dilation: int = 1,
+                  norm_layer = None):
         super(Bottleneck, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
 
-        self.conv1 = conv1x1(inplanes, width)
+        self.conv1 = nn.Conv2d(inplanes, width, kernel_size=1)
         self.bn1 = norm_layer(width)
-        self.conv2 = conv3x3(width, width, stride, groups, dilation)
+
+        self.conv2 = nn.Conv2d(width, width, kernel_size =        3, 
+                                             stride      =   stride, 
+                                             padding     = dilation, 
+                                             groups      =   groups, 
+                                             bias        =    False, 
+                                             dilation    = dilation)
         self.bn2 = norm_layer(width)
-        self.conv3 = conv1x1(width, planes * self.expansion)
+
+        self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size=1)
         self.bn3 = norm_layer(planes * self.expansion)
+
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -544,7 +540,7 @@ class λResNet(nn.Module):
         self.low  = (mode== 'low') | (mode=='total')
         self.high = (mode=='high') | (mode=='total')
         self.in_planes = 64
-        hw = cube[0]*cube[1]
+        receptiveWindow = max(cube[0],cube[1])
 
         if self.low:
             self.scell = nn.Sequential()
@@ -554,12 +550,12 @@ class λResNet(nn.Module):
             self.scell = nn.Sequential(*self.scell)
             self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-            self.layer1 = self._make_layer(block,  64, n_block[0], int(hw/  4))
-            self.layer2 = self._make_layer(block, 128, n_block[1], int(hw/ 16), stride=2)
+            self.layer1 = self._make_layer(block,  64, n_block[0], int(receptiveWindow/ 2))
+            self.layer2 = self._make_layer(block, 128, n_block[1], int(receptiveWindow/ 4), stride=2)
         
         if self.high:
-            self.layer3 = self._make_layer(block,  64, n_block[2], int(hw/ 64), stride=2) # 256
-            self.layer4 = self._make_layer(block, 128, n_block[3], int(hw/256), stride=2) # 512
+            self.layer3 = self._make_layer(block,  64, n_block[2], int(receptiveWindow/ 8), stride=2) # 256
+            self.layer4 = self._make_layer(block, 128, n_block[3], int(receptiveWindow/16), stride=2) # 512
 
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         
@@ -571,14 +567,14 @@ class λResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, n_hidden, num_blocks, hw, stride=1):
+    def _make_layer(self, block, n_hidden, num_blocks, receptiveWindow, stride=1):
         exp = block.expansion
         d_in = int(n_hidden*2)
-        # layers = [block(d_in, n_hidden, hw, stride)]
-        layers = [block(d_in, n_hidden, stride=stride)]
+        layers = [block(d_in, n_hidden, receptiveWindow, stride)]
+        # layers = [block(d_in, n_hidden, stride=stride)]
         for _ in range(1,num_blocks):
-            # layers.append(block(n_hidden*exp, n_hidden, int(hw/4), 1))
-            layers.append(block(n_hidden*exp, n_hidden, stride=1))
+            layers.append(block(n_hidden*exp, n_hidden, int(receptiveWindow/2), 1))
+            # layers.append(block(n_hidden*exp, n_hidden, stride=1))
         return nn.Sequential(*layers)
         
     def forward(self, x):
