@@ -1154,31 +1154,35 @@ class FeatureAttnNet(nn.Module):
         torch.nn.init.xavier_uniform_(self.to_kh.weight)
         torch.nn.init.xavier_uniform_(self.to_vz.weight)
         torch.nn.init.xavier_uniform_(self.to_vh.weight)
+    
 
+    """ Forward 
+          - feature [batch,  channel]
+          - hidden  [batch,n_hidden ]
+          - command [batch,n_command]
+    """
     def forward(self,feature,hidden,command):
         # Query
-        Q = self.to_q(command)
-        Q = Q.unsqueeze(1)
-        Q = self.normQ(Q.transpose(1,2))   # [120,1,64]
+        Q = self.to_q(command).unsqueeze(2)
+        Q = self.normQ(Q)                           # [batch,D,1]
 
         # Key
-        Kz = self.to_kz(feature) 
-        Kh = self.to_kh( hidden)
+        Kz,Kh = self.to_kz(feature),self.to_kh( hidden)
         K = torch.cat([Kz,Kh],dim=1)
-        K = K.view(-1,self.n_features,self.n_depth)
-        K = self.normK(K.transpose(1,2))   # [120,32,64]
-
+        K = K.view(-1,self.n_depth,self.n_features) # [batch,D,n]
+        K = self.normK(K)                           # [batch,D,n]
+        
         # Value
-        Vz = self.to_vz(feature)
-        Vh = self.to_vh(hidden)
+        Vz,Vh = self.to_vz(feature), self.to_vh(hidden)
         V = torch.cat([Vz,Vh],dim=1)
-        V = V.view(-1,self.n_features,self.n_depth)
+        V = V.view(-1,self.n_depth,self.n_features) # [batch,D,n]
 
         # Attention 
-        A = torch.matmul(Q.transpose(1,2),K)
-        A = self.Softmax(A/self.sqrtDepth)   # [120,1,16]
+        QK = torch.einsum('bdn,bdm->bnm', (Q,K))    # [batch,1,n]
+        A  = self.Softmax(QK/self.sqrtDepth)        # [batch,1,n]
 
-        s = torch.matmul(A,V)   # [120,1,64]
+        # Output
+        s = torch.einsum('bnm,bdm->bnd', (A,V))
         return s.view(-1,64)#.squeeze()
         
 
