@@ -469,6 +469,75 @@ class λBottleneck(nn.Module):
         return self.ReLU(y)
 
 
+def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+
+
+def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+class Bottleneck(nn.Module):
+    # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
+    # while original implementation places the stride at the first 1x1 convolution(self.conv1)
+    # according to "Deep residual learning for image recognition"https://arxiv.org/abs/1512.03385.
+    # This variant is also known as ResNet V1.5 and improves accuracy according to
+    # https://ngc.nvidia.com/catalog/model-scripts/nvidia:resnet_50_v1_5_for_pytorch.
+
+    expansion: int = 4
+
+    def __init__(
+        self,
+        inplanes: int,      # d_in
+        planes: int,        # n_hidden, dhdn
+        stride: int = 1,
+        downsample = None,
+        groups: int = 1,
+        base_width: int = 64,
+        dilation: int = 1,
+        norm_layer = None
+    ) -> None:
+        super(Bottleneck, self).__init__()
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
+        width = int(planes * (base_width / 64.)) * groups
+        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
+
+        self.conv1 = conv1x1(inplanes, width)
+        self.bn1 = norm_layer(width)
+        self.conv2 = conv3x3(width, width, stride, groups, dilation)
+        self.bn2 = norm_layer(width)
+        self.conv3 = conv1x1(width, planes * self.expansion)
+        self.bn3 = norm_layer(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self,x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+
 class λResNet(nn.Module):
     def __init__(self, block, n_block, cube, mode='high'):
         super(λResNet, self).__init__()
@@ -505,9 +574,11 @@ class λResNet(nn.Module):
     def _make_layer(self, block, n_hidden, num_blocks, hw, stride=1):
         exp = block.expansion
         d_in = int(n_hidden*2)
-        layers = [block(d_in, n_hidden, hw, stride)]
+        # layers = [block(d_in, n_hidden, hw, stride)]
+        layers = [block(d_in, n_hidden, stride=stride)]
         for _ in range(1,num_blocks):
-            layers.append(block(n_hidden*exp, n_hidden, int(hw/4), 1))
+            # layers.append(block(n_hidden*exp, n_hidden, int(hw/4), 1))
+            layers.append(block(n_hidden*exp, n_hidden, stride=1))
         return nn.Sequential(*layers)
         
     def forward(self, x):
@@ -527,7 +598,7 @@ class λResNet(nn.Module):
         
 
 def λResNet34(cube_dim,mode='total'):
-    return λResNet(λBottleneck, [2, 2, 2, 2], cube_dim, mode)
+    return λResNet(Bottleneck, [2, 2, 2, 2], cube_dim, mode)
 
 def λResNet50(cube_dim,mode='total'):
     return λResNet(λBottleneck, [3, 4, 6, 3], cube_dim, mode)

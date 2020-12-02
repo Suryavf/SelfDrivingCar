@@ -16,9 +16,9 @@ def calc_rel_pos(n):
     rel_pos = pos[None, :] - pos[:, None]                  # [n*n, n*n, 2] rel_pos[n, m] = (rel_i, rel_j)
     rel_pos += n - 1                                       # shift value range from [-n+1, n-1] to [0, 2n-2]
     return rel_pos
-    
 
-class LambdaLayer(nn.Module):
+
+class λLayer(nn.Module):
     def __init__(
         self,
         dim_in,
