@@ -425,14 +425,14 @@ class EfficientNetB3(nn.Module):
 class λBottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, d_in, dhdn, h_x_w, stride=1):
+    def __init__(self, d_in, dhdn, receptiveWindow, stride=1):
         super(λBottleneck, self).__init__()
         dout = dhdn*self.expansion
         # inDim, hdnDim
         self.in1x1conv = nn.Conv2d(d_in, dhdn, kernel_size=1, bias=False)
         self.BNorm1 = nn.BatchNorm2d(dhdn)
 
-        self.bottleneck = nn.ModuleList([λLayer(dim_in  = dhdn, dim_out = dhdn, n = h_x_w)])
+        self.bottleneck = nn.ModuleList([λLayer(dim_in  = dhdn, dim_out = dhdn, n = receptiveWindow)])
         if stride != 1 or d_in != dhdn:
             self.bottleneck.append(nn.AvgPool2d(kernel_size=(3, 3), stride=stride, padding=(1, 1)))
         self.bottleneck.append(nn.BatchNorm2d(dhdn))
