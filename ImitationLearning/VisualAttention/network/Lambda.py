@@ -10,13 +10,20 @@ def exists(val):
     return val is not None
 def default(val, d):
     return val if exists(val) else d
+def calc_rel_pos(n):
+    pos = torch.meshgrid(torch.arange(n), torch.arange(n))
+    pos = rearrange(torch.stack(pos), 'n i j -> (i j) n')  # [n*n, 2] pos[n] = (i, j)
+    rel_pos = pos[None, :] - pos[:, None]                  # [n*n, n*n, 2] rel_pos[n, m] = (rel_i, rel_j)
+    rel_pos += n - 1                                       # shift value range from [-n+1, n-1] to [0, 2n-2]
+    return rel_pos
+    
 
-class λLayer(nn.Module):
+class LambdaLayer(nn.Module):
     def __init__(
         self,
         dim_in,
         dim_out = None,
-        dim_k   = 16,
+        dim_k   =   16,
         n = None,
         r = None,
         heads = 4,
@@ -41,12 +48,14 @@ class λLayer(nn.Module):
             assert (r % 2) == 1, 'Receptive kernel size should be odd'
             self.pos_conv = nn.Conv3d(dim_u, dim_k, (1, r, r), padding = (0, r // 2, r // 2))
         else:
-            assert exists(n), 'You must specify the total sequence length (h x w)'
-            self.pos_emb = nn.Parameter(torch.randn(n, n, dim_k, dim_u))
-
+            assert exists(n), 'You must specify the window size (n=h=w)'
+            rel_lengths = 2 * n - 1
+            self.rel_pos_emb = nn.Parameter(torch.randn(rel_lengths, rel_lengths, dim_k, dim_u))
+            self.rel_pos = calc_rel_pos(n)
 
     def forward(self, x):
         b, c, hh, ww, u, h = *x.shape, self.u, self.heads
+
         q = self.to_q(x)
         k = self.to_k(x)
         v = self.to_v(x)
@@ -68,7 +77,9 @@ class λLayer(nn.Module):
             λp = self.pos_conv(v)
             Yp = einsum('b h k n, b k v n -> b h v n', q, λp.flatten(3))
         else:
-            λp = einsum('n m k u, b u v m -> b n k v', self.pos_emb, v)
+            n, m = self.rel_pos.unbind(dim = -1)
+            rel_pos_emb = self.rel_pos_emb[n, m]
+            λp = einsum('n m k u, b u v m -> b n k v', rel_pos_emb, v)
             Yp = einsum('b h k n, b n k v -> b h v n', q, λp)
 
         Y = Yc + Yp
