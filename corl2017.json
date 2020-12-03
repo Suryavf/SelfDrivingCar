@@ -1,7 +1,7 @@
 {
-    "model": "ExpBranch",
+    "model": "Approach",
     "modules": {
-        "Encoder"  : "CNN5",
+        "Encoder"  : "ResNet50",
         "Decoder"  : "TVADecoder",
         "Attention": "Atten11",
         "Control"  : "SeqModule"
@@ -23,7 +23,7 @@
     "train": {
         "scheduler": {
             "learning_rate_decay_factor": 0.2,
-            "learning_rate_decay_steps" : 50
+            "learning_rate_decay_steps" : 80
         },
         "optimizer": {
             "type": "Adam",
