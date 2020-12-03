@@ -43,6 +43,27 @@ class λLayer(nn.Module):
         self.norm_q = nn.BatchNorm2d(dim_k * heads)
         self.norm_v = nn.BatchNorm2d(dim_v * dim_u)
 
+
+        """
+        # SOURCE: https://github.com/leaderj1001/LambdaNetworks/blob/main/model.py
+        -----------------------------------------------------------------------------------------
+        self.kk    = k     = 16
+        self.uu    = u     =  1
+        self.vv    = out_channels // heads
+        self.mm    = m     = 23
+        self.heads = heads =  4
+        
+        if self.local_context:
+            self.embedding = nn.Parameter(torch.randn([self.kk, self.uu, 1, m, m]), requires_grad=True)
+        else:
+            self.embedding = nn.Parameter(torch.randn([self.kk, self.uu]), requires_grad=True)
+        
+        """
+        self.embedding = nn.Parameter(torch.randn([self.dim_k, self.dim_u]), requires_grad=True)
+
+        """
+        ORGINAL
+        -----------------------------------------------------------------------------------------
         self.local_contexts = exists(r)
         if exists(r):
             assert (r % 2) == 1, 'Receptive kernel size should be odd'
@@ -52,6 +73,7 @@ class λLayer(nn.Module):
             rel_lengths = 2 * n - 1
             self.rel_pos_emb = nn.Parameter(torch.randn(rel_lengths, rel_lengths, dim_k, dim_u))
             self.rel_pos = calc_rel_pos(n)
+        """
 
     def forward(self, x):
         b, c, hh, ww, u, h = *x.shape, self.u, self.heads
@@ -72,15 +94,19 @@ class λLayer(nn.Module):
         λc = einsum('b u k m, b u v m -> b k v', k, v)
         Yc = einsum('b h k n, b k v -> b h v n', q, λc)
 
+        """
         if self.local_contexts:
             v = rearrange(v, 'b u v (hh ww) -> b u v hh ww', hh = hh, ww = ww)
             λp = self.pos_conv(v)
             Yp = einsum('b h k n, b k v n -> b h v n', q, λp.flatten(3))
-        else:
+        else:uu
             n, m = self.rel_pos.unbind(dim = -1)
             rel_pos_emb = self.rel_pos_emb[n, m]
             λp = einsum('n m k u, b u v m -> b n k v', rel_pos_emb, v)
             Yp = einsum('b h k n, b n k v -> b h v n', q, λp)
+        """
+        λp = torch.einsum('ku,bvun->bkvn', self.embedding, v)
+        Yp = torch.einsum('bhkn,bkvn->bhvn', q, λp)
 
         Y = Yc + Yp
         out = rearrange(Y, 'b h v (hh ww) -> b (h v) hh ww', hh = hh, ww = ww)
