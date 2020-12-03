@@ -432,7 +432,7 @@ class λBottleneck(nn.Module):
         self.in1x1conv = nn.Conv2d(d_in, dhdn, kernel_size=1, bias=False)
         self.BNorm1 = nn.BatchNorm2d(dhdn)
 
-        self.bottleneck = nn.ModuleList([λLayer(dim_in  = dhdn, dim_out = dhdn, n = receptiveWindow)])
+        self.bottleneck = nn.ModuleList([λLayer(dhdn,dhdn)])#dim_in  = dhdn, dim_out = dhdn, n = receptiveWindow)])
         if stride != 1 or d_in != dhdn:
             self.bottleneck.append(nn.AvgPool2d(kernel_size=(3, 3), stride=stride, padding=(1, 1)))
         self.bottleneck.append(nn.BatchNorm2d(dhdn))
