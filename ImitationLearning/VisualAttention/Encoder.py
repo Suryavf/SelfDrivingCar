@@ -483,19 +483,15 @@ class Bottleneck(nn.Module):
                   inplanes: int,      # d_in
                   planes: int,        # n_hidden, dhdn
                   stride: int = 1,
-                  downsample = None,
                   groups: int = 1,
                   base_width: int = 64,
-                  dilation: int = 1,
-                  norm_layer = None):
+                  dilation: int = 1):
         super(Bottleneck, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
 
         self.conv1 = nn.Conv2d(inplanes, width, kernel_size=1)
-        self.bn1 = norm_layer(width)
+        self.bn1 = nn.BatchNorm2d(width)
 
         self.conv2 = nn.Conv2d(width, width, kernel_size =        3, 
                                              stride      =   stride, 
@@ -503,14 +499,24 @@ class Bottleneck(nn.Module):
                                              groups      =   groups, 
                                              bias        =    False, 
                                              dilation    = dilation)
-        self.bn2 = norm_layer(width)
+        self.bn2 = nn.BatchNorm2d(width)
 
         self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size=1)
-        self.bn3 = norm_layer(planes * self.expansion)
+        self.bn3 = nn.BatchNorm2d(planes * self.expansion)
 
         self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
         self.stride = stride
+
+        if stride != 1 or inplanes != planes:
+            self.downsample = nn.Sequential(nn.Conv2d(inplanes, planes*self.expansion, 
+                                                                kernel_size =      1, 
+                                                                stride      = stride, 
+                                                                bias        = False),
+                                            nn.BatchNorm2d(planes * self.expansion),
+                                            )
+        else:
+            self.downsample = None
+        
 
     def forward(self,x):
         identity = x
@@ -528,7 +534,7 @@ class Bottleneck(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
-
+        
         out += identity
         out = self.relu(out)
 
@@ -593,7 +599,7 @@ class λResNet(nn.Module):
         return x
         
 
-class HighResNet34():
+class HighResNet34(nn.Module):
     def __init__(self):
         super(HighResNet34, self).__init__()
 
