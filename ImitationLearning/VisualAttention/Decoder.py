@@ -515,7 +515,7 @@ class CatDecoder(nn.Module):
 
         # Command decoder
         cmd = self.CmdDecoder(command)
-        if self.training: cmd = cmd.view(sequence_len,batch_size,-1).transpose(0,1) # [sequence,batch,4]
+        if self.training: cmd = cmd.view(batch_size,sequence_len,-1).transpose(0,1) # [sequence,batch,4]
 
         # Prediction container
         if self.training:
@@ -526,8 +526,8 @@ class CatDecoder(nn.Module):
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        if self.training: st = torch.zeros([sequence_len,1,self.S]).to( torch.device('cuda:0') )
-        else            : st = torch.zeros([             1,self.S]).to( torch.device('cuda:0') )
+        if self.training: st = torch.zeros([batch_size,1,self.S]).to( torch.device('cuda:0') )
+        else            : st = torch.zeros([           1,self.S]).to( torch.device('cuda:0') )
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size

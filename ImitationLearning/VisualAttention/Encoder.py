@@ -512,8 +512,7 @@ class Bottleneck(nn.Module):
                                                                 kernel_size =      1, 
                                                                 stride      = stride, 
                                                                 bias        = False),
-                                            nn.BatchNorm2d(planes * self.expansion),
-                                            )
+                                            nn.BatchNorm2d(planes * self.expansion))
         else:
             self.downsample = None
         
