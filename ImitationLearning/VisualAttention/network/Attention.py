@@ -1152,9 +1152,9 @@ class FeatureAttnNet(nn.Module):
         self.Softmax = nn.Softmax(2)
 
         # Batch normalization
-        self.normQ = nn.BatchNorm1d(64)
-        self.normK = nn.BatchNorm1d(64)
-        self.normV = nn.BatchNorm1d(64)
+        self.normQ = nn.BatchNorm1d(self.n_depth)
+        self.normK = nn.BatchNorm1d(self.n_depth)
+        self.normV = nn.BatchNorm1d(self.n_depth)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q .weight)

@@ -81,6 +81,7 @@ class Approach(nn.Module):
         depth1 = 128    #  128  128  512
         depth2 = 512    #  512  512 2048
         cube_dim = (12,24,depth1)
+        n_state   = 64
         n_command = 16
 
         # Encoder
@@ -89,13 +90,13 @@ class Approach(nn.Module):
         HighEncoder = E.HighResNet34()#λResNet34((96,192),'high')
         
         # Decoder
-        cmdNet  = A.CommandNet(n_command)                   # Command decoder
-        spaAttn = A.SpatialAttnNet(cube_dim)                # Spatial attention
-        ftrAttn = A.FeatureAttnNet(depth2,self.H,n_command) # Feature attention
+        cmdNet  = A.CommandNet(n_command)                           # Command decoder
+        spaAttn = A.SpatialAttnNet(cube_dim)                        # Spatial attention
+        ftrAttn = A.FeatureAttnNet(depth2,self.H,n_command,n_state) # Feature attention
         self.decoder = D.CatDecoder(HighEncoder,spaAttn,ftrAttn,cmdNet)
 
         # Policy
-        self.policy = C.Policy(64)
+        self.policy = C.Policy(n_state)
         
 
     """ Backbone 
