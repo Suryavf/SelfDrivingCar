@@ -602,18 +602,29 @@ class HighResNet34(nn.Module):
     def __init__(self):
         super(HighResNet34, self).__init__()
 
-        self.layer3a = Bottleneck(128, 64, stride=2)
-        self.layer3b = Bottleneck(256, 64, stride=1)
+        self.layer3a = Bottleneck(128, 64, stride=2)    # 1
+        self.layer3b = Bottleneck(256, 64, stride=1)    # 2
+        self.layer3c = Bottleneck(256, 64, stride=1)    # 3
+        self.layer3d = Bottleneck(256, 64, stride=1)    # 4
+        self.layer3e = Bottleneck(256, 64, stride=1)    # 5
+        self.layer3f = Bottleneck(256, 64, stride=1)    # 6
 
-        self.layer4a = Bottleneck(256,128, stride=2)
-        self.layer4b = Bottleneck(512,128, stride=1)
+        self.layer4a = Bottleneck(256,128, stride=2)    # 1
+        self.layer4b = Bottleneck(512,128, stride=1)    # 2
+        self.layer4c = Bottleneck(512,128, stride=1)    # 3
 
     def forward(self, x):
+        # [3, 4, 6, 3]
         x = self.layer3a(x)
         x = self.layer3b(x)
+        x = self.layer3c(x)
+        x = self.layer3d(x)
+        x = self.layer3e(x)
+        x = self.layer3f(x)
 
         x = self.layer4a(x)
         x = self.layer4b(x)
+        x = self.layer4c(x)
 
         return x
 
