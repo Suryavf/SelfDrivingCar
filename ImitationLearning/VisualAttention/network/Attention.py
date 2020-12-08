@@ -1121,15 +1121,23 @@ class SpatialAttnNet(nn.Module):
         Z = self.fc(Z)          # [batch, L, D]
         Z = Z.transpose(1,2)    # [batch, D, L]
 
-        return Z.reshape(-1,self.D,self.high,self.width)
+        return Z.reshape(-1,self.D,self.high,self.width).contiguous()
         
 
+""" Feature attention network
+    -------------------------
+        * Input 
+            - n_encode: depth of visual feature input
+            - n_hidden: size of hidden state of LSTM
+            - n_command: size of command encoding
+            - n_state: output dimension (state)
+"""
 class FeatureAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, n_encode, n_hidden, n_command):
+    def __init__(self, n_encode, n_hidden, n_command, n_state):
         super(FeatureAttnNet, self).__init__()
         self.n_features = 32
-        self.n_depth    = 64
+        self.n_depth    = n_state
         self.sqrtDepth  = math.sqrt(self.n_depth)
 
         self.M = self.n_depth*int(self.n_features/2)
@@ -1140,7 +1148,7 @@ class FeatureAttnNet(nn.Module):
         self.to_kh = nn.Linear( n_hidden, self.   M   , bias = False)
         self.to_vz = nn.Linear( n_encode, self.   M   , bias = False)
         self.to_vh = nn.Linear( n_hidden, self.   M   , bias = False)
-
+        
         self.Softmax = nn.Softmax(2)
 
         # Batch normalization
@@ -1183,7 +1191,7 @@ class FeatureAttnNet(nn.Module):
 
         # Output
         s = torch.einsum('bnm,bdm->bnd', (A,V))
-        return s.view(-1,64)#.squeeze()
+        return s.view(-1,self.n_depth)#.squeeze()
         
 
 class CommandNet(nn.Module):
