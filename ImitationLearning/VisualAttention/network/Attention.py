@@ -1043,7 +1043,7 @@ class Atten14(nn.Module):
 # ------------------------------------------------------------
 class SpatialAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, cube_size):
+    def __init__(self, cube_size,n_state):
         super(SpatialAttnNet, self).__init__()
         # Parameters 
         self.high  = cube_size[0]
@@ -1053,8 +1053,7 @@ class SpatialAttnNet(nn.Module):
         self.R = self.L*self.D          #  L x D
         
         # Deberian ser entrada
-        self.batch = 120
-        self.M = 64
+        self.S = n_state
 
         self.h =  2
         self.d = int(self.D/self.h)
@@ -1066,7 +1065,7 @@ class SpatialAttnNet(nn.Module):
         self.to_v = nn.Conv2d(self.D, self.hd, 1, bias = False)
         # self.to_q = nn.Linear(self.D, self.hd, bias = False)
         # self.to_v = nn.Linear(self.D, self.hd, bias = False)
-        self.to_k = nn.Linear(self.M, self.hd, bias = False)
+        self.to_k = nn.Linear(self.S, self.hd, bias = False)
 
         self.fc = nn.Linear(self.hd, self.D)
 

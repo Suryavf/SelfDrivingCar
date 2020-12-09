@@ -69,31 +69,44 @@ class ExpBranch(nn.Module):
                    'hidden' : lstm}
                     
 
+""" Approach
+    --------
+    ResNet    18   34   50
+    depth1   128  128  512
+    depth2   512  512 2048
+"""
 class Approach(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting,n_hidden = 1024):#(96,192)): 92,196
+    def __init__(self,module,setting,n_hidden = 1024,n_encodeCmd = 16):#(96,192)): 92,196
         super(Approach, self).__init__()
-        # Parameters
-        self.H =     n_hidden       # 1024
-        self.R = int(n_hidden/4)    #  256
-        
-        # ResNet            18   34   50
-        depth1 = 128    #  128  128  512
-        depth2 = 512    #  512  512 2048
-        cube_dim = (12,24,depth1)
-        n_state   = 64
-        n_command = 16
+        # ResNet setting
+        lowDepth  = 128
+        highDepth = 4*lowDepth
+        cube_dim  = (12,24,lowDepth)
 
+        # Policy setting
+        n_state   = lowDepth/2
+        
         # Encoder
-        self.lowEncoder = models.resnet18(pretrained=True)
+        self.lowEncoder = models.resnet34(pretrained=True)
         self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
-        HighEncoder = E.HighResNet34()#λResNet34((96,192),'high')
+        HighEncoder = E.HighResNet34() #λResNet34((96,192),'high')
         
         # Decoder
-        cmdNet  = A.CommandNet(n_command)                           # Command decoder
-        spaAttn = A.SpatialAttnNet(cube_dim)                        # Spatial attention
-        ftrAttn = A.FeatureAttnNet(depth2,self.H,n_command,n_state) # Feature attention
-        self.decoder = D.CatDecoder(HighEncoder,spaAttn,ftrAttn,cmdNet)
+        cmdNet  = A.CommandNet(n_encodeCmd)                                 # Command decoder
+        spaAttn = A.SpatialAttnNet(cube_dim,n_state)                        # Spatial attention
+        ftrAttn = A.FeatureAttnNet(highDepth,n_hidden,n_encodeCmd,n_state)  # Feature attention
+        
+        self.decoder = D.CatDecoder(HighEncoderNet = HighEncoder,
+                                        SpatialNet = spaAttn,
+                                        FeatureNet = ftrAttn,
+                                        CommandNet = cmdNet,
+                                    
+                                       LowLevelDim =  lowDepth,
+                                      HighLevelDim = highDepth,
+
+                                          n_hidden = n_hidden,
+                                          n_state  = n_state)
 
         # Policy
         self.policy = C.Policy(n_state)

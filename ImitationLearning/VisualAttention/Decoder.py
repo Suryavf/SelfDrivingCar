@@ -431,20 +431,22 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,HighEncoder,SpatialNet,FeatureNet,CmdNet, LowLevelDim=128, HighLevelDim=512, n_hidden=1024):
+    def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
+                        LowLevelDim=128, HighLevelDim=512, 
+                        n_hidden=1024, n_state=64):
         super(CatDecoder, self).__init__()
         
         # Parameters
-        self.H =     n_hidden       # output LSTM   1024
-        self.R = int(n_hidden/4)    #  input LSTM    256
-        self.S = 64
+        self.H =     n_hidden       # output LSTM   1024   2048
+        self.R = int(n_hidden/4)    #  input LSTM    256    512
+        self.S =     n_state
         self.sequence_len =  20
         
         # Attention
-        self.HighEncoder = HighEncoder
-        self.SpatialAttn =  SpatialNet
-        self.FeatureAttn =  FeatureNet
-        self. CmdDecoder =      CmdNet
+        self.HighEncoder = HighEncoderNet
+        self.SpatialAttn =     SpatialNet
+        self.FeatureAttn =     FeatureNet
+        self. CmdDecoder =     CommandNet
 
         # Output
         self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
