@@ -1192,8 +1192,11 @@ class FeatureAttnNet(nn.Module):
         A  = self.Softmax(QK/self.sqrtDepth)        # [batch,1,n]
 
         # Output
-        s = torch.einsum('bnm,bdm->bnd', (A,V))
-        return s.view(-1,self.n_depth)#.squeeze()
+        S = torch.einsum('bnm,bdm->bnd', (A,V))
+        S = S.view(-1,self.n_depth)
+
+        if self.study: return S, V.transpose(1,2), A.squeeze(1)
+        else         : return S, None, None
         
 
 class CommandNet(nn.Module):

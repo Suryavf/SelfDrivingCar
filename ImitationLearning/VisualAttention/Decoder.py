@@ -533,7 +533,10 @@ class CatDecoder(nn.Module):
         else            : st = torch.zeros([           1,self.S]).to( torch.device('cuda:0') )
 
         # Study
-        α = list()
+        if self.study:
+            α,β,F = list(),list(),list()
+        else:
+            α,β,F = None,None,None
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -556,7 +559,7 @@ class CatDecoder(nn.Module):
             # s[t] = f(z[t],h[t-1])
             _zt = self.avgpool1( zt)
             _zt = torch.flatten(_zt, 1)
-            st = self.FeatureAttn(_zt,ht[0],cm) # [batch,S]
+            st, ft, βt = self.FeatureAttn(_zt,ht[0],cm) # [batch,S]
             
             # Dimension reduction to LSTM
             rt = self.dimReduction(zt)
@@ -577,10 +580,18 @@ class CatDecoder(nn.Module):
             # Study
             if self.study:
                 α.append(αt)
+                β.append(βt)
+                F.append(ft)
 
         if self.training: 
             st_ = st_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
             ht_ = ht_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
-
-        return st_, ht_, {}, {} #, {'alpha': alp_, 'beta': bet_}, {'control': hc}
+        
+        # Compile study
+        if self.study:
+            α = torch.cat(α, dim=0)
+            β = torch.cat(β, dim=0)
+            F = torch.cat(F, dim=0)
+        
+        return st_, ht_, {'alpha': α, 'beta': β}, {'features': F}
         
