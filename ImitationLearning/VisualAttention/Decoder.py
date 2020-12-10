@@ -435,7 +435,8 @@ class CatDecoder(nn.Module):
                         LowLevelDim=128, HighLevelDim=512, 
                         n_hidden=1024, n_state=64):
         super(CatDecoder, self).__init__()
-        
+        self.study = False
+
         # Parameters
         self.H =     n_hidden       # output LSTM   1024   2048
         self.R = int(n_hidden/4)    #  input LSTM    256    512
@@ -531,6 +532,9 @@ class CatDecoder(nn.Module):
         if self.training: st = torch.zeros([batch_size,1,self.S]).to( torch.device('cuda:0') )
         else            : st = torch.zeros([           1,self.S]).to( torch.device('cuda:0') )
 
+        # Study
+        α = list()
+
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
         for k in range(n_range):
@@ -541,7 +545,7 @@ class CatDecoder(nn.Module):
             else            : cm = cmd[k].unsqueeze(0)      # [  1  , 4 ]
 
             # Spatial Attention
-            xt = self.SpatialAttn(ηt,st)
+            xt, αt = self.SpatialAttn(ηt,st)
             xt = self.normSpa(xt)
             xt = self.ReLU(ηt + xt)
             
@@ -568,7 +572,11 @@ class CatDecoder(nn.Module):
             
             # Output
             st_[k] = st.unsqueeze(0)    # [1,batch,S]
-            ht_[k] = ht#.unsqueeze(0)    # [1,batch,H]
+            ht_[k] = ht#.unsqueeze(0)   # [1,batch,H]
+
+            # Study
+            if self.study:
+                α.append(αt)
 
         if self.training: 
             st_ = st_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)

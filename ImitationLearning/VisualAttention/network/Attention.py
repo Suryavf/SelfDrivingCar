@@ -1051,7 +1051,8 @@ class SpatialAttnNet(nn.Module):
         self.D = cube_size[2]           #  depth
         self.L = self.high*self.width   #  h x w
         self.R = self.L*self.D          #  L x D
-        
+        self.study = False
+
         # Deberian ser entrada
         self.S = n_state
 
@@ -1119,8 +1120,10 @@ class SpatialAttnNet(nn.Module):
         Z = Z.view(-1,self.L,self.hd)
         Z = self.fc(Z)          # [batch, L, D]
         Z = Z.transpose(1,2)    # [batch, D, L]
-
-        return Z.reshape(-1,self.D,self.high,self.width).contiguous()
+        Z = Z.reshape(-1,self.D,self.high,self.width).contiguous()  # [batch, D, high, width]
+        
+        if self.study: return Z, A.squeeze(3)
+        else         : return Z, None
         
 
 """ Feature attention network
