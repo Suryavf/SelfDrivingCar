@@ -22,7 +22,7 @@
     },
     "train": {
         "scheduler": {
-            "learning_rate_decay_factor": 0.2,
+            "learning_rate_decay_factor": 0.1,
             "learning_rate_decay_steps" : 80
         },
         "optimizer": {
