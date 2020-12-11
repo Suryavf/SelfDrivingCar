@@ -85,7 +85,7 @@ class Approach(nn.Module):
         cube_dim  = (12,24,lowDepth)
 
         # Policy setting
-        n_state   = lowDepth/2
+        n_state   = int(lowDepth/2)
         
         # Encoder
         self.lowEncoder = models.resnet34(pretrained=True)

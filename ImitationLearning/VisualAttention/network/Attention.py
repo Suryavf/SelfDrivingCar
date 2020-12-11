@@ -1141,6 +1141,7 @@ class FeatureAttnNet(nn.Module):
         self.n_features = 32
         self.n_depth    = n_state
         self.sqrtDepth  = math.sqrt(self.n_depth)
+        self.study      = False
 
         self.M = self.n_depth*int(self.n_features/2)
 
