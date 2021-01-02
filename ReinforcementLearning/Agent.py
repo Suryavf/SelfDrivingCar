@@ -24,6 +24,11 @@ from   common.DeepMemory  import DeepMemory
 import carla
 from   benchmark import make_suite
 
+# https://github.com/cjy1992/gym-carla
+# https://github.com/carla-rl-gym/carla-rl
+# https://github.com/ShangtongZhang/DeepRL/blob/master/deep_rl/network/network_utils.py
+# https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail
+# https://github.com/navneet-nmk/pytorch-rl
 class Agent(object):
     """ Constructor """
     def __init__(self,init,setting):

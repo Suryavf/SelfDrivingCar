@@ -62,7 +62,7 @@ for f in folders:
                     else:
                         velocity.append( 0 )
         else:
-            print('pathjson isnt file k=',k)
+            print('pathjson is not file k=',k)
             k = n_img 
         k = k + 1
 

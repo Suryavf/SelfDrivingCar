@@ -529,8 +529,8 @@ class CatDecoder(nn.Module):
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        if self.training: st = torch.zeros([batch_size,1,self.S]).to( torch.device('cuda:0') )
-        else            : st = torch.zeros([           1,self.S]).to( torch.device('cuda:0') )
+        if self.training: st = torch.rand([batch_size,1,self.S]).to( torch.device('cuda:0') )
+        else            : st = torch.rand([           1,self.S]).to( torch.device('cuda:0') )
 
         # Study
         if self.study:
