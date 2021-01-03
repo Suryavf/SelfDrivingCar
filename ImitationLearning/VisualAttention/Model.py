@@ -3,8 +3,9 @@ from   torchvision import models
 import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
-import ImitationLearning.VisualAttention.network.Attention as A
-import ImitationLearning.VisualAttention.network.Control   as C
+import ImitationLearning.VisualAttention.network.Attention      as A
+import ImitationLearning.VisualAttention.network.Control        as C
+import ImitationLearning.VisualAttention.network.Regularization as R
 
 """ Visual Attention Network
     ------------------------
@@ -77,12 +78,14 @@ class ExpBranch(nn.Module):
 """
 class Approach(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting,n_hidden = 1024,n_encodeCmd = 16):#(96,192)): 92,196
+    def __init__(self,module,setting,n_hidden = 1024,n_encodeCmd = 16, regularization = True):#(96,192)): 92,196
         super(Approach, self).__init__()
         # ResNet setting
         lowDepth  = 128
         highDepth = 4*lowDepth
         cube_dim  = (12,24,lowDepth)
+
+        self.SpeedReg = regularization
 
         # Policy setting
         n_state   = int(lowDepth/2)
@@ -110,6 +113,10 @@ class Approach(nn.Module):
 
         # Policy
         self.policy = C.Policy(n_state)
+
+        # Speed regularization
+        if self.SpeedReg:
+            self.regularization = R.SpeedRegModule(n_hidden)
         
 
     """ Backbone 
@@ -132,11 +139,16 @@ class Approach(nn.Module):
     def forward(self,batch):
         # Visual encoder
         ηt = self.lowEncoder(batch['frame'])
-        st,ht,a,b = self.decoder(ηt,batch['mask'])
+        st,ht,attn,b = self.decoder(ηt,batch['mask'])
         at = self.policy(st)
+        
+        # Regularization
+        if self.SpeedReg: vt = self.regularization(ht)
+        else            : vt = None
 
         return {  'actions' :   at,
-                   'hidden' :   ht}
-                #'attention' :  None,
-                #   'hidden' :  None}
+                   'hidden' :   ht,
+                    'speed' :   vt,
+                'attention' : attn}
+                # 'features' :  None}
 
