@@ -293,3 +293,86 @@ class Policy(nn.Module):
 
         return torch.cat([steer,vel],dim=1)
         
+class MultiTaskPolicy(nn.Module):
+    def __init__(self, n_depth):
+        super(MultiTaskPolicy, self).__init__()
+        
+        self.n_input  = 2*n_depth
+        self.n_hidden =   n_depth
+
+        self.LogSoftmax = nn.LogSoftmax()
+        self.   Softmax = nn.   Softmax()
+
+        # Steering
+        self.ws1 = nn.Linear(self.n_hidden,self.n_hidden)
+        self.ws2 = nn.Linear(self.n_input ,self.n_hidden)
+        self.ws3 = nn.Linear(self.n_input ,self.n_hidden)
+        self.ws4 = nn.Linear(self.n_hidden,      1      )
+
+        # Acceleration
+        self.wa1 = nn.Linear(self.n_hidden,self.n_hidden)
+        self.wa2 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wa3 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wa4 = nn.Linear(self.n_hidden,      2      )
+
+        # Clasification
+        self.wc1 = nn.Linear(self.n_hidden,self.n_hidden)
+        self.wc2 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wc3 = nn.Linear(self.n_input ,self.n_hidden)
+        self.wc4 = nn.Linear(self.n_hidden,      3      )
+
+        # Initialization
+        nn.init.xavier_uniform_(self.ws1.weight)
+        nn.init.xavier_uniform_(self.ws2.weight)
+        nn.init.xavier_uniform_(self.ws3.weight)
+        nn.init.xavier_uniform_(self.ws4.weight)
+
+        nn.init.xavier_uniform_(self.wa1.weight)
+        nn.init.xavier_uniform_(self.wa2.weight)
+        nn.init.xavier_uniform_(self.wa3.weight)
+        nn.init.xavier_uniform_(self.wa4.weight)
+
+        nn.init.xavier_uniform_(self.wc1.weight)
+        nn.init.xavier_uniform_(self.wc2.weight)
+        nn.init.xavier_uniform_(self.wc3.weight)
+        nn.init.xavier_uniform_(self.wc4.weight)
+
+
+    def forward(self,state):
+        # Steering
+        st = F.relu(self. ws1(state))
+        st = torch.cat([st, state],dim=1)
+        
+        st = F.relu(self. ws2(st))
+        st = torch.cat([st, state],dim=1)
+        
+        st = F.relu(self. ws3(st))
+        steer =     self. ws4(st)
+        
+        # Switch: cte, +acc, -acc
+        ct = F.relu(self. wc1(state))
+        ct = torch.cat([ct, state],dim=1)
+        
+        ct = F.relu(self. wc2(ct))
+        ct = torch.cat([ct, state],dim=1)
+        
+        ct = F.relu(self. wc3(ct))
+        switch =    self. wc4(ct)
+
+        decision = self.LogSoftmax(switch)
+        switch   = self.   Softmax(switch)
+
+        # Throttle
+        at = F.relu(self. wa1(state))
+        at = torch.cat([at, state],dim=1)
+        
+        at = F.relu(self. wa2(at))
+        at = torch.cat([at, state],dim=1)
+        
+        at = F.relu(self. wa3(at))
+        throttle =  self. wa4(at)
+        
+        # Masked
+        throttle = throttle*switch[1:]
+        return torch.cat([steer,throttle],dim=1),decision
+        
