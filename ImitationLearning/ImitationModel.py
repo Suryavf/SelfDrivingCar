@@ -8,6 +8,7 @@ import numpy  as np
 
 import torch
 import torch.optim as optim
+import torch.nn    as nn
 import torch.nn.functional as F
 from   torch.utils.data        import DataLoader
 from   torch.utils.tensorboard import SummaryWriter
@@ -267,7 +268,13 @@ class ImitationModel(object):
             self.lossFunc = self._weightedLossAct
 
 
-    """ Loss Function """
+    """ Loss Function 
+        --------------------------------------------------------------------
+        * Input:
+            - measure   : dict of real measurement
+            - prediction: dict of prediction
+            - weight    : bias for prioritized sampling
+    """
     def _weightedLossAct(self,measure,prediction,weight=None):
         loss = torch.abs(measure['actions'] - prediction['actions'])
         loss = loss.matmul(self.weightLoss)
@@ -288,6 +295,37 @@ class ImitationModel(object):
 
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
+        
+        # Total loss
+        lambda_action = self.setting.train.loss.lambda_action
+        lambda_speed  = self.setting.train.loss.lambda_speed
+        loss = lambda_action*action + lambda_speed*speed
+
+        if weight is not None:
+            # One wight to one sample
+            weight = weight.reshape(-1,1)
+            weight = weight.to(self.device)
+            
+            loss = loss.mul(weight)
+
+        prediction['loss'] = loss
+        return torch.mean(loss)
+
+    def _weightedMultitask(self,measure,prediction,weight=None):
+        # Desicion clasificación
+        decision = measure['actions'] == 0
+        decision[:,0] = torch.logical_and(decision[:,1],decision[:,2])
+
+        # Action loss
+        action = torch.abs(measure['actions'] - prediction['actions'])
+        action = action.matmul(self.weightLoss)
+        
+        # Speed loss
+        speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
+        
+        # Cross entropy loss
+        lambda_action = self.setting.train.loss.lambda_desc
+        action += lambda_action*nn.NLLLoss(prediction['decision'],decision)
         
         # Total loss
         lambda_action = self.setting.train.loss.lambda_action
