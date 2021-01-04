@@ -1093,25 +1093,26 @@ class SpatialAttnNet(nn.Module):
 
     """ Forward 
           - eta [batch,channel,high,width]
-          -  F  [batch,1,M]
+          -  F  [batch,n,M]
     """
     def forward(self,ηt,Ft0):
         # Query, key, value
         Q = self.to_q(ηt )     # [batch,hd,L]
-        K = self.to_k(Ft0)     # [batch,L,hd]
+        K = self.to_k(Ft0)     # [batch,n,hd]
         V = self.to_v(ηt )     # [batch,hd,L]
 
-        Q = self.norm_q(Q)
-        V = self.norm_v(V)
+        # Q = self.norm_q(Q)
+        # V = self.norm_v(V)
+        K = K.transpose(1,2)    # [batch,hd,n]
 
         Q = Q.view(-1, self.hd, self.L).transpose(1,2) # [batch,hd,L]
         V = V.view(-1, self.hd, self.L).transpose(1,2) # [batch,hd,L]
 
         # Attention map
         Q,K,V = map(lambda x: x.reshape(x.shape[0],self.h,self.d,-1),[Q,K,V])   # Q,V -> [batch,h,d,L]
-                                                                                #  K  -> [batch,h,d,1]
-        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch, h, L, 1]
-        A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, 1]
+                                                                                #  K  -> [batch,h,d,n]
+        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch, h, L, n]
+        A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, n]
 
         # Apply
         Z  = torch.einsum('bhnk,bhdn->bnhd', (A,V))     # [batch, L, h, d]
@@ -1139,25 +1140,26 @@ class FeatureAttnNet(nn.Module):
     def __init__(self, n_encode, n_hidden, n_command, n_state):
         super(FeatureAttnNet, self).__init__()
         self.n_features = 32
-        self.n_depth    = n_state
-        self.sqrtDepth  = math.sqrt(self.n_depth)
+        self.D          = n_state
+        self.sqrtDepth  = math.sqrt(self.D)
         self.study      = False
 
-        self.M = self.n_depth*int(self.n_features/2)
+        self.h = 3      # Multi-task
+        self.M = self.D*int(self.n_features/2)
 
         # Feature 
-        self.to_q  = nn.Linear(n_command, self.n_depth, bias = False)
-        self.to_kz = nn.Linear( n_encode, self.   M   , bias = False)
-        self.to_kh = nn.Linear( n_hidden, self.   M   , bias = False)
-        self.to_vz = nn.Linear( n_encode, self.   M   , bias = False)
-        self.to_vh = nn.Linear( n_hidden, self.   M   , bias = False)
+        self.to_q  = nn.Linear(n_command, self.D*self.h, bias = False)
+        self.to_kz = nn.Linear( n_encode, self.M*self.h, bias = False)
+        self.to_kh = nn.Linear( n_hidden, self.M*self.h, bias = False)
+        self.to_vz = nn.Linear( n_encode, self.M*self.h, bias = False)
+        self.to_vh = nn.Linear( n_hidden, self.M*self.h, bias = False)
         
         self.Softmax = nn.Softmax(2)
 
         # Batch normalization
-        self.normQ = nn.BatchNorm1d(self.n_depth)
-        self.normK = nn.BatchNorm1d(self.n_depth)
-        self.normV = nn.BatchNorm1d(self.n_depth)
+        # self.normQ = nn.BatchNorm1d(self.D)
+        # self.normK = nn.BatchNorm1d(self.D)
+        # self.normV = nn.BatchNorm1d(self.D)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q .weight)
@@ -1173,30 +1175,27 @@ class FeatureAttnNet(nn.Module):
           - command [batch,n_command]
     """
     def forward(self,feature,hidden,command):
-        # Query
-        Q = self.to_q(command).unsqueeze(2)
-        Q = self.normQ(Q)                           # [batch,D,1]
+        batch = feature.shape[0]
 
-        # Key
+        # Query, key, value
+        Q = self.to_q(command)              # [batch,hd]
         Kz,Kh = self.to_kz(feature),self.to_kh( hidden)
-        K = torch.cat([Kz,Kh],dim=1)
-        K = K.view(-1,self.n_depth,self.n_features) # [batch,D,n]
-        K = self.normK(K)                           # [batch,D,n]
-        
-        # Value
+        K = torch.cat([Kz,Kh],dim=1)        # [batch,hdn]
         Vz,Vh = self.to_vz(feature), self.to_vh(hidden)
-        V = torch.cat([Vz,Vh],dim=1)
-        V = V.view(-1,self.n_depth,self.n_features) # [batch,D,n]
+        V = torch.cat([Vz,Vh],dim=1)        # [batch,hdn]
+
+        Q,K,V = map(lambda x: x.reshape(batch,self.h,self.d,-1),[Q,K,V])    # Q,V -> [batch,h,d,n]
+                                                                            #  K  -> [batch,h,d,1]
 
         # Attention 
-        QK = torch.einsum('bdn,bdm->bnm', (Q,K))    # [batch,1,n]
-        A  = self.Softmax(QK/self.sqrtDepth)        # [batch,1,n]
+        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch,h,n,1]
+        A  = self.Softmax(QK/self.sqrtd)                # [batch,h,n,1]
 
-        # Output
-        S = torch.einsum('bnm,bdm->bnd', (A,V))
-        S = S.view(-1,self.n_depth)
+        # Apply
+        S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,n,1]
+        S = S.view(batch,self.h,-1)                     # [batch,h,n]
 
-        if self.study: return S, V.transpose(1,2), A.squeeze(1)
+        if self.study: return S, V, A
         else         : return S, None, None
         
 
