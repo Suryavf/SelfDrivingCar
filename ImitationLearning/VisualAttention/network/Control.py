@@ -331,18 +331,13 @@ class DenseNet(nn.Module):
 class MultiTaskPolicy(nn.Module):
     def __init__(self, n_depth):
         super(MultiTaskPolicy, self).__init__()
-        
-        # Parameters
-        self.n_input  = 2*n_depth
-        self.n_hidden =   n_depth
-
-        self.LogSoftmax = nn.LogSoftmax()
-        self.   Softmax = nn.   Softmax()
-
         # Nets
         self.steering = DenseNet(n_depth,1)
         self.throttle = DenseNet(n_depth,2)
         self.  switch = DenseNet(n_depth,3)
+
+        self.LogSoftmax = nn.LogSoftmax()
+        self.   Softmax = nn.   Softmax()
 
     def forward(self,state):
         # Execute
