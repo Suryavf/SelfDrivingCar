@@ -7,8 +7,8 @@ import numpy as np
 
 import h5py
 
-path = "/media/victor/Datos/Descargas/CVPR2019-CARLA100_14"
-out  = "/media/victor/Datos/Carla100"
+path = "/home/suryavf"
+out  = "/home/suryavf/CARLA100"
 folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()
 

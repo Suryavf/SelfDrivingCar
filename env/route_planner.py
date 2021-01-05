@@ -13,7 +13,7 @@ import random
 import numpy as np
 import carla
 
-from gym_carla.envs.misc import distance_vehicle, is_within_distance_ahead, compute_magnitude_angle
+from env.misc import distance_vehicle, is_within_distance_ahead, compute_magnitude_angle
 
 class RoadOption(Enum):
     """
