@@ -19,11 +19,11 @@ class RoadOption(Enum):
     """
     RoadOption represents the possible topological configurations when moving from a segment of lane to other.
     """
-    VOID = -1
-    LEFT = 1
-    RIGHT = 2
-    STRAIGHT = 3
-    LANEFOLLOW = 4
+    VOID       = -1
+    LEFT       =  1
+    RIGHT      =  2
+    STRAIGHT   =  3
+    LANEFOLLOW =  4
 
 class RoutePlanner():
     def __init__(self, vehicle, buffer_size):
@@ -60,25 +60,23 @@ class RoutePlanner():
         k = min(available_entries, k)
 
         for _ in range(k):
-        last_waypoint = self._waypoints_queue[-1][0]
-        next_waypoints = list(last_waypoint.next(self._sampling_radius))
+            last_waypoint  = self._waypoints_queue[-1][0]
+            next_waypoints = list(last_waypoint.next(self._sampling_radius))
 
-        if len(next_waypoints) == 1:
-            # only one option available ==> lanefollowing
-            next_waypoint = next_waypoints[0]
-            road_option = RoadOption.LANEFOLLOW
-        else:
-            # random choice between the possible options
-            road_options_list = retrieve_options(
-            next_waypoints, last_waypoint)
+            if len(next_waypoints) == 1:
+                # only one option available ==> lanefollowing
+                next_waypoint = next_waypoints[0]
+                road_option   = RoadOption.LANEFOLLOW
+            else:
+                # random choice between the possible options
+                road_options_list = retrieve_options(next_waypoints, last_waypoint)
 
-            road_option = road_options_list[1]
-            # road_option = random.choice(road_options_list)
-            
-            next_waypoint = next_waypoints[road_options_list.index(
-            road_option)]
+                road_option = road_options_list[1]
+                # road_option = random.choice(road_options_list)
+                
+                next_waypoint = next_waypoints[road_options_list.index(road_option)]
 
-        self._waypoints_queue.append((next_waypoint, road_option))
+            self._waypoints_queue.append((next_waypoint, road_option))
 
     def run_step(self):
         waypoints = self._get_waypoints()
@@ -97,23 +95,23 @@ class RoutePlanner():
 
         # not enough waypoints in the horizon? => add more!
         if len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
-        self._compute_next_waypoints(k=100)
+            self._compute_next_waypoints(k=100)
 
         #   Buffering the waypoints
         while len(self._waypoint_buffer)<self._buffer_size:
-        if self._waypoints_queue:
-            self._waypoint_buffer.append(
-            self._waypoints_queue.popleft())
-        else:
-            break
+            if self._waypoints_queue:
+                self._waypoint_buffer.append(self._waypoints_queue.popleft())
+            else:
+                break
 
         waypoints=[]
 
         for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-        waypoints.append([waypoint.transform.location.x, waypoint.transform.location.y, waypoint.transform.rotation.yaw])
+            waypoints.append([waypoint.transform.location.x, waypoint.transform.location.y, waypoint.transform.rotation.yaw])
 
         # current vehicle waypoint
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+
         # target waypoint
         self._target_waypoint, self._target_road_option = self._waypoint_buffer[0]
 
@@ -122,12 +120,11 @@ class RoutePlanner():
         max_index = -1
 
         for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-        if distance_vehicle(
-            waypoint, vehicle_transform) < self._min_distance:
-            max_index = i
+            if distance_vehicle(waypoint, vehicle_transform) < self._min_distance:
+                max_index = i
         if max_index >= 0:
-        for i in range(max_index - 1):
-            self._waypoint_buffer.popleft()
+            for i in range(max_index - 1):
+                self._waypoint_buffer.popleft()
 
         return waypoints
 
@@ -136,7 +133,7 @@ class RoutePlanner():
         # and other vehicles
         actor_list = self._world.get_actors()
         vehicle_list = actor_list.filter("*vehicle*")
-        lights_list = actor_list.filter("*traffic_light*")
+        lights_list  = actor_list.filter("*traffic_light*")
 
         # check possible obstacles
         vehicle_state = self._is_vehicle_hazard(vehicle_list)
@@ -168,21 +165,20 @@ class RoutePlanner():
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
 
         for target_vehicle in vehicle_list:
-        # do not account for the ego vehicle
-        if target_vehicle.id == self._vehicle.id:
-            continue
+            # do not account for the ego vehicle
+            if target_vehicle.id == self._vehicle.id:
+                continue
 
-        # if the object is not in our lane it's not an obstacle
-        target_vehicle_waypoint = self._map.get_waypoint(target_vehicle.get_location())
-        if target_vehicle_waypoint.road_id != ego_vehicle_waypoint.road_id or \
-                target_vehicle_waypoint.lane_id != ego_vehicle_waypoint.lane_id:
-            continue
+            # if the object is not in our lane it's not an obstacle
+            target_vehicle_waypoint = self._map.get_waypoint(target_vehicle.get_location())
+            if (target_vehicle_waypoint.road_id != ego_vehicle_waypoint.road_id) or (target_vehicle_waypoint.lane_id != ego_vehicle_waypoint.lane_id):
+                continue
 
-        loc = target_vehicle.get_location()
-        if is_within_distance_ahead(loc, ego_vehicle_location,
-                        self._vehicle.get_transform().rotation.yaw,
-                        self._proximity_threshold):
-            return True
+            loc = target_vehicle.get_location()
+            if is_within_distance_ahead(loc, ego_vehicle_location,
+                                        self._vehicle.get_transform().rotation.yaw,
+                                        self._proximity_threshold):
+                return True
 
         return False
 
@@ -201,33 +197,31 @@ class RoutePlanner():
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
 
         if ego_vehicle_waypoint.is_intersection:
-        # It is too late. Do not block the intersection! Keep going!
-        return False
+            # It is too late. Do not block the intersection! Keep going!
+            return False
 
         if self._target_waypoint is not None:
-        if self._target_waypoint.is_intersection:
-            potential_lights = []
-            min_angle = 180.0
-            sel_magnitude = 0.0
-            sel_traffic_light = None
-            for traffic_light in lights_list:
-            loc = traffic_light.get_location()
-            magnitude, angle = compute_magnitude_angle(loc,
-                                    ego_vehicle_location,
-                                    self._vehicle.get_transform().rotation.yaw)
-            if magnitude < 80.0 and angle < min(25.0, min_angle):
-                sel_magnitude = magnitude
-                sel_traffic_light = traffic_light
-                min_angle = angle
+            if self._target_waypoint.is_intersection:
+                potential_lights = []
+                min_angle = 180.0
+                sel_magnitude = 0.0
+                sel_traffic_light = None
+                for traffic_light in lights_list:
+                    loc = traffic_light.get_location()
+                    magnitude, angle = compute_magnitude_angle( loc, ego_vehicle_location, self._vehicle.get_transform().rotation.yaw)
+                    if magnitude < 80.0 and angle < min(25.0, min_angle):
+                        sel_magnitude = magnitude
+                        sel_traffic_light = traffic_light
+                        min_angle = angle
 
-            if sel_traffic_light is not None:
-            if self._last_traffic_light is None:
-                self._last_traffic_light = sel_traffic_light
+                if sel_traffic_light is not None:
+                    if self._last_traffic_light is None:
+                        self._last_traffic_light = sel_traffic_light
 
-            if self._last_traffic_light.state == carla.libcarla.TrafficLightState.Red:
-                return True
-            else:
-            self._last_traffic_light = None
+                    if self._last_traffic_light.state == carla.libcarla.TrafficLightState.Red:
+                        return True
+                else:
+                    self._last_traffic_light = None
 
         return False
 
@@ -278,3 +272,4 @@ def compute_connection(current_waypoint, next_waypoint):
         return RoadOption.LEFT
     else:
         return RoadOption.RIGHT
+        

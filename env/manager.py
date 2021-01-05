@@ -17,10 +17,9 @@ from gym import spaces
 from gym.utils import seeding
 import carla
 
-from gym_carla.envs.render import BirdeyeRender
-from gym_carla.envs.route_planner import RoutePlanner
-from gym_carla.envs.misc import *
-
+from env.render        import BirdeyeRender
+from env.route_planner import RoutePlanner
+from env.misc          import *
 
 class CarlaEnv(gym.Env):
     """An OpenAI gym wrapper for CARLA simulator."""
@@ -270,7 +269,7 @@ class CarlaEnv(gym.Env):
             brake    = np.clip(action[2],0,1)
 
         # Apply control
-        act = carla.VehicleControl(throttle=float(throttle), steer=float(-steer), brake=float(brake))
+        act = carla.VehicleControl(throttle=float(throttle), steer=float(steer), brake=float(brake))
         self.ego.apply_control(act)
 
         self.world.tick()
@@ -289,12 +288,12 @@ class CarlaEnv(gym.Env):
         self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
 
         # state information
-        info = {'waypoints': self.waypoints,
+        info = {    'waypoints': self.waypoints,
                 'vehicle_front': self.vehicle_front
                 }
         
         # Update timesteps
-        self.time_step += 1
+        self.time_step  += 1
         self.total_step += 1
 
         return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
@@ -666,3 +665,4 @@ class CarlaEnv(gym.Env):
                     if actor.type_id == 'controller.ai.walker':
                         actor.stop()
                     actor.destroy()
+

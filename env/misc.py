@@ -133,8 +133,8 @@ def get_lane_dis(waypoints, x, y):
     for pt in waypoints:
         d = np.sqrt((x-pt[0])**2 + (y-pt[1])**2)
         if d < dis_min:
-        dis_min = d
-        waypt=pt
+            dis_min = d
+            waypt=pt
     vec = np.array([x - waypt[0], y - waypt[1]])
     lv = np.linalg.norm(np.array(vec))
     w = np.array([np.cos(waypt[2]/180*np.pi), np.sin(waypt[2]/180*np.pi)])
@@ -176,8 +176,7 @@ def is_within_distance_ahead(target_location, current_location, orientation, max
     if norm_target > max_distance:
         return False
 
-    forward_vector = np.array(
-        [math.cos(math.radians(orientation)), math.sin(math.radians(orientation))])
+    forward_vector = np.array([math.cos(math.radians(orientation)), math.sin(math.radians(orientation))])
     d_angle = math.degrees(math.acos(np.dot(forward_vector, target_vector) / norm_target))
 
     return d_angle < 90.0
