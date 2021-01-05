@@ -97,7 +97,7 @@ class RoutePlanner():
         if len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
             self._compute_next_waypoints(k=100)
 
-        #   Buffering the waypoints
+        # Buffering the waypoints
         while len(self._waypoint_buffer)<self._buffer_size:
             if self._waypoints_queue:
                 self._waypoint_buffer.append(self._waypoints_queue.popleft())
@@ -272,4 +272,4 @@ def compute_connection(current_waypoint, next_waypoint):
         return RoadOption.LEFT
     else:
         return RoadOption.RIGHT
-        
+

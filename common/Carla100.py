@@ -17,21 +17,23 @@ folders.sort()
 
 for f in folders:
     # Read
-    imgs = glob.glob(os.path.join(f,'CentralRGB_*'))
-    
     name = os.path.basename(f)
     print('Create '+name)
 
+    # Omite bad episodes
+    if os.path.exists(os.path.join(f,'bad_episode')):
+        print ('BAD EPISODE!\n')
+        continue
+    
     rgb      = list()
     command  = list()
     actions  = list()
     velocity = list()
 
+    imgs = glob.glob(os.path.join(f,'CentralRGB_*'))
     n_img = len(imgs)
-    #print(n_img)
     k = 0
     while k<n_img:
-        #for k in range(n_img): #img,pathjson in zip(imgs,msn):
         # Paths
         num = '0'*(5-len(str(k)))+str(k)
         img      = os.path.join(f,  'CentralRGB_'+num+'.png' )
@@ -42,7 +44,7 @@ for f in folders:
             img = cv.imread(img)
             if img.shape[0] != 88:
                 print('img.shape[0] =',img.shape[0],'   k =',k,'\n')
-                k = n_img 
+                k = n_img # END
             else: 
                 rgb.append(img)
 
@@ -63,33 +65,35 @@ for f in folders:
                         velocity.append( 0 )
         else:
             print('pathjson is not file k=',k)
-            k = n_img 
+            k = n_img # END
         k = k + 1
+    
+    if len(rgb)>120:
+        # To array
+        rgb      = np.array(   rgb  )
+        actions  = np.array( actions)
+        command  = np.array( command)
+        velocity = np.array(velocity)
 
-    # To array
-    rgb      = np.array(   rgb  )
-    actions  = np.array( actions)
-    command  = np.array( command)
-    velocity = np.array(velocity)
+        pathmeta = os.path.join(f,'metadata.json')
+        if os.path.isfile(pathmeta):
+            with open( pathmeta ) as jsonfile:
+                meta = json.load(jsonfile)
+                n_pedestrian = meta['number_of_pedestrian']
+                n_vehicles   = meta['number_of_vehicles'  ]
+                weather      = meta['weather'             ]
+        else:
+            n_pedestrian = -1
+            n_vehicles   = -1
+            weather      = -1
 
-    pathmeta = os.path.join(f,'metadata.json')
-    if os.path.isfile(pathmeta):
-        with open( pathmeta ) as jsonfile:
-            meta = json.load(jsonfile)
-            n_pedestrian = meta['number_of_pedestrian']
-            n_vehicles   = meta['number_of_vehicles'  ]
-            weather      = meta['weather'             ]
+        with h5py.File( os.path.join(out,name+'.hdf5'),"w") as f:
+            dset = f.create_dataset(     "rgb", data=rgb     )
+            dset = f.create_dataset( "actions", data=actions )
+            dset = f.create_dataset( "command", data=command )
+            dset = f.create_dataset("velocity", data=velocity)
+            dset = f.create_dataset("number_of_pedestrian", data=n_pedestrian)
+            dset = f.create_dataset("number_of_vehicles"  , data=n_vehicles  )
+            dset = f.create_dataset("weather"             , data=weather     )
     else:
-        n_pedestrian = -1
-        n_vehicles   = -1
-        weather      = -1
-
-    with h5py.File( os.path.join(out,name+'.hdf5'),"w") as f:
-        dset = f.create_dataset(     "rgb", data=rgb     )
-        dset = f.create_dataset( "actions", data=actions )
-        dset = f.create_dataset( "command", data=command )
-        dset = f.create_dataset("velocity", data=velocity)
-        dset = f.create_dataset("number_of_pedestrian", data=n_pedestrian)
-        dset = f.create_dataset("number_of_vehicles"  , data=n_vehicles  )
-        dset = f.create_dataset("weather"             , data=weather     )
-        
+        print('Few frames\n')        
