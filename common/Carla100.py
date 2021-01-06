@@ -39,7 +39,7 @@ for f in folders:
         img      = os.path.join(f,  'CentralRGB_'+num+'.png' )
         pathjson = os.path.join(f,'measurements_'+num+'.json')
 
-        if os.path.isfile(pathjson):
+        if os.path.isfile(pathjson) & os.path.isfile(img):
             # Add frontal camera
             img = cv.imread(img)
             if img.shape[0] != 88:
