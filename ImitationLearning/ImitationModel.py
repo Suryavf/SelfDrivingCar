@@ -269,6 +269,9 @@ class ImitationModel(object):
             self.lossFunc = self._weightedLossActSpeed
         elif self.setting.train.loss.type == "WeightedMultiTask":
             self.lossFunc = self._weightedMultitask
+        else:
+            txt = self.setting.train.loss.type
+            raise NameError('ERROR 404: Loss no found ('+txt+')')
 
 
     """ Loss Function 

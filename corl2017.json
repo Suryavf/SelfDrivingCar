@@ -32,7 +32,7 @@
             "learningRate": 0.0001
         },
         "loss": {
-            "type": "Weight",
+            "type": "WeightedMultiTask",
             "lambda_gas"  : 0.33333,
             "lambda_steer": 0.26667,
             "lambda_brake": 0.06667,
