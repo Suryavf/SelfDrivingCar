@@ -7,7 +7,7 @@ import numpy as np
 
 import h5py
 
-path = "/home/suryavf"
+path = "/home/suryavf/raw"
 out  = "/home/suryavf/CARLA100"
 folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()

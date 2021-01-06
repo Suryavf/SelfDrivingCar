@@ -254,7 +254,7 @@ class ImitationModel(object):
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
                                                     gamma     = self.setting.train.scheduler.learning_rate_decay_factor)
 
-        # Loss Function
+        # Loss weights
         self.weightLoss = np.array([self.setting.train.loss.lambda_steer, 
                                     self.setting.train.loss.lambda_gas  , 
                                     self.setting.train.loss.lambda_brake]).reshape(3,1)
@@ -262,10 +262,13 @@ class ImitationModel(object):
             self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
         self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device) 
 
-        if self.setting.boolean.speedRegression:
-            self.lossFunc = self._weightedLossActSpeed
-        else:
+        # Loss Function
+        if   self.setting.train.loss.type == "Weighted":
             self.lossFunc = self._weightedLossAct
+        elif self.setting.train.loss.type == "WeightedReg":
+            self.lossFunc = self._weightedLossActSpeed
+        elif self.setting.train.loss.type == "WeightedMultiTask":
+            self.lossFunc = self._weightedMultitask
 
 
     """ Loss Function 
@@ -312,6 +315,11 @@ class ImitationModel(object):
         return torch.mean(loss)
 
     def _weightedMultitask(self,measure,prediction,weight=None):
+        # Loss parameters
+        lambda_desc   = self.setting.train.loss.lambda_desc
+        lambda_action = self.setting.train.loss.lambda_action
+        lambda_speed  = self.setting.train.loss.lambda_speed
+
         # Desicion clasificación
         decision = measure['actions'] == 0
         decision[:,0] = torch.logical_and(decision[:,1],decision[:,2])
@@ -320,16 +328,13 @@ class ImitationModel(object):
         action = torch.abs(measure['actions'] - prediction['actions'])
         action = action.matmul(self.weightLoss)
         
+        # Cross entropy loss
+        action += lambda_desc*nn.NLLLoss(prediction['decision'],decision)
+        
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
         
-        # Cross entropy loss
-        lambda_action = self.setting.train.loss.lambda_desc
-        action += lambda_action*nn.NLLLoss(prediction['decision'],decision)
-        
         # Total loss
-        lambda_action = self.setting.train.loss.lambda_action
-        lambda_speed  = self.setting.train.loss.lambda_speed
         loss = lambda_action*action + lambda_speed*speed
 
         if weight is not None:

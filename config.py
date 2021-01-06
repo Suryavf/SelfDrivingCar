@@ -359,10 +359,11 @@ class _Optimizer_settings(object):
 
 class _Loss_settings(object):
     def __init__(self):
-        self.type          = "Weight"
+        self.type          = "Weighted" # Weighted, WeightedReg, WeightedMultiTask
         self.lambda_steer  = 0.45
         self.lambda_gas    = 0.45
         self.lambda_brake  = 0.10
+        self.lambda_desc   = 0.00
         self.lambda_action = 0.95
         self.lambda_speed  = 0.05
 
@@ -375,16 +376,33 @@ class _Loss_settings(object):
             self.lambda_steer  = data[ "lambda_steer"]
         if "lambda_brake" in data:
             self.lambda_brake  = data[ "lambda_brake"]
+        if "lambda_desc" in data:
+            self.lambda_brake  = data[  "lambda_desc"]
         if "lambda_speed" in data:
             self.lambda_speed  = data[ "lambda_speed"]
         if "lambda_action" in data:
             self.lambda_action = data["lambda_action"]
 
     def print(self):
-        if self.type is "Weight":
+        if self.type is "Weighted":
             print("\t"*3,"Lambda steer:\t" , self.lambda_steer )
             print("\t"*3,"Lambda gas:\t"   , self.lambda_gas   )
             print("\t"*3,"Lambda brake:\t" , self.lambda_brake )
+            print("")
+        elif self.type is "WeightedReg":
+            print("\t"*3,"Lambda steer:\t" , self.lambda_steer )
+            print("\t"*3,"Lambda gas:\t"   , self.lambda_gas   )
+            print("\t"*3,"Lambda brake:\t" , self.lambda_brake )
+            print("")
+            print("\t"*3,"Lambda action:\t", self.lambda_action)
+            print("\t"*3,"Lambda speed:\t" , self.lambda_speed )
+            print("")
+        elif self.type is "WeightedMultiTask":
+            print("\t"*3,"Lambda steer:\t"   , self.lambda_steer )
+            print("\t"*3,"Lambda gas:\t"     , self.lambda_gas   )
+            print("\t"*3,"Lambda brake:\t"   , self.lambda_brake )
+            print("\t"*3,"Lambda decision:\t", self.lambda_desc  )
+            print("")
             print("\t"*3,"Lambda action:\t", self.lambda_action)
             print("\t"*3,"Lambda speed:\t" , self.lambda_speed )
             print("")
@@ -395,6 +413,7 @@ class _Loss_settings(object):
             "lambda_gas"    : self.   lambda_gas,
             "lambda_steer"  : self. lambda_steer,
             "lambda_brake"  : self. lambda_brake,
+            "lambda_desc"   : self.  lambda_desc,
             "lambda_speed"  : self. lambda_speed,
             "lambda_action" : self.lambda_action
         }
