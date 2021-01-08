@@ -13,7 +13,7 @@ folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()
 
 # Skip   episode_01174   episode_02576   episode_02594   episode_03473   episode_03474   episode_03485
-blacklist = ['episode_01936','episode_02594']
+blacklist = ['episode_01936','episode_02594','episode_03476']
 
 n_folders = len(folders)
 for i,f in enumerate(folders):
