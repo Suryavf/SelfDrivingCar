@@ -13,7 +13,7 @@ folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()
 
 # Descartar   episode_01174   episode_02576   episode_02594   episode_03473   episode_03474   episode_03485
-# folders = folders[13:]
+blacklist = ['episode_01936','episode_02594']
 
 for f in folders:
     # Read
@@ -27,7 +27,6 @@ for f in folders:
         continue
 
     # Blacklist
-    blacklist = ['episode_01936']
     if name in blacklist:
         print('Skip by blacklist\n')
         continue
