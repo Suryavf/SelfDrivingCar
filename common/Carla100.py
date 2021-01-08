@@ -12,14 +12,15 @@ out  = "/home/suryavf/CARLA100"
 folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()
 
-# Descartar   episode_01174   episode_02576   episode_02594   episode_03473   episode_03474   episode_03485
+# Skip   episode_01174   episode_02576   episode_02594   episode_03473   episode_03474   episode_03485
 blacklist = ['episode_01936','episode_02594']
 
-for f in folders:
+n_folders = len(folders)
+for i,f in enumerate(folders):
     # Read
     name = os.path.basename(f)
-    print('Create '+name)
-
+    print('Create %s \t\t %i/%i'%(name,i+1,n_folders)) 
+    
     # Outfile path
     outfile = os.path.join(out,name+'.hdf5')
     if os.path.exists(outfile):
