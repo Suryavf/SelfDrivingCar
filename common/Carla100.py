@@ -20,6 +20,18 @@ for f in folders:
     name = os.path.basename(f)
     print('Create '+name)
 
+    # Outfile path
+    outfile = os.path.join(out,name+'.hdf5')
+    if os.path.exists(outfile):
+        print ('Skip by repetition\n')
+        continue
+
+    # Blacklist
+    blacklist = ['episode_01936']
+    if name in blacklist:
+        print('Skip by blacklist')
+        continue
+
     # Omite bad episodes
     if os.path.exists(os.path.join(f,'bad_episode')):
         print ('BAD EPISODE!\n')
@@ -87,7 +99,7 @@ for f in folders:
             n_vehicles   = -1
             weather      = -1
 
-        with h5py.File( os.path.join(out,name+'.hdf5'),"w") as f:
+        with h5py.File(outfile,"w") as f:
             dset = f.create_dataset(     "rgb", data=rgb     )
             dset = f.create_dataset( "actions", data=actions )
             dset = f.create_dataset( "command", data=command )
