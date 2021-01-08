@@ -12,8 +12,8 @@ out  = "/home/suryavf/CARLA100"
 folders = glob.glob(os.path.join(path,'episode_*'))
 folders.sort()
 
-# Skip   episode_01174   episode_02576   episode_02594   episode_03473   episode_03474   episode_03485
-blacklist = ['episode_01936','episode_02594','episode_03476']
+# Skip 
+blacklist = ['episode_01936','episode_02594','episode_03476','episode_03590']
 
 n_folders = len(folders)
 for i,f in enumerate(folders):
@@ -54,7 +54,11 @@ for i,f in enumerate(folders):
         if os.path.isfile(pathjson) & os.path.isfile(img):
             # Add frontal camera
             img = cv.imread(img)
-            if img.shape[0] != 88:
+            if img is None:
+                print('It is None D:')
+                rgb = []
+                k = n_img # END
+            elif img.shape[0] != 88:
                 print('img.shape[0] =',img.shape[0],'   k =',k,'\n')
                 k = n_img # END
             else: 
