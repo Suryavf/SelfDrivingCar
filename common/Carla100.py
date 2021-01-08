@@ -29,7 +29,7 @@ for f in folders:
     # Blacklist
     blacklist = ['episode_01936']
     if name in blacklist:
-        print('Skip by blacklist')
+        print('Skip by blacklist\n')
         continue
 
     # Omite bad episodes
