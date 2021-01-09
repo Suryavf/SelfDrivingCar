@@ -59,7 +59,7 @@ for i,f in enumerate(folders):
                 rgb = []
                 k = n_img # END
             elif img.shape[0] != 88:
-                print('img.shape[0] =',img.shape[0],'   k =',k,'\n')
+                print('No shape match (%i,%i)\t[itr %i]'%(img.shape[0],img.shape[1],k))
                 k = n_img # END
             else: 
                 rgb.append(img)
@@ -80,7 +80,7 @@ for i,f in enumerate(folders):
                     else:
                         velocity.append( 0 )
         else:
-            print('pathjson is not file k=',k)
+            print('File not found (iter %i)'%k)
             k = n_img # END
         k = k + 1
     
@@ -112,4 +112,5 @@ for i,f in enumerate(folders):
             dset = f.create_dataset("number_of_vehicles"  , data=n_vehicles  )
             dset = f.create_dataset("weather"             , data=weather     )
     else:
-        print('Few frames\n')        
+        print('Few frames (%i)\n'%len(rgb)) 
+        
