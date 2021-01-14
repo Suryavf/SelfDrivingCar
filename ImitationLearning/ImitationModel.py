@@ -86,7 +86,6 @@ class ImitationModel(object):
         
         # Modules for model (build)
         self.module = {}
-
         if not self.init.is_loadedModel:
             # Paths
             self._checkFoldersToSave()
@@ -102,7 +101,6 @@ class ImitationModel(object):
         self.lossFunc   = None
         
         # Training data
-        self.CoRL2017 = True
         self.framePerFile  = self.setting.general. framePerFile
         self.sequence_len  = self.setting.general. sequence_len 
         self.slidingWindow = self.setting.general.slidingWindow
@@ -142,7 +140,10 @@ class ImitationModel(object):
                                                   fill = not self.CoRL2017)
 
         # Development settings
-        self.save_priority_history = False
+        self.save_priority_history  = False
+        self.save_speed_action_plot = False
+        self.speed_regularization   = self.setting.train.loss.type in ["WeightedReg","WeightedMultiTask"]
+
 
     """ Check folders to save """
     def _checkFoldersToSave(self, name = None):
@@ -164,13 +165,16 @@ class ImitationModel(object):
         # Figures Path
         self._figurePath           = os.path.join(execPath,"Figure")
         self._figureSteerErrorPath = os.path.join(self._figurePath,"SteerError")
-        # self._figureGasErrorPath   = os.path.join(self._figurePath,  "GasError")
-        # self._figureBrakeErrorPath = os.path.join(self._figurePath,"BrakeError")
-
+        
         U.checkdirectory(self._figurePath)
         U.checkdirectory(self._figureSteerErrorPath)
-        # U.checkdirectory(self._figureGasErrorPath  )
-        # U.checkdirectory(self._figureBrakeErrorPath)
+
+        if self.save_speed_action_plot:
+            self._figureGasErrorPath   = os.path.join(self._figurePath,  "GasError")
+            self._figureBrakeErrorPath = os.path.join(self._figurePath,"BrakeError")
+        
+            U.checkdirectory(self._figureGasErrorPath  )
+            U.checkdirectory(self._figureBrakeErrorPath)
 
         # Model path
         self._modelPath = os.path.join(execPath,"Model")
@@ -376,6 +380,10 @@ class ImitationModel(object):
         # Parameters
         max_steering = self.setting.preprocessing.maxSteering
         
+        # Velocity regularization
+        if self.speed_regularization:
+            dev_speed_err = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
+
         # if branch then reshape
         command    = measure   ['command']
         measure    = measure   ['actions']
@@ -384,35 +392,29 @@ class ImitationModel(object):
             measure    = measure   .view(-1,4,3).sum(-2)
             prediction = prediction.view(-1,4,3).sum(-2)
         
-        # Measurements
-        dev_Steer = measure[:,0] * max_steering
-        dev_Gas   = measure[:,1]
-        dev_Brake = measure[:,2]
-
-        # Prediction
-        # dev_SteerPred = prediction[:,0] * max_steering
-        dev_GasPred   = prediction[:,1]
-        dev_BrakePred = prediction[:,2]
-
         # Error
         dev_err = torch.abs(measure - prediction)
-        dev_SteerErr = dev_err[:,0] * max_steering
-        dev_GasErr   = dev_err[:,1]
-        dev_BrakeErr = dev_err[:,2]
 
-        # Metrics
+        # Error actions
         metrics = dict()
-        metrics['SteerError'] = dev_SteerErr.data.cpu().numpy()
-        metrics[  'GasError'] = dev_GasErr  .data.cpu().numpy()
-        metrics['BrakeError'] = dev_BrakeErr.data.cpu().numpy()
+        metrics['SteerError'] = dev_err[:,0].data.cpu().numpy() * max_steering
+        metrics[  'GasError'] = dev_err[:,1].data.cpu().numpy()
+        metrics['BrakeError'] = dev_err[:,2].data.cpu().numpy()
 
-        metrics['Steer'] = dev_Steer.data.cpu().numpy()
-        metrics[  'Gas'] = dev_Gas  .data.cpu().numpy()
-        metrics['Brake'] = dev_Brake.data.cpu().numpy()
+        metrics['SpeedError'] = dev_speed_err.data.cpu().numpy()
 
-        # metrics['SteerPred'] = dev_SteerPred.data.cpu().numpy()
-        metrics[  'GasPred'] = dev_GasPred  .data.cpu().numpy()
-        metrics['BrakePred'] = dev_BrakePred.data.cpu().numpy()
+        # Measurements/Prediction
+        metrics['Steer'    ] = measure   [:,0].data.cpu().numpy() * max_steering
+        metrics['SteerPred'] = prediction[:,0].data.cpu().numpy() * max_steering
+
+        if self.save_speed_action_plot:
+            # Measurements
+            metrics[  'Gas'] = measure[:,1].data.cpu().numpy()
+            metrics['Brake'] = measure[:,2].data.cpu().numpy()
+
+            # Prediction
+            metrics[  'GasPred'] = prediction[:,1].data.cpu().numpy()
+            metrics['BrakePred'] = prediction[:,2].data.cpu().numpy()
 
         # Mean
         steerMean = np.mean(metrics['SteerError'])
@@ -645,13 +647,16 @@ class ImitationModel(object):
         
         # Save figures
         SteerErrorPath = os.path.join(self._figureSteerErrorPath,"SteerErrorPath"+str(epoch)+".png")
-        # GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
-        # BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
+        if self.save_speed_action_plot:
+            GasErrorPath   = os.path.join(self._figureGasErrorPath  ,  "GasErrorPath"+str(epoch)+".png")
+            BrakeErrorPath = os.path.join(self._figureBrakeErrorPath,"BrakeErrorPath"+str(epoch)+".png")
         
         F.saveColorMershError( metrics[ 'Steer' ], metrics['SteerError'],
                                metrics['Command'], SteerErrorPath,dom=(-1.20, 1.20))
-        # F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
-        # F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
+        if self.save_speed_action_plot:
+            F.saveHeatmap( metrics['Gas'  ], metrics[  'GasPred'], 'Gas',    GasErrorPath,range=[0,1] )
+            F.saveHeatmap( metrics['Brake'], metrics['BrakePred'], 'Brake',BrakeErrorPath,range=[0,1] )
+
         return running_loss,avgMetrics
     
 
@@ -687,7 +692,7 @@ class ImitationModel(object):
             # Save values metrics
             tb.add_scalar('Loss/Train', lossTrain, epoch)
             tb.add_scalar('Loss/Valid', lossValid, epoch)
-            tb.add_scalar('MAE/Steer' , metr[0] , epoch)
+            tb.add_scalar('MAE/Steer' , metr[0]  , epoch)
             tb.add_scalar('MAE/Gas'   , metr[1]  , epoch)
             tb.add_scalar('MAE/Brake' , metr[2]  , epoch)
             valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
