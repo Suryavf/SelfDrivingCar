@@ -393,16 +393,17 @@ class ImitationModel(object):
             prediction = prediction.view(-1,4,3).sum(-2)
         
         # Error
-        dev_err = torch.abs(measure - prediction)
+        dev_err  = torch.abs(measure - prediction)
+        host_err = dev_err.data.cpu().numpy()
 
         # Error actions
         metrics = dict()
-        metrics['SteerError'] = dev_err[:,0].data.cpu().numpy() * max_steering
-        metrics[  'GasError'] = dev_err[:,1].data.cpu().numpy()
-        metrics['BrakeError'] = dev_err[:,2].data.cpu().numpy()
-
-        metrics['SpeedError'] = dev_speed_err.data.cpu().numpy()
-
+        metrics['SteerError'] = host_err[:,0] * max_steering
+        metrics[  'GasError'] = host_err[:,1]
+        metrics['BrakeError'] = host_err[:,2]
+        if self.speed_regularization:
+            metrics['SpeedError'] = dev_speed_err.data.cpu().numpy()
+        
         # Measurements/Prediction
         metrics['Steer'    ] = measure   [:,0].data.cpu().numpy() * max_steering
         metrics['SteerPred'] = prediction[:,0].data.cpu().numpy() * max_steering
@@ -420,7 +421,11 @@ class ImitationModel(object):
         steerMean = np.mean(metrics['SteerError'])
         gasMean   = np.mean(metrics[  'GasError'])
         brakeMean = np.mean(metrics['BrakeError'])
-        metricsMean = np.array([steerMean,gasMean,brakeMean])
+        metricsMean = [steerMean,gasMean,brakeMean]
+        if self.speed_regularization:
+            speedMean = np.mean(metrics['SpeedError'])
+            metricsMean.append(speedMean)
+        metricsMean = np.array(metricsMean)
 
         # Command control
         metrics['Command'] = command.data.cpu().numpy()
@@ -643,8 +648,10 @@ class ImitationModel(object):
         
         # Print results
         print("Validation loss:",running_loss)
-        print("Steer:",avgMetrics[0],"\tGas:",avgMetrics[1],"\tBrake:",avgMetrics[2])
-        
+        info = "Steer: %0.5f\tGas: %0.5f\tBrake: %0.5f"%(avgMetrics[0],avgMetrics[1],avgMetrics[2])
+        if self.speed_regularization: info += "\tSpeed: %0.5f"%avgMetrics[3]
+        print(info)
+
         # Save figures
         SteerErrorPath = os.path.join(self._figureSteerErrorPath,"SteerErrorPath"+str(epoch)+".png")
         if self.save_speed_action_plot:
@@ -695,8 +702,15 @@ class ImitationModel(object):
             tb.add_scalar('MAE/Steer' , metr[0]  , epoch)
             tb.add_scalar('MAE/Gas'   , metr[1]  , epoch)
             tb.add_scalar('MAE/Brake' , metr[2]  , epoch)
-            valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
-            df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
+            
+            if self.speed_regularization: 
+                tb.add_scalar('MAE/Speed',metr[3], epoch)
+                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2],metr[3]) )
+                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake','Speed'])
+            else:
+                valuesToSave.append( (lossTrain,lossValid,metr[0],metr[1],metr[2]) )
+                df = pd.DataFrame(valuesToSave, columns = ['LossTrain','LossValid','Steer','Gas','Brake'])
+
             df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
