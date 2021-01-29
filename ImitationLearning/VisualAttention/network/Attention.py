@@ -1176,6 +1176,9 @@ class FeatureAttnNet(nn.Module):
     """
     def forward(self,feature,hidden,command):
         batch = feature.shape[0]
+        # h: number of tasks
+        # d: size of state (depth)
+        # n: number of features Fn
 
         # Query, key, value
         Q = self.to_q(command)              # [batch,hd]
@@ -1192,8 +1195,8 @@ class FeatureAttnNet(nn.Module):
         A  = self.Softmax(QK/self.sqrtd)                # [batch,h,n,1]
 
         # Apply
-        S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,n,1]
-        S = S.view(batch,self.h,-1)                     # [batch,h,n]
+        S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
+        S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
         if self.study: return S, V, A
         else         : return S, None, None

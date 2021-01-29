@@ -339,6 +339,9 @@ class MultiTaskPolicy(nn.Module):
         self.LogSoftmax = nn.LogSoftmax()
         self.   Softmax = nn.   Softmax()
 
+    """ Forward 
+          - state [batch,n_task,depth]
+    """
     def forward(self,state):
         # Execute
         st = self.steering(state[:,0,:])
