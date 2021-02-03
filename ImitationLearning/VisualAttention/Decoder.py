@@ -433,7 +433,7 @@ class CatDecoder(nn.Module):
     """ Constructor """
     def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
                         LowLevelDim=128, HighLevelDim=512, 
-                        n_hidden=1024, n_state=64):
+                        n_hidden=1024, n_state=64,n_task=3):
         super(CatDecoder, self).__init__()
         self.study = False
 
@@ -441,7 +441,8 @@ class CatDecoder(nn.Module):
         self.H =     n_hidden       # output LSTM   1024   2048
         self.R = int(n_hidden/4)    #  input LSTM    256    512
         self.S =     n_state
-        self.sequence_len =  20
+        self.n_task       =  n_task
+        self.sequence_len =      20
         
         # Attention
         self.HighEncoder = HighEncoderNet
@@ -529,9 +530,9 @@ class CatDecoder(nn.Module):
             ht_ = torch.zeros([batch_size,self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        if self.training: st = torch.rand([batch_size,1,self.S]).to( torch.device('cuda:0') )
-        else            : st = torch.rand([           1,self.S]).to( torch.device('cuda:0') )
-
+        if self.training: st = torch.rand([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
+        else            : st = torch.rand([           self.n_task,self.S]).to( torch.device('cuda:0') )
+        
         # Study
         if self.study:
             α,β,F = list(),list(),list()
