@@ -332,14 +332,14 @@ class ImitationModel(object):
         # Desicion clasificación
         # decision: [cte,throttle,brake]
         decision = measure['actions'] != 0
-        decision[:,0] = torch.logical_not( torch.logical_and(decision[:,1],decision[:,2]) )
+        decision = decision[:,1] + decision[:,2]*2
 
         # Action loss
         action = torch.abs(measure['actions'] - prediction['actions'])
         action = action.matmul(self.weightLoss)
         
         # Cross entropy loss
-        action += lambda_desc*self.NLLLoss(prediction['decision'],decision)
+        action += lambda_desc*nn.F.nll_loss(prediction['decision'],decision)
         
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])

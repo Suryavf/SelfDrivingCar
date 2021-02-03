@@ -478,7 +478,7 @@ class Evaluation_settings(object):
 # Boolean conditions (model)
 _branchesList        = ['Codevilla18','Codevilla19']
 _multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
-_speedRegressionList = ['Codevilla19']
+_speedRegressionList = ['Codevilla19','Approach']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
