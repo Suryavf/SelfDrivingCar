@@ -266,6 +266,7 @@ class ImitationModel(object):
         if self.setting.boolean.branches:
             self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
         self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device) 
+        self.NLLLoss    = nn.NLLLoss()
 
         # Loss Function
         if   self.setting.train.loss.type == "Weighted":
@@ -329,15 +330,16 @@ class ImitationModel(object):
         lambda_speed  = self.setting.train.loss.lambda_speed
 
         # Desicion clasificación
-        decision = measure['actions'] == 0
-        decision[:,0] = torch.logical_and(decision[:,1],decision[:,2])
+        # decision: [cte,throttle,brake]
+        decision = measure['actions'] != 0
+        decision[:,0] = torch.logical_not( torch.logical_and(decision[:,1],decision[:,2]) )
 
         # Action loss
         action = torch.abs(measure['actions'] - prediction['actions'])
         action = action.matmul(self.weightLoss)
         
         # Cross entropy loss
-        action += lambda_desc*nn.NLLLoss(prediction['decision'],decision)
+        action += lambda_desc*self.NLLLoss(prediction['decision'],decision)
         
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])

@@ -326,7 +326,7 @@ class DenseNet(nn.Module):
         z = torch.cat([z,x],dim=1)
         
         z = F.relu(self.w3(z))
-        return self.ws4(z)
+        return self.w4(z)
 
 class MultiTaskPolicy(nn.Module):
     def __init__(self, n_depth):
@@ -336,8 +336,8 @@ class MultiTaskPolicy(nn.Module):
         self.throttle = DenseNet(n_depth,2)
         self.  switch = DenseNet(n_depth,3)
 
-        self.LogSoftmax = nn.LogSoftmax()
-        self.   Softmax = nn.   Softmax()
+        self.LogSoftmax = nn.LogSoftmax(dim=1)
+        self.   Softmax = nn.   Softmax(dim=1)
 
     """ Forward 
           - state [batch,n_task,depth]
@@ -352,6 +352,6 @@ class MultiTaskPolicy(nn.Module):
         mask     = self.   Softmax(dc)
 
         # Masked
-        at = at*mask[1:]
+        at = at*mask[:,1:]
         return torch.cat([st,at],dim=1),decision
         

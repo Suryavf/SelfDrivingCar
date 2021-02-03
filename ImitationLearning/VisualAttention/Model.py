@@ -112,7 +112,7 @@ class Approach(nn.Module):
                                           n_state  = n_state)
 
         # Policy
-        self.policy = C.Policy(n_state)
+        self.policy = C.MultiTaskPolicy(n_state)
 
         # Speed regularization
         if self.SpeedReg:
