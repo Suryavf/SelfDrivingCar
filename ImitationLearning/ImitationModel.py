@@ -84,6 +84,11 @@ class ImitationModel(object):
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
         
+        # Development settings
+        self.save_priority_history  = False
+        self.save_speed_action_plot = False
+        self.speed_regularization   = self.setting.train.loss.type in ["WeightedReg","WeightedMultiTask"]
+
         # Modules for model (build)
         self.module = {}
         if not self.init.is_loadedModel:
@@ -139,10 +144,6 @@ class ImitationModel(object):
                                                   c    = self.setting.sampling.c,
                                                   fill = not self.CoRL2017)
 
-        # Development settings
-        self.save_priority_history  = False
-        self.save_speed_action_plot = False
-        self.speed_regularization   = self.setting.train.loss.type in ["WeightedReg","WeightedMultiTask"]
 
 
     """ Check folders to save """
