@@ -1187,7 +1187,7 @@ class FeatureAttnNet(nn.Module):
         Vz,Vh = self.to_vz(feature), self.to_vh(hidden)
         V = torch.cat([Vz,Vh],dim=1)        # [batch,hdn]
 
-        Q,K,V = map(lambda x: x.reshape(batch,self.h,self.d,-1),[Q,K,V])    # Q,V -> [batch,h,d,n]
+        Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # Q,V -> [batch,h,d,n]
                                                                             #  K  -> [batch,h,d,1]
 
         # Attention 
