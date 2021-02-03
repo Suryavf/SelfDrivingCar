@@ -1187,12 +1187,12 @@ class FeatureAttnNet(nn.Module):
         Vz,Vh = self.to_vz(feature), self.to_vh(hidden)
         V = torch.cat([Vz,Vh],dim=1)        # [batch,hdn]
 
-        Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # Q,V -> [batch,h,d,n]
-                                                                            #  K  -> [batch,h,d,1]
+        Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # K,V -> [batch,h,d,n]
+                                                                            #  Q  -> [batch,h,d,1]
 
         # Attention 
-        QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch,h,n,1]
-        A  = self.Softmax(QK/self.sqrtd)                # [batch,h,n,1]
+        QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
+        A  = self.Softmax(QK/self.sqrtDepth)            # [batch,h,n,1]
 
         # Apply
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
