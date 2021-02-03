@@ -15,12 +15,13 @@ conda install -c anaconda numpy
 conda install -c anaconda pandas
 conda install -c anaconda opencv
 conda install -c anaconda scipy
-pip install efficientnet_pytorch
+conda install -c anaconda h5p
 pip install matplotlib
 pip install imgaug
 pip install tqdm
 pip install einops
 pip install ipython
+pip install tensorboard
 ```
 
 ## CARLA 0.9.6

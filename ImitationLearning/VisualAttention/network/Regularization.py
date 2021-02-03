@@ -5,6 +5,7 @@ import torch.nn.functional as F
 class SpeedRegModule(nn.Module):
     """ Constructor """
     def __init__(self,n_hidden):
+        super(SpeedRegModule, self).__init__()
         # Parameters
         self.n_hidden = n_hidden
 
