@@ -19,11 +19,11 @@ class Setting(object):
                         "Control"   : "BranchesModule"   # SumHiddenFeature,BranchesModule
                         }
         
-        self.boolean = BooleanConditions(self.model,self.modules)
+        self.boolean = BooleanConditions(self.model,self.modules,self.train)
         
     def model_(self,model):
         self.model = model
-        self.boolean = BooleanConditions(self.model,self.modules)
+        self.boolean = BooleanConditions(self.model,self.modules,self.train)
 
     def load(self,path):
         with open(path) as json_file:
@@ -51,7 +51,7 @@ class Setting(object):
             if "train" in data:
                 self.train        .load(data[        "train"])
 
-            self.boolean = BooleanConditions(self.model,self.modules)
+            self.boolean = BooleanConditions(self.model,self.modules,self.train)
 
     def print(self):
         print("="*80,"\n\n","\t"+self.model+" Model\n","\t"+"-"*64,"\n")
@@ -475,17 +475,23 @@ class Evaluation_settings(object):
             "metric": self.metric
         }
 
-# Boolean conditions (model)
+"""
+    Boolean conditions
+    ------------------
+"""
+# Boolean conditions (model, no approach)
 _branchesList        = ['Codevilla18','Codevilla19']
-_multimodalList      = ['Multimodal','Codevilla18','Codevilla19']
-_speedRegressionList = ['Codevilla19','Approach']
+_speedRegressionList = ['Codevilla19']
 _inputSpeedList      = ['Multimodal','Codevilla18','Codevilla19']
 _outputSpeedList     = ['Codevilla19']
 _temporalModelList   = ['Kim2017']
 
-_modularModel    = ['Experimental','ExpBranch','Approach']
-_branchesModList = ['BranchesModule']
-_temporalModList = ['BasicDecoder', 'DualDecoder', 'TVADecoder']
+# Boolean conditions (approach modules)
+_modularModel       = ['Experimental','ExpBranch','Approach']
+_branchesModList    = ['BranchesModule']
+_temporalModList    = ['BasicDecoder', 'DualDecoder', 'TVADecoder','CatDecoder']
+_inputSpeedModList  = [] # Control
+_outputSpeedModList = ['WeightedReg','WeightedMultiTask']
 
 _shape = {  'CNN5'          : (92,196), 
             'ResNet50'      : (96,192), 
@@ -497,14 +503,11 @@ _shape = {  'CNN5'          : (92,196),
             'EfficientNetB3': (96,192)
           }
 class BooleanConditions(object):
-    def __init__(self,model,modules):
+    def __init__(self,model,modules,train):
         self.branches        = False    # Conditional (branches)
-        self.multimodal      = False    # Multimodal (image + speed)
+        self.temporalModel   = False
         self.inputSpeed      = False    # Input speed
         self.outputSpeed     = False    # Output speed
-        self.speedRegression = False    # Speed regression
-        
-        self.temporalModel   = False
         
         # Branches
         _model   =  model in _branchesList
@@ -516,10 +519,16 @@ class BooleanConditions(object):
         _modular = (model in _modularModel) and (modules['Decoder'] in _temporalModList)
         self.temporalModel = _model or _modular
 
-        self.multimodal      = model in _multimodalList
-        self.inputSpeed      = model in _inputSpeedList
-        self.outputSpeed     = model in _outputSpeedList
-        self.speedRegression = model in _speedRegressionList
+        # Input speed
+        _model   =  model in _inputSpeedList
+        _modular = (model in _modularModel) and (modules['Control'] in _inputSpeedModList)
+        self.inputSpeed = _model or _modular
+
+        # Output speed
+        loss = train.loss.type
+        _model   =  model in _outputSpeedList
+        _modular = (model in _modularModel) and (loss in _outputSpeedModList)
+        self.outputSpeed = _model or _modular
         
         self.backbone = modules['Encoder']
         self.shape    = _shape[self.backbone]

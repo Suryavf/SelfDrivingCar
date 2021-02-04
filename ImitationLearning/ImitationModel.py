@@ -8,8 +8,7 @@ import numpy  as np
 
 import torch
 import torch.optim as optim
-import torch.nn    as nn
-import torch.nn.functional as F
+import torch.nn    as    nn
 from   torch.utils.data        import DataLoader
 from   torch.utils.tensorboard import SummaryWriter
 
@@ -191,7 +190,7 @@ class ImitationModel(object):
         self._state_add('steerMSE',metr[0])
         self._state_add(  'gasMSE',metr[1])
         self._state_add('brakeMSE',metr[2])
-        if self.setting.boolean.speedRegression:
+        if self.setting.boolean.outputSpeed:
             self._state_add('speedMSE',metr[3])
     def _state_save(self,epoch):
         # Save model
