@@ -525,9 +525,8 @@ class BooleanConditions(object):
         self.inputSpeed = _model or _modular
 
         # Output speed
-        loss = train.loss.type
         _model   =  model in _outputSpeedList
-        _modular = (model in _modularModel) and (loss in _outputSpeedModList)
+        _modular = (model in _modularModel) and (train.loss.type in _outputSpeedModList)
         self.outputSpeed = _model or _modular
         
         self.backbone = modules['Encoder']

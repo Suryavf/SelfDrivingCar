@@ -1,7 +1,8 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 
-class WeightedLossAct(object):
+class WeightedLoss(object):
     """ Constructor """
     def __init__(self,init,setting):
         # Parameters
@@ -29,15 +30,14 @@ class WeightedLossAct(object):
         return torch.mean(loss)
 
 
-class WeightedLossActSpeed(object):
+class WeightedLossReg(object):
     """ Constructor """
     def __init__(self,init,setting):
         # Parameters
         self.device = init.device
         self.lambda_action = setting.train.loss.lambda_action
         self.lambda_speed  = setting.train.loss.lambda_speed
-        self.sequence_len  = setting.train.sequence_len
-
+        
         # Weight
         self.weightLoss = np.array([setting.train.loss.lambda_steer, 
                                     setting.train.loss.lambda_gas  , 
@@ -60,9 +60,7 @@ class WeightedLossActSpeed(object):
         if weight is not None:
             # One wight to one sample
             weight = weight.reshape(1,-1)
-            ones   = np.ones([self.sequence_len,1])
-            weight = ones.dot(weight).reshape([-1,1],order='F')
-            weight = torch.from_numpy(weight).to(self.device)
+            weight = weight.to(self.device)
             
             loss = loss.mul(weight)
 
@@ -70,14 +68,17 @@ class WeightedLossActSpeed(object):
         return torch.mean(loss)
 
 
-class PID(object):
+class multitaskLoss(object):
     """ Constructor """
     def __init__(self,init,setting):
         # Parameters
         self.device = init.device
-        self.lambda_integral = 0.1
-        self.lambda_derived  = 0.01
+        self.lambda_desc   = setting.train.loss.lambda_desc
+        self.lambda_action = setting.train.loss.lambda_action
+        self.lambda_speed  = setting.train.loss.lambda_speed
         
+        self.NLLLoss = nn.NLLLoss()
+
         # Weight
         self.weightLoss = np.array([setting.train.loss.lambda_steer, 
                                     setting.train.loss.lambda_gas  , 
@@ -85,14 +86,39 @@ class PID(object):
         if setting.boolean.branches:
             self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
         self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device)
+        self.decisionWeight = np.array( [0.,1.,2.] )
+        self.decisionWeight = torch.from_numpy(self.decisionWeight).float().cuda(self.device) 
 
+    def _getRawDecision(self,action):
+        # decision: [cte,throttle,brake]
+        decision = torch.where(action!=0, 1., 0.)
+        decision = decision.matmul(self.decisionWeight) # [0,1,2]
+
+        # Check
+        return torch.where(decision>2,0.,decision) 
 
     def eval(self,measure,prediction,weight=None):
-        Lprod = torch.abs(measure['actions'] - prediction['actions'])
-        Ldriv = Lprod[1:,:] - Lprod[:-1,:]
+        # Action loss
+        action = torch.abs(measure['actions'] - prediction['actions'])
+        action = action.matmul(self.weightLoss)
 
+        # Cross entropy loss
+        decision = self._getRawDecision(measure['actions'])
+        action  += self.lambda_desc*self.NLLLoss(prediction['decision'],decision.long())
 
-        Lprod = Lprod.mean(0)
+        # Speed regularization loss
+        speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])
 
-        #LossP = LossP.matmul(self.weightLoss)
-        
+        # Total loss
+        loss = self.lambda_action*action + self.lambda_speed*speed
+
+        if weight is not None:
+            # One wight to one sample
+            weight = weight.reshape(-1,1)
+            weight = weight.to(self.device)
+            
+            loss = loss.mul(weight)
+
+        prediction['loss'] = loss
+        return torch.mean(loss)
+

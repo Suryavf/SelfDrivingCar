@@ -26,6 +26,7 @@ import ImitationLearning.VisualAttention.network.Control   as C
 import common.directory as V
 import common.  figures as F
 import common.    utils as U
+import common.     loss as L
 from   common.RAdam       import RAdam
 from   common.Ranger      import Ranger
 from   common.DiffGrad    import DiffGrad
@@ -265,15 +266,20 @@ class ImitationModel(object):
         if self.setting.boolean.branches:
             self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
         self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device) 
-        self.NLLLoss    = nn.NLLLoss()
+        if self.setting.train.loss.type == "WeightedMultiTask":
+            self.decisionWeight = np.array( [0,1,2] )
+            self.decisionWeight = torch.from_numpy(self.decisionWeight).float().cuda(self.device) 
 
         # Loss Function
         if   self.setting.train.loss.type == "Weighted":
-            self.lossFunc = self._weightedLossAct
+            self._loss = L.WeightedLoss(self.init,self.setting)
+            self. lossFunc = self._loss.eval
         elif self.setting.train.loss.type == "WeightedReg":
-            self.lossFunc = self._weightedLossActSpeed
+            self._loss = L.WeightedLossReg(self.init,self.setting)
+            self. lossFunc = self._loss.eval
         elif self.setting.train.loss.type == "WeightedMultiTask":
-            self.lossFunc = self._weightedMultitask
+            self._loss = L.MultitaskLoss(self.init,self.setting)
+            self. lossFunc = self._loss.eval
         else:
             txt = self.setting.train.loss.type
             raise NameError('ERROR 404: Loss no found ('+txt+')')
@@ -330,8 +336,9 @@ class ImitationModel(object):
 
         # Desicion clasificación
         # decision: [cte,throttle,brake]
-        decision = measure['actions'] != 0
-        decision = decision[:,1] + decision[:,2]*2
+        decision = torch.where(measure['actions']!=0, 1, 0)
+        decision = decision.matmul(self.decisionWeight) # [0,1,2]
+        decision = torch.where(measure['actions']>2,0,measure['actions'])   # Check
 
         # Action loss
         action = torch.abs(measure['actions'] - prediction['actions'])
