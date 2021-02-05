@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 
 class WeightedLoss(object):
     """ Constructor """
@@ -68,7 +68,7 @@ class WeightedLossReg(object):
         return torch.mean(loss)
 
 
-class multitaskLoss(object):
+class MultitaskLoss(object):
     """ Constructor """
     def __init__(self,init,setting):
         # Parameters
@@ -91,7 +91,7 @@ class multitaskLoss(object):
 
     def _getRawDecision(self,action):
         # decision: [cte,throttle,brake]
-        decision = torch.where(action!=0, 1., 0.)
+        decision = torch.where(action>0.05, 1., 0.)
         decision = decision.matmul(self.decisionWeight) # [0,1,2]
 
         # Check

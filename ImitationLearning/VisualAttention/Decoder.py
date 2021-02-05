@@ -585,8 +585,8 @@ class CatDecoder(nn.Module):
                 F.append(ft)
 
         if self.training: 
-            st_ = st_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
-            ht_ = ht_.transpose(0,1).contiguous().view(batch_size*sequence_len,-1)
+            st_ = st_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S).contiguous()
+            ht_ = ht_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S).contiguous()
         
         # Compile study
         if self.study:

@@ -336,7 +336,7 @@ class ImitationModel(object):
 
         # Desicion clasificación
         # decision: [cte,throttle,brake]
-        decision = torch.where(measure['actions']!=0, 1, 0)
+        decision = torch.where(measure['actions']>0, 1, 0)
         decision = decision.matmul(self.decisionWeight) # [0,1,2]
         decision = torch.where(measure['actions']>2,0,measure['actions'])   # Check
 
@@ -345,7 +345,7 @@ class ImitationModel(object):
         action = action.matmul(self.weightLoss)
         
         # Cross entropy loss
-        action += lambda_desc*nn.F.nll_loss(prediction['decision'],decision)
+        # action += lambda_desc*nn.F.nll_loss(prediction['decision'],decision)
         
         # Speed loss
         speed   = torch.abs(measure[ 'speed' ] - prediction[ 'speed' ])

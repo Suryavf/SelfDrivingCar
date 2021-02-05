@@ -366,6 +366,14 @@ class _Loss_settings(object):
         self.lambda_desc   = 0.00
         self.lambda_action = 0.95
         self.lambda_speed  = 0.05
+        """
+        "lambda_gas"  : 0.33333,
+            "lambda_steer": 0.26667,
+            "lambda_brake": 0.06667,
+            "lambda_desc" : 0.33333,
+            "lambda_speed" : 0.05,
+            "lambda_action": 0.95
+        """
 
     def load(self,data):
         if "type" in data:
