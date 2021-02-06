@@ -523,15 +523,15 @@ class CatDecoder(nn.Module):
 
         # Prediction container
         if self.training:
-            st_ = torch.zeros([sequence_len,batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-            ht_ = torch.zeros([sequence_len,batch_size,            self.H]).to( torch.device('cuda:0') )
+            st_ = torch.cuda.FloatTensor(sequence_len,batch_size,self.n_task,self.S) #torch.zeros([sequence_len,batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
+            ht_ = torch.cuda.FloatTensor(sequence_len,batch_size,            self.H) #torch.zeros([sequence_len,batch_size,            self.H]).to( torch.device('cuda:0') )
         else:
-            st_ = torch.zeros([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-            ht_ = torch.zeros([batch_size,            self.H]).to( torch.device('cuda:0') )
+            st_ = torch.cuda.FloatTensor(batch_size,self.n_task,self.S) #torch.zeros([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
+            ht_ = torch.cuda.FloatTensor(batch_size,            self.H) #torch.zeros([batch_size,            self.H]).to( torch.device('cuda:0') )
 
         # State initialization
-        if self.training: st = torch.rand([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-        else            : st = torch.rand([         1,self.n_task,self.S]).to( torch.device('cuda:0') )
+        if self.training: st = torch.cuda.FloatTensor(batch_size,self.n_task,self.S).uniform_() #torch.rand([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
+        else            : st = torch.cuda.FloatTensor(         1,self.n_task,self.S).uniform_() #torch.rand([         1,self.n_task,self.S]).to( torch.device('cuda:0') )
         
         # Study
         if self.study:
