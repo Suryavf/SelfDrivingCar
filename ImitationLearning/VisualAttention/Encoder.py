@@ -490,7 +490,8 @@ class Bottleneck(nn.Module):
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
 
-        self.conv1 = nn.Conv2d(inplanes, width, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv2d(inplanes, width, kernel_size =     1, 
+                                                bias        = False)
         self.bn1 = nn.BatchNorm2d(width)
 
         self.conv2 = nn.Conv2d(width, width, kernel_size =        3, 
@@ -500,8 +501,9 @@ class Bottleneck(nn.Module):
                                              bias        =    False, 
                                              dilation    = dilation)
         self.bn2 = nn.BatchNorm2d(width)
-
-        self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size=1, bias=False)
+        
+        self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size =     1, 
+                                                             bias        = False)
         self.bn3 = nn.BatchNorm2d(planes * self.expansion)
 
         self.relu = nn.ReLU(inplace=True)

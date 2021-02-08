@@ -59,12 +59,8 @@ class Setting(object):
         self.general.print()
         print("\tPriorized sampling")
         self.sampling.print()
-        #print("\tPreprocessing")
-        #self.preprocessing.print()
         print("\tTrain")
         self.train.print()
-        #print("\tEvaluation")
-        #self.evaluation.print()
         print("="*80) 
         
     def save(self,path):

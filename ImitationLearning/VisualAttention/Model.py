@@ -1,11 +1,25 @@
 import torch.nn as nn
 from   torchvision import models
+import common.directory as V
 import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
 import ImitationLearning.VisualAttention.network.Attention      as A
 import ImitationLearning.VisualAttention.network.Control        as C
 import ImitationLearning.VisualAttention.network.Regularization as R
+
+# Modules
+def getModule(moduleList):
+    module = {}
+    _mod = moduleList
+    for k in _mod:
+        if   _mod[k] in V.Encoder  : module[  'Encoder'] = eval('E.'+_mod[  'Encoder'])
+        elif _mod[k] in V.Decoder  : module[  'Decoder'] = eval('D.'+_mod[  'Decoder'])
+        elif _mod[k] in V.Control  : module[  'Control'] = eval('C.'+_mod[  'Control'])
+        elif _mod[k] in V.Attention: module['Attention'] = eval('A.'+_mod['Attention'])
+        else : raise NameError('ERROR 404: module '+k+' no found')
+    return module
+    
 
 """ Visual Attention Network
     ------------------------
@@ -18,11 +32,12 @@ import ImitationLearning.VisualAttention.network.Regularization as R
 """
 class Experimental(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting):#(96,192)): 92,196
+    def __init__(self,setting):#(96,192)): 92,196
         super(Experimental, self).__init__()
         # Parameters
         in_dim   = setting.boolean.shape
         n_hidden = 1024
+        module   = getModule(setting.modules)
         
         # Encoder
         self.encoder = module['Encoder']()
@@ -45,11 +60,12 @@ class Experimental(nn.Module):
 
 class ExpBranch(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting):#(96,192)): 92,196
+    def __init__(self,setting):#(96,192)): 92,196
         super(ExpBranch, self).__init__()
         # Parameters
         in_dim   = setting.boolean.shape
         n_hidden = 1024
+        module   = getModule(setting.modules)
         
         # Encoder
         self.encoder = module['Encoder']()
@@ -78,23 +94,40 @@ class ExpBranch(nn.Module):
 """
 class Approach(nn.Module):
     """ Constructor """
-    def __init__(self,module,setting,n_hidden = 1024,n_encodeCmd = 16, regularization = True):#(96,192)): 92,196
+    def __init__(self,setting, regularization = True):#(96,192)): 92,196
         super(Approach, self).__init__()
-        # ResNet setting
-        lowDepth  = 128
-        highDepth = 4*lowDepth
-        cube_dim  = (12,24,lowDepth)
+        # Setting
+        encoder = setting.modules["Encoder"]
+        if   encoder == 'ResNet34':
+            # Encoder module
+            self.lowEncoder = models.resnet34(pretrained=True)
+            self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
+            HighEncoder     = E.HighResNet34() 
 
-        self.SpeedReg = regularization
+            # Parameters
+            n_hidden  = 1024
+            lowDepth  =  128
+            highDepth =  512
+            n_state   =   64
 
-        # Policy setting
-        n_state   = int(lowDepth/2)
-        
-        # Encoder
-        self.lowEncoder = models.resnet34(pretrained=True)
-        self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
-        HighEncoder = E.HighResNet34() #λResNet34((96,192),'high')
-        
+        elif encoder == 'ResNet50': 
+            # Encoder module
+            self.lowEncoder = models.resnet50(pretrained=True)
+            self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
+            HighEncoder     = E.HighResNet50() 
+
+            # Parameters
+            n_hidden  = 2048
+            lowDepth  =  512
+            highDepth = 2048
+            n_state   =  128
+
+        else:
+            txt = self.setting.model
+            print("ERROR: mode no found (" + txt + ")")
+        cube_dim    = (12,24,lowDepth)
+        n_encodeCmd =  16
+
         # Decoder
         cmdNet  = A.CommandNet(n_encodeCmd)                                 # Command decoder
         spaAttn = A.SpatialAttnNet(cube_dim,n_state)                        # Spatial attention
@@ -115,6 +148,7 @@ class Approach(nn.Module):
         self.policy = C.MultiTaskPolicy(n_state)
 
         # Speed regularization
+        self.SpeedReg = regularization
         if self.SpeedReg:
             self.regularization = R.SpeedRegModule(n_hidden)
         

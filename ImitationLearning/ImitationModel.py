@@ -61,25 +61,15 @@ class ImitationModel(object):
         self._state    = {}
         self. epoch    = 1
         
-        # Modules
-        module = {}
-        _mod = self.setting.modules
-        for k in _mod:
-            if   _mod[k] in V.Encoder  : module[  'Encoder'] = eval('E.'+_mod[  'Encoder'])
-            elif _mod[k] in V.Decoder  : module[  'Decoder'] = eval('D.'+_mod[  'Decoder'])
-            elif _mod[k] in V.Control  : module[  'Control'] = eval('C.'+_mod[  'Control'])
-            elif _mod[k] in V.Attention: module['Attention'] = eval('A.'+_mod['Attention'])
-            else : raise NameError('ERROR 404: module '+k+' no found')
-
         # Model
         if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
         elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
         elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
         elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
         elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
-        elif self.setting.model == 'Experimental': self.model = exper. Experimental(module,setting)
-        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(module,setting)
-        elif self.setting.model == 'Approach'    : self.model = exper.     Approach(module,setting)
+        elif self.setting.model == 'Experimental': self.model = exper. Experimental(setting)
+        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(setting)
+        elif self.setting.model == 'Approach'    : self.model = exper.     Approach(setting)
         else:
             txt = self.setting.model
             print("ERROR: mode no found (" + txt + ")")
