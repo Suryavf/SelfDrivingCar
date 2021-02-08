@@ -355,13 +355,14 @@ class _Optimizer_settings(object):
 
 class _Loss_settings(object):
     def __init__(self):
-        self.type          = "Weighted" # Weighted, WeightedReg, WeightedMultiTask
-        self.lambda_steer  = 0.45
-        self.lambda_gas    = 0.45
-        self.lambda_brake  = 0.10
-        self.lambda_desc   = 0.00
-        self.lambda_action = 0.95
-        self.lambda_speed  = 0.05
+        self.type           = "Weighted" # Weighted, WeightedReg, WeightedMultiTask
+        self.regularization = True
+        self.lambda_steer   = 0.45
+        self.lambda_gas     = 0.45
+        self.lambda_brake   = 0.10
+        self.lambda_desc    = 0.00
+        self.lambda_action  = 0.95
+        self.lambda_speed   = 0.05
         """
         "lambda_gas"  : 0.33333,
             "lambda_steer": 0.26667,

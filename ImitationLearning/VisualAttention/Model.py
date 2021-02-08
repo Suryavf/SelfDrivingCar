@@ -123,11 +123,15 @@ class Approach(nn.Module):
             n_state   =  128
 
         else:
-            txt = self.setting.model
-            print("ERROR: mode no found (" + txt + ")")
-        cube_dim    = (12,24,lowDepth)
-        n_encodeCmd =  16
+            print("ERROR: encoder no found (%s)"%encoder)
+        
+        if   self.setting.general.dataset == "CoRL2017": n_task = 2
+        elif self.setting.general.dataset == "CARLA100": n_task = 3
+        else:print("ERROR: dataset no found (%s)"%self.setting.general.dataset)
 
+        cube_dim    = (12,24,lowDepth) 
+        n_encodeCmd =  16   # Length of code command control
+        
         # Decoder
         cmdNet  = A.CommandNet(n_encodeCmd)                                 # Command decoder
         spaAttn = A.SpatialAttnNet(cube_dim,n_state)                        # Spatial attention
@@ -142,13 +146,14 @@ class Approach(nn.Module):
                                       HighLevelDim = highDepth,
 
                                           n_hidden = n_hidden,
-                                          n_state  = n_state)
+                                          n_state  = n_state,
+                                          n_task   = n_task)
 
         # Policy
         self.policy = C.MultiTaskPolicy(n_state)
 
         # Speed regularization
-        self.SpeedReg = regularization
+        self.SpeedReg = self.setting.train.loss.regularization
         if self.SpeedReg:
             self.regularization = R.SpeedRegModule(n_hidden)
         
