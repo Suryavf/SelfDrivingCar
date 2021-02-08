@@ -490,7 +490,7 @@ class Bottleneck(nn.Module):
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
 
-        self.conv1 = nn.Conv2d(inplanes, width, kernel_size=1)
+        self.conv1 = nn.Conv2d(inplanes, width, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(width)
 
         self.conv2 = nn.Conv2d(width, width, kernel_size =        3, 
@@ -501,13 +501,13 @@ class Bottleneck(nn.Module):
                                              dilation    = dilation)
         self.bn2 = nn.BatchNorm2d(width)
 
-        self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size=1)
+        self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(planes * self.expansion)
 
         self.relu = nn.ReLU(inplace=True)
         self.stride = stride
 
-        if stride != 1 or inplanes != planes:
+        if stride != 1 or inplanes != planes*self.expansion:
             self.downsample = nn.Sequential(nn.Conv2d(inplanes, planes*self.expansion, 
                                                                 kernel_size =      1, 
                                                                 stride      = stride, 
@@ -626,6 +626,37 @@ class HighResNet34(nn.Module):
         x = self.layer4c(x)
         
         return x
+
+
+class HighResNet50(nn.Module):
+    def __init__(self):
+        super(HighResNet50, self).__init__()
+        # [3, 4 | 6, 3]
+        self.layer3a = Bottleneck( 512, 256, stride=2)    # 1
+        self.layer3b = Bottleneck(1024, 256, stride=1)    # 2
+        self.layer3c = Bottleneck(1024, 256, stride=1)    # 3
+        self.layer3d = Bottleneck(1024, 256, stride=1)    # 4
+        self.layer3e = Bottleneck(1024, 256, stride=1)    # 5
+        self.layer3f = Bottleneck(1024, 256, stride=1)    # 6
+
+        self.layer4a = Bottleneck(1024, 512, stride=2)    # 1
+        self.layer4b = Bottleneck(2048, 512, stride=1)    # 2
+        self.layer4c = Bottleneck(2048, 512, stride=1)    # 3
+
+    def forward(self, x):
+        x = self.layer3a(x)
+        x = self.layer3b(x)
+        x = self.layer3c(x)
+        x = self.layer3d(x)
+        x = self.layer3e(x)
+        x = self.layer3f(x)
+
+        x = self.layer4a(x)
+        x = self.layer4b(x)
+        x = self.layer4c(x)
+        
+        return x
+        
 
 def λResNet34(cube_dim,mode='total'):
     return λResNet(λBottleneck, [2, 2, 2, 2], cube_dim, mode)
