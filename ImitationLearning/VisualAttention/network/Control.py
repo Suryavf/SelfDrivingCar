@@ -329,29 +329,34 @@ class DenseNet(nn.Module):
         return self.w4(z)
 
 class MultiTaskPolicy(nn.Module):
-    def __init__(self, n_depth):
+    def __init__(self, n_depth,decision=False):
         super(MultiTaskPolicy, self).__init__()
+        self.decision = decision
+
         # Nets
         self.steering = DenseNet(n_depth,1)
         self.throttle = DenseNet(n_depth,2)
-        self.  switch = DenseNet(n_depth,3)
-
-        self.LogSoftmax = nn.LogSoftmax(dim=1)
-        self.   Softmax = nn.   Softmax(dim=1)
+        
+        if self.decision:
+            self.  switch = DenseNet(n_depth,3)
+            self.LogSoftmax = nn.LogSoftmax(dim=1)
+            self.   Softmax = nn.   Softmax(dim=1)
 
     """ Forward 
           - state [batch,n_task,depth]
     """
     def forward(self,state):
         # Execute
-        st = self.steering(state[:,0,:])
-        dc = self.  switch(state[:,1,:])
-        at = self.throttle(state[:,2,:])
+        st = self.    steering(state[:,0,:])
+        at = self.acceleration(state[:,1,:])
         
-        decision = self.LogSoftmax(dc)
-        mask     = self.   Softmax(dc)
-
-        # Masked
-        at = at*mask[:,1:]
+        if self.decision:
+            # Decision switch
+            dc = self.  switch(state[:,2,:])
+            decision = self.LogSoftmax(dc)
+            mask     = self.   Softmax(dc)
+            # Masked
+            at = at*mask[:,1:]
+        
         return torch.cat([st,at],dim=1),decision
         
