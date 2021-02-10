@@ -125,8 +125,8 @@ class Approach(nn.Module):
         else:
             print("ERROR: encoder no found (%s)"%encoder)
         
-        if   self.setting.general.dataset == "CoRL2017": n_task = 2
-        elif self.setting.general.dataset == "CARLA100": n_task = 3
+        if   setting.general.dataset == "CoRL2017": n_task = 2
+        elif setting.general.dataset == "CARLA100": n_task = 3
         else:print("ERROR: dataset no found (%s)"%self.setting.general.dataset)
 
         cube_dim    = (12,24,lowDepth) 
@@ -155,7 +155,7 @@ class Approach(nn.Module):
         self.policy = C.MultiTaskPolicy(n_state)
 
         # Speed regularization
-        self.SpeedReg = self.setting.train.loss.regularization
+        self.SpeedReg = setting.train.loss.regularization
         if self.SpeedReg:
             self.regularization = R.SpeedRegModule(n_hidden)
         

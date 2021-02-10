@@ -499,6 +499,7 @@ _inputSpeedModList  = [] # Control
 _outputSpeedModList = ['WeightedReg','WeightedMultiTask']
 
 _shape = {  'CNN5'          : (92,196), 
+            'ResNet34'      : (96,192),
             'ResNet50'      : (96,192), 
             'WideResNet50'  : (96,192), 
             'VGG19'         : (96,192), 

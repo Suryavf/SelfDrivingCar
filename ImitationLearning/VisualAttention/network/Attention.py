@@ -1074,6 +1074,7 @@ class SpatialAttnNet(nn.Module):
         torch.nn.init.xavier_uniform_(self.to_v.weight)
         torch.nn.init.xavier_uniform_(self. fc .weight)
 
+        self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(3)
 

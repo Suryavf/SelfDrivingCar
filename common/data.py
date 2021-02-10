@@ -69,7 +69,7 @@ class CoRL2017Dataset(object):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
-        self.includeSpeed    = setting.boolean.multimodal or setting.boolean.speedRegression
+        self.includeSpeed    = setting.boolean.inputSpeed or setting.boolean.outputSpeed
         self.isTemporalModel = setting.boolean.temporalModel
 
         # Settings

@@ -522,16 +522,17 @@ class CatDecoder(nn.Module):
         if self.training: cmd = cmd.view(batch_size,sequence_len,-1).transpose(0,1) # [sequence,batch,4]
 
         # Prediction container
-        if self.training:
-            st_ = torch.cuda.FloatTensor(sequence_len,batch_size,self.n_task,self.S) #torch.zeros([sequence_len,batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-            ht_ = torch.cuda.FloatTensor(sequence_len,batch_size,            self.H) #torch.zeros([sequence_len,batch_size,            self.H]).to( torch.device('cuda:0') )
-        else:
-            st_ = torch.cuda.FloatTensor(batch_size,self.n_task,self.S) #torch.zeros([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-            ht_ = torch.cuda.FloatTensor(batch_size,            self.H) #torch.zeros([batch_size,            self.H]).to( torch.device('cuda:0') )
+        st_,ht_ = list(),list()
+        # if self.training:
+        #     st_ = torch.cuda.FloatTensor(sequence_len,batch_size,self.n_task,self.S)
+        #     ht_ = torch.cuda.FloatTensor(sequence_len,batch_size,            self.H)
+        # else:
+        #     st_ = torch.cuda.FloatTensor(batch_size,self.n_task,self.S)
+        #     ht_ = torch.cuda.FloatTensor(batch_size,            self.H)
 
         # State initialization
-        if self.training: st = torch.cuda.FloatTensor(batch_size,self.n_task,self.S).uniform_() #torch.rand([batch_size,self.n_task,self.S]).to( torch.device('cuda:0') )
-        else            : st = torch.cuda.FloatTensor(         1,self.n_task,self.S).uniform_() #torch.rand([         1,self.n_task,self.S]).to( torch.device('cuda:0') )
+        if self.training: st = torch.cuda.FloatTensor(batch_size,self.n_task,self.S).uniform_()
+        else            : st = torch.cuda.FloatTensor(         1,self.n_task,self.S).uniform_()
         
         # Study
         if self.study:
@@ -575,8 +576,10 @@ class CatDecoder(nn.Module):
             _,(ht,ct)= self.lstm(rt,(ht,ct))
             
             # Output
-            st_[k] = st.unsqueeze(0)    # [1,batch,S]
-            ht_[k] = ht#.unsqueeze(0)   # [1,batch,H]
+            st_.append(st.squeeze(0))   # [batch,n_task,S]
+            ht_.append(ht.squeeze(0))   # [batch,n_task,H]
+            # st_[k] = st.unsqueeze(0)    # [1,batch,S]
+            # ht_[k] = ht#.unsqueeze(0)   # [1,batch,H]
 
             # Study
             if self.study:
@@ -584,10 +587,13 @@ class CatDecoder(nn.Module):
                 β.append(βt)
                 F.append(ft)
 
+        # Concatenate
+        st_ = torch.cat(st_,dim=0)
+        ht_ = torch.cat(ht_,dim=0)
         if self.training: 
-            st_ = st_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S).contiguous()
-            ht_ = ht_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S).contiguous()
-        
+            st_ = st_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S)
+            ht_ = ht_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.H)
+
         # Compile study
         if self.study:
             α = torch.cat(α, dim=0)

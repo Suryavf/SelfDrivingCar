@@ -334,8 +334,8 @@ class MultiTaskPolicy(nn.Module):
         self.decision = decision
 
         # Nets
-        self.steering = DenseNet(n_depth,1)
-        self.throttle = DenseNet(n_depth,2)
+        self.steering     = DenseNet(n_depth,1)
+        self.acceleration = DenseNet(n_depth,2)
         
         if self.decision:
             self.  switch = DenseNet(n_depth,3)
@@ -357,6 +357,8 @@ class MultiTaskPolicy(nn.Module):
             mask     = self.   Softmax(dc)
             # Masked
             at = at*mask[:,1:]
-        
+        else:
+            decision = None
+
         return torch.cat([st,at],dim=1),decision
         
