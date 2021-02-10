@@ -46,6 +46,11 @@ from   common.prioritized import PrioritizedSamples
 torch.multiprocessing.set_sharing_strategy('file_system')
 # =================
 
+# GPU trick
+# https://nvlabs.github.io/eccv2020-mixed-precision-tutorial/files/szymon_migacz-pytorch-performance-tuning-guide.pdf
+# For convolutional neural networks, enable cuDNN autotuner by setting:
+torch.backends.cudnn.benchmark = True
+
 class ImitationModel(object):
     """ Constructor """
     def __init__(self,init,setting):
@@ -480,7 +485,8 @@ class ImitationModel(object):
         spID,imID = self.trainDataset.generateIDs(False)
         loader = DataLoader(Dataset(self.trainDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
-                                    num_workers = self.init.num_workers)
+                                    num_workers = self.init.num_workers,
+                                    pin_memory  = True)
 
         # Exploration loop
         self.model.eval()
@@ -539,7 +545,8 @@ class ImitationModel(object):
         spIDs,imIDs,weights = self._samplingPrioritizedSamples(n_samples)
         loader = DataLoader(Dataset(self.trainDataset,imIDs,weights),
                                     batch_size  = self.setting.general.batch_size,
-                                    num_workers = self.init.num_workers)
+                                    num_workers = self.init.num_workers,
+                                    pin_memory  = True)
         
         # Train loop
         self.model.train()
@@ -606,7 +613,8 @@ class ImitationModel(object):
         imID = self.validDataset.generateIDs(True)
         loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
-                                    num_workers = self.init.num_workers)
+                                    num_workers = self.init.num_workers,
+                                    pin_memory  = True)
         
         # Model to evaluation
         self.model.eval()
@@ -786,7 +794,8 @@ class ImitationModel(object):
         #                            prioritized=False,sequence=False)
         loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
-                                    num_workers = self.init.num_workers)
+                                    num_workers = self.init.num_workers,
+                                    pin_memory  = True)
         signals = U.BigDict ( )
 
         # Model to evaluation

@@ -1064,14 +1064,9 @@ class SpatialAttnNet(nn.Module):
         # Spatial 
         self.to_q = nn.Conv2d(self.D, self.hd, 1, bias = False)
         self.to_v = nn.Conv2d(self.D, self.hd, 1, bias = False)
-        # self.to_q = nn.Linear(self.D, self.hd, bias = False)
-        # self.to_v = nn.Linear(self.D, self.hd, bias = False)
         self.to_k = nn.Linear(self.S, self.hd, bias = False)
 
         self.fc = nn.Linear(self.hd, self.D)
-
-        self.norm_q = nn.BatchNorm2d(self.d*self.h)
-        self.norm_v = nn.BatchNorm2d(self.d*self.h)
 
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q.weight)
@@ -1082,13 +1077,13 @@ class SpatialAttnNet(nn.Module):
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(3)
 
-
+    @torch.jit.script
     def norm4(self,x):
         y = self.Tanh(x)**4
         y = y.mean(1) + 10**-12
         y = torch.sqrt(y)
         y = torch.sqrt(y)
-
+        
         return x/y.view(x.shape[0],1)
 
     """ Forward 
@@ -1101,8 +1096,6 @@ class SpatialAttnNet(nn.Module):
         K = self.to_k(Ft0)     # [batch,n,hd]
         V = self.to_v(ηt )     # [batch,hd,L]
 
-        # Q = self.norm_q(Q)
-        # V = self.norm_v(V)
         K = K.transpose(1,2)    # [batch,hd,n]
 
         Q = Q.view(-1, self.hd, self.L).transpose(1,2) # [batch,hd,L]
@@ -1137,14 +1130,14 @@ class SpatialAttnNet(nn.Module):
 """
 class FeatureAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, n_encode, n_hidden, n_command, n_state):
+    def __init__(self, n_encode, n_hidden, n_command, n_state, n_task):
         super(FeatureAttnNet, self).__init__()
         self.n_features = 32
         self.D          = n_state
         self.sqrtDepth  = math.sqrt(self.D)
         self.study      = False
 
-        self.h = 3      # Multi-task
+        self.h = n_task  # Multi-task
         self.M = self.D*int(self.n_features/2)
 
         # Feature 

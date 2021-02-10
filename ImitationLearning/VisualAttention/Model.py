@@ -133,9 +133,11 @@ class Approach(nn.Module):
         n_encodeCmd =  16   # Length of code command control
         
         # Decoder
-        cmdNet  = A.CommandNet(n_encodeCmd)                                 # Command decoder
-        spaAttn = A.SpatialAttnNet(cube_dim,n_state)                        # Spatial attention
-        ftrAttn = A.FeatureAttnNet(highDepth,n_hidden,n_encodeCmd,n_state)  # Feature attention
+        cmdNet  = A.CommandNet(n_encodeCmd)                 # Command decoder
+        spaAttn = A.SpatialAttnNet(cube_dim,n_state)        # Spatial attention
+        ftrAttn = A.FeatureAttnNet(   highDepth,n_hidden,   # Feature attention
+                                    n_encodeCmd,n_state,
+                                                n_task)
         
         self.decoder = D.CatDecoder(HighEncoderNet = HighEncoder,
                                         SpatialNet = spaAttn,
