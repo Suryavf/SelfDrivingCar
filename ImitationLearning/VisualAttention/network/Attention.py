@@ -1041,6 +1041,14 @@ class Atten14(nn.Module):
 
 
 # ------------------------------------------------------------
+@torch.jit.script
+def norm4(x,dim=2):
+    y = F.tanh(x)**4
+    y = y.mean(dim=dim,keepdim=True) + 10**-12
+    y = torch.sqrt(y)
+    y = torch.sqrt(y)
+    return x/y
+
 class SpatialAttnNet(nn.Module):
     """ Constructor """
     def __init__(self, cube_size,n_state):
@@ -1078,14 +1086,6 @@ class SpatialAttnNet(nn.Module):
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(3)
 
-    @torch.jit.script
-    def norm4(self,x):
-        y = self.Tanh(x)**4
-        y = y.mean(1) + 10**-12
-        y = torch.sqrt(y)
-        y = torch.sqrt(y)
-        
-        return x/y.view(x.shape[0],1)
 
     """ Forward 
           - eta [batch,channel,high,width]
@@ -1106,7 +1106,7 @@ class SpatialAttnNet(nn.Module):
         Q,K,V = map(lambda x: x.reshape(x.shape[0],self.h,self.d,-1),[Q,K,V])   # Q,V -> [batch,h,d,L]
                                                                                 #  K  -> [batch,h,d,n]
         QK = torch.einsum('bhdn,bhdm->bhnm', (Q,K))     # [batch, h, L, n]
-        A  = self.Softmax(QK/self.sqrtd)                # [batch, h, L, n]
+        A  = self.Softmax(QK/self.sqrtd) # norm4(QK)    # [batch, h, L, n]
 
         # Apply
         Z  = torch.einsum('bhnk,bhdn->bnhd', (A,V))     # [batch, L, h, d]
@@ -1149,12 +1149,7 @@ class FeatureAttnNet(nn.Module):
         self.to_vh = nn.Linear( n_hidden, self.M*self.h, bias = False)
         
         self.Softmax = nn.Softmax(2)
-
-        # Batch normalization
-        # self.normQ = nn.BatchNorm1d(self.D)
-        # self.normK = nn.BatchNorm1d(self.D)
-        # self.normV = nn.BatchNorm1d(self.D)
-
+        
         # Initialization
         torch.nn.init.xavier_uniform_(self.to_q .weight)
         torch.nn.init.xavier_uniform_(self.to_kz.weight)

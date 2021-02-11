@@ -523,22 +523,14 @@ class CatDecoder(nn.Module):
 
         # Prediction container
         st_,ht_ = list(),list()
-        # if self.training:
-        #     st_ = torch.cuda.FloatTensor(sequence_len,batch_size,self.n_task,self.S)
-        #     ht_ = torch.cuda.FloatTensor(sequence_len,batch_size,            self.H)
-        # else:
-        #     st_ = torch.cuda.FloatTensor(batch_size,self.n_task,self.S)
-        #     ht_ = torch.cuda.FloatTensor(batch_size,            self.H)
 
         # State initialization
         if self.training: st = torch.cuda.FloatTensor(batch_size,self.n_task,self.S).uniform_()
         else            : st = torch.cuda.FloatTensor(         1,self.n_task,self.S).uniform_()
         
         # Study
-        if self.study:
-            α,β,F = list(),list(),list()
-        else:
-            α,β,F = None,None,None
+        if self.study: α,β,F = list(),list(),list()
+        else         : α,β,F =   None,  None,  None
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -576,10 +568,8 @@ class CatDecoder(nn.Module):
             _,(ht,ct)= self.lstm(rt,(ht,ct))
             
             # Output
-            st_.append(st.squeeze(0))   # [batch,n_task,S]
-            ht_.append(ht.squeeze(0))   # [batch,n_task,H]
-            # st_[k] = st.unsqueeze(0)    # [1,batch,S]
-            # ht_[k] = ht#.unsqueeze(0)   # [1,batch,H]
+            st_.append(st.squeeze())    # [batch,n_task,S]
+            ht_.append(ht.squeeze())    # [batch,       H]
 
             # Study
             if self.study:
@@ -588,17 +578,17 @@ class CatDecoder(nn.Module):
                 F.append(ft)
 
         # Concatenate
-        st_ = torch.cat(st_,dim=0)
-        ht_ = torch.cat(ht_,dim=0)
+        st_ = torch.stack(st_,dim=0)
+        ht_ = torch.stack(ht_,dim=0)
         if self.training: 
             st_ = st_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.S)
-            ht_ = ht_.transpose(0,1).reshape(batch_size*sequence_len,self.n_task,self.H)
+            ht_ = ht_.transpose(0,1).reshape(batch_size*sequence_len,            self.H)
 
         # Compile study
         if self.study:
-            α = torch.cat(α, dim=0)
-            β = torch.cat(β, dim=0)
-            F = torch.cat(F, dim=0)
+            α = torch.stack(α, dim=0)
+            β = torch.stack(β, dim=0)
+            F = torch.stack(F, dim=0)
         
         return st_, ht_, {'alpha': α, 'beta': β}, {'features': F}
         
