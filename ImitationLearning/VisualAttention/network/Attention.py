@@ -1041,14 +1041,6 @@ class Atten14(nn.Module):
 
 
 # ------------------------------------------------------------
-@torch.jit.script
-def norm4(x,dim=2):
-    y = F.tanh(x)**4
-    y = y.mean(dim=dim,keepdim=True) + 10**-12
-    y = torch.sqrt(y)
-    y = torch.sqrt(y)
-    return x/y
-
 class SpatialAttnNet(nn.Module):
     """ Constructor """
     def __init__(self, cube_size,n_state):
@@ -1086,6 +1078,12 @@ class SpatialAttnNet(nn.Module):
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(3)
 
+    def norm4(self,x,dim=2):
+        y = self.Tanh(x)**4
+        y = y.mean(dim=dim,keepdim=True) + 10**-12
+        y = torch.sqrt(y)
+        y = torch.sqrt(y)
+        return x/y
 
     """ Forward 
           - eta [batch,channel,high,width]

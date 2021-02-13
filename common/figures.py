@@ -272,7 +272,7 @@ def saveColorMershError(msr,msrErr,command,path,dom=(-1.20, 1.20),resolution=30,
             mersh = np.multiply(mersh , (mersh<  1 )) + np.multiply(np.ones(mersh.shape),(mersh>=1))
             Xn, Yn = np.meshgrid(xnew, ynew)
             
-            axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet', vmin=0, vmax=1)
+            axs[i,j].pcolormesh(Xn, Yn, mersh, cmap='jet', vmin=0, vmax=1, shading='auto')
             axs[i,j].set_xlabel(name+" (True)")
             axs[i,j].set_ylabel(name+" Error")
             axs[i,j].set_title(hgl[idx])
