@@ -17,8 +17,8 @@
     "general": {
         "stepView":   1,
         "dataset"  : "CARLA100",
-        "validPath": "./data/h5file/SeqVal/",
-        "trainPath": "./data/h5file/CARLA100/",
+        "validPath": "./data/h5file/C100train/",
+        "trainPath": "./data/h5file/C100val/",
         "savedPath": "/opt/MrCat/Saved/"
     },
     "train": {

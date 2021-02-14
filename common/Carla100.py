@@ -22,7 +22,7 @@ for i,f in enumerate(folders):
     print('Create %s \t\t %i/%i'%(name,i+1,n_folders)) 
     
     # Outfile path
-    outfile = os.path.join(out,name+'.hdf5')
+    outfile = os.path.join(out,name+'.h5')
     if os.path.exists(outfile):
         print ('Skip by repetition\n')
         continue

@@ -2,6 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+
+""" Loss Function 
+    --------------------------------------------------------------------
+    * Input:
+        - measure   : dict of real measurement
+        - prediction: dict of prediction
+        - weight    : bias for prioritized sampling
+"""
 class WeightedLoss(object):
     """ Constructor """
     def __init__(self,init,setting):
@@ -144,4 +152,4 @@ class MultitaskLoss(object):
 
         prediction['loss'] = loss
         return torch.mean(loss)
-
+        
