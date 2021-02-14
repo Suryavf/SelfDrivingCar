@@ -1,15 +1,15 @@
 {
-    "model": "ExpBranch",
+    "model": "Approach",
     "modules": {
-        "Encoder"  : "CNN5",
+        "Encoder"  : "ResNet50",
         "Decoder"  : "TVADecoder",
         "Attention": "Atten11",
-        "Control"  : "BranchesModule"
+        "Control"  : "SeqModule"
     },
     "sampling": {
         "alpha": 1.0,
-        "beta" : 0.0,
-        "betaLinear": true,
+        "beta" : 1.0,
+        "betaLinear": false,
         "betaPhase": 50,
         "balance": true,
         "c": 1.4
@@ -18,12 +18,12 @@
         "stepView":   1,
         "dataset"  : "CARLA100",
         "validPath": "./data/h5file/SeqVal/",
-        "trainPath": "/media/victor/Datos/Carla100/",
-        "savedPath": "/media/victor/Datos/Saved/"
+        "trainPath": "./data/h5file/CARLA100/",
+        "savedPath": "/opt/MrCat/Saved/"
     },
     "train": {
         "scheduler": {
-            "learning_rate_decay_factor": 0.5,
+            "learning_rate_decay_factor": 0.1,
             "learning_rate_decay_steps" : 50
         },
         "optimizer": {
@@ -31,6 +31,15 @@
             "beta1": 0.70,
             "beta2": 0.85,
             "learningRate": 0.00001
+        },
+        "loss": {
+            "type": "WeightedMultiTask",
+            "lambda_gas"  : 0.33333,
+            "lambda_steer": 0.26667,
+            "lambda_brake": 0.06667,
+            "lambda_desc" : 0.33333,
+            "lambda_speed" : 0.05,
+            "lambda_action": 0.95
         }
     }
 }
