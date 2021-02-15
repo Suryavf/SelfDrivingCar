@@ -1,4 +1,5 @@
 import os
+import glob
 import random
 import numpy  as np
 import pandas as pd
@@ -221,16 +222,17 @@ class CoRL2017Dataset(object):
 
 
 """ File Tree (CARLA 100)
-    ----------------
+    ---------------------
     Tree for [prioritized] samples. Each leaf correspond to a training file.
     IMPORTANTE: El codigo asume sequence_len = slidingWindow
 """
 class FileTree(object):
     """ Constructor """
-    def __init__(self,setting,index='index.csv'):
+    def __init__(self,setting,train=True):
         # Read data
-        path    = setting.general.trainPath
-        data = pd.read_csv(os.path.join(path,index))
+        if train: path = setting.general.trainPath
+        else    : path = setting.general.validPath
+        data = self.getFileIdx(path) # pd.read_csv(os.path.join(path,index))
         n_files = len(data)
 
         self.n_files = n_files
@@ -252,6 +254,16 @@ class FileTree(object):
 
     def __len__(self):
         return int(self._tree[0])
+
+    def getFileIdx(self,path):
+        files = glob.glob(os.path.join(path,'*.h5'))
+        name,count  = list(),list()
+        for f in files:
+            name.append( os.path.basename(f) ) 
+            with h5py.File(f, 'r') as h5_file:
+                count.append( h5_file['rgb'].shape[0] )
+
+        return pd.DataFrame({'file':name,'n':count})
 
     """ Update """
     def _update(self,idx):
@@ -333,11 +345,11 @@ class FileTree(object):
 
 """
 class CARLA100Dataset(object):
-    def __init__(self, setting, train=True, index='index.csv'):
+    def __init__(self, setting, train=True):
         # Boolean
         self.isTrain         = train
         self.isBranches      = setting.boolean.branches
-        self.includeSpeed    = setting.boolean.multimodal or setting.boolean.speedRegression
+        self.includeSpeed    = setting.boolean.inputSpeed or setting.boolean.outputSpeed
         self.isTemporalModel = setting.boolean.temporalModel
 
         # Settings
@@ -346,7 +358,7 @@ class CARLA100Dataset(object):
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
-        self.files = FileTree(setting,index) # = fileindex
+        self.files = FileTree(setting,train) # = fileindex
 
         # TODO Only for CARLA 100 (big dataset)
         self.slidingWindow = setting.general.sequence_len

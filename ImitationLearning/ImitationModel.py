@@ -110,21 +110,29 @@ class ImitationModel(object):
 
         samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
         if self.CoRL2017:
+            # Training data
             trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
             trainingFiles.sort()
             self.trainDataset = CoRL2017Dataset(setting,trainingFiles,train= True)
             self.n_training = len(trainingFiles)*samplesPerFile
+
+            # Validation data
+            validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+            validationFiles.sort()
+            self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
+            self.n_validation = len(validationFiles)*self.framePerFile
+
         else:
-            trainPath = self.setting.general.trainPath
-            self.trainDataset = CARLA100Dataset(setting,train= True)
+            # Training data
+            # trainPath = self.setting.general.trainPath
+            self.trainDataset = CARLA100Dataset(setting,train=True)
             self.n_training = int(len(self.trainDataset)/self.sequence_len)
 
-        # Validation data
-        validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
-        validationFiles.sort()
-        self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
-        self.n_validation = len(validationFiles)*self.framePerFile
-
+            # Validation data
+            # validPath = self.setting.general.validPath
+            self.validDataset = CARLA100Dataset(setting,train=False)
+            self.n_validation = int(len(self.validDataset)/self.sequence_len)
+        
         # Prioritized sampling
         self.samplesByTrainingFile   = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
