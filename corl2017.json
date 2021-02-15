@@ -16,8 +16,8 @@
     },
     "general": {
         "dataset"  : "CoRL2017",
-        "validPath": "./data/h5file/SeqVal/",
         "trainPath": "./data/h5file/SeqTrain/",
+        "validPath": "./data/h5file/SeqVal/",
         "savedPath": "/media/victor/Datos/Saved/"
     },
     "train": {

@@ -95,10 +95,10 @@ class ImitationModel(object):
             self.setting.save( os.path.join(self._modelPath,"setting.json") )
         
         # Objects
-        self.optimizer  = None
-        self.scheduler  = None
-        self.weightLoss = None
-        self.lossFunc   = None
+        self.optimizer = None
+        self.scheduler = None
+        self.lossFunc  = None
+        self.lossEval  = None
         
         # Training data
         self.framePerFile  = self.setting.general. framePerFile
@@ -124,12 +124,10 @@ class ImitationModel(object):
 
         else:
             # Training data
-            # trainPath = self.setting.general.trainPath
             self.trainDataset = CARLA100Dataset(setting,train=True)
             self.n_training = int(len(self.trainDataset)/self.sequence_len)
 
             # Validation data
-            # validPath = self.setting.general.validPath
             self.validDataset = CARLA100Dataset(setting,train=False)
             self.n_validation = int(len(self.validDataset)/self.sequence_len)
         
@@ -262,27 +260,16 @@ class ImitationModel(object):
                                                     step_size = self.setting.train.scheduler.learning_rate_decay_steps,
                                                     gamma     = self.setting.train.scheduler.learning_rate_decay_factor)
 
-        # Loss weights
-        self.weightLoss = np.array([self.setting.train.loss.lambda_steer, 
-                                    self.setting.train.loss.lambda_gas  , 
-                                    self.setting.train.loss.lambda_brake]).reshape(3,1)
-        if self.setting.boolean.branches:
-            self.weightLoss = np.concatenate( [self.weightLoss for _ in range(4)] )
-        self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device) 
-        if self.setting.train.loss.type == "WeightedMultiTask":
-            self.decisionWeight = np.array( [0,1,2] )
-            self.decisionWeight = torch.from_numpy(self.decisionWeight).float().cuda(self.device) 
-
         # Loss Function
         if   self.setting.train.loss.type == "Weighted":
-            self._loss = L.WeightedLoss(self.init,self.setting)
-            self. lossFunc = self._loss.eval
+            self.lossFunc = L.WeightedLoss(self.init,self.setting)
+            self. lossEval = self.lossFunc.eval
         elif self.setting.train.loss.type == "WeightedReg":
-            self._loss = L.WeightedLossReg(self.init,self.setting)
-            self. lossFunc = self._loss.eval
+            self.lossFunc = L.WeightedLossReg(self.init,self.setting)
+            self. lossEval = self.lossFunc.eval
         elif self.setting.train.loss.type == "WeightedMultiTask":
-            self._loss = L.MultitaskLoss(self.init,self.setting)
-            self. lossFunc = self._loss.eval
+            self.lossFunc = L.MultitaskLoss(self.init,self.setting)
+            self. lossEval = self.lossFunc.eval
         else:
             txt = self.setting.train.loss.type
             raise NameError('ERROR 404: Loss no found ('+txt+')')
@@ -427,7 +414,7 @@ class ImitationModel(object):
 
                 # Model
                 dev_pred = self.model(dev_batch)
-                dev_loss = self.lossFunc(dev_batch,dev_pred)
+                dev_loss = self.lossEval(dev_batch,dev_pred)
                 
                 # Update priority
                 self._updatePriority(dev_pred,spID[batch_size*i:batch_size*(i+1)])
@@ -487,7 +474,7 @@ class ImitationModel(object):
 
                 # Model
                 dev_pred = self.model(dev_batch)
-                dev_loss = self.lossFunc(dev_batch,dev_pred,weight)
+                dev_loss = self.lossEval(dev_batch,dev_pred,weight)
                 
                 # Update priority
                 self._updatePriority(dev_pred,spIDs[batch_size*i:batch_size*(i+1)])
@@ -555,7 +542,7 @@ class ImitationModel(object):
 
                 # Model
                 dev_pred = self.model(dev_batch)
-                dev_loss = self.lossFunc(dev_batch,dev_pred)
+                dev_loss = self.lossEval(dev_batch,dev_pred)
 
                 # Metrics
                 metr, mean = self._metrics(dev_batch,dev_pred)
