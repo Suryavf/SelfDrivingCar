@@ -124,7 +124,7 @@ class MultitaskLoss(object):
         # decision: [cte,throttle,brake]
         decision = torch.where(action>0.05, 1., 0.)
         decision = decision.matmul(self.decisionWeight) # [0,1,2]
-
+        
         # Check
         return torch.where(decision>2,0.,decision) 
 

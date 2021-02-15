@@ -128,6 +128,7 @@ class Approach(nn.Module):
         if   setting.general.dataset == "CoRL2017": n_task = 2
         elif setting.general.dataset == "CARLA100": n_task = 3
         else:print("ERROR: dataset no found (%s)"%self.setting.general.dataset)
+        use_decision = True if n_task == 3 else False
 
         cube_dim    = (12,24,lowDepth) 
         n_encodeCmd =  16   # Length of code command control
@@ -152,7 +153,7 @@ class Approach(nn.Module):
                                           n_task   = n_task)
 
         # Policy
-        self.policy = C.MultiTaskPolicy(n_state)
+        self.policy = C.MultiTaskPolicy(n_state,use_decision)
 
         # Speed regularization
         self.SpeedReg = setting.train.loss.regularization

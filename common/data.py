@@ -354,7 +354,8 @@ class CARLA100Dataset(object):
 
         # Settings
         self.setting = setting
-        self.path    = setting.general.trainPath
+        if train: self.path = setting.general.trainPath
+        else    : self.path = setting.general.validPath
         self.framePerFile = self.setting.general.framePerFile
 
         # Files (paths)
@@ -452,7 +453,11 @@ class CARLA100Dataset(object):
             mask = np.zeros((4, 3), dtype=np.float32)
             mask[command,:] = 1
             inputs[ 'mask' ] = mask.reshape(-1)
-        
+        else:
+            mask = np.zeros(4, dtype=np.float32)
+            mask[command] = 1
+            inputs[ 'mask' ] = mask
+
         # Speed input/output (max 90km/h)
         if self.includeSpeed or not self.isTrain:
             speed = np.array([speed/maxSpeed,]).astype(np.float32)

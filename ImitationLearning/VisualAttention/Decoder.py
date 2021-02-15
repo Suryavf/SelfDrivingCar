@@ -461,7 +461,7 @@ class CatDecoder(nn.Module):
 
         self.avgpool1 = nn.AdaptiveAvgPool2d((1, 1))
         self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
-        self.normSpa  = nn.BatchNorm2d(128)
+        self.normSpa  = nn.BatchNorm2d(LowLevelDim)
         self.ReLU     = nn.ReLU()  
 
         # Initialization
