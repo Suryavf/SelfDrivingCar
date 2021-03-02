@@ -94,7 +94,7 @@ class ExpBranch(nn.Module):
 """
 class Approach(nn.Module):
     """ Constructor """
-    def __init__(self,setting, regularization = True):#(96,192)): 92,196
+    def __init__(self,setting, study = False):#(96,192)): 92,196
         super(Approach, self).__init__()
         # Setting
         encoder = setting.modules["Encoder"]
@@ -132,6 +132,7 @@ class Approach(nn.Module):
 
         cube_dim    = (12,24,lowDepth) 
         n_encodeCmd =  16   # Length of code command control
+        self.study  = study
         
         # Decoder
         cmdNet  = A.CommandNet(n_encodeCmd)                 # Command decoder
@@ -150,7 +151,9 @@ class Approach(nn.Module):
 
                                           n_hidden = n_hidden,
                                           n_state  = n_state,
-                                          n_task   = n_task)
+                                          n_task   = n_task,
+
+                                             study = study)
 
         # Policy
         self.policy = C.MultiTaskPolicy(n_state,use_decision)
@@ -187,11 +190,13 @@ class Approach(nn.Module):
         # Regularization
         if self.SpeedReg: vt = self.regularization(ht)
         else            : vt = None
+        
+        # State
+        if self.study: ht['state'] = st
 
         return {  'actions' :   at,
                  'decision' :   ds,
                    'hidden' :   ht,
                     'speed' :   vt,
                 'attention' : attn}
-                # 'features' :  None}
                 

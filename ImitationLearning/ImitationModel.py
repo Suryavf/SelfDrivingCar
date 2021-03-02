@@ -678,20 +678,34 @@ class ImitationModel(object):
     
 
     def _storeSignals(self,prediction):
-        signals = prediction['hidden']
-        
-        # To CPU
-        attention = prediction['attention'].data.cpu().numpy()
-        for key in signals:
-            signals[key] = signals[key].data.cpu().numpy()
+        signal = {}
 
-        # Add attention
-        signals['attention'] = attention
-        return signals
+        # To CPU
+        signal['alpha'   ] = prediction['attention']['alpha'].data.cpu().numpy()
+        signal['beta'    ] = prediction['attention'][ 'beta'].data.cpu().numpy()
+        signal['feature' ] = prediction['hidden']['features'].data.cpu().numpy()
+        signal['state'   ] = prediction['hidden'][   'state'].data.cpu().numpy()
+        signal['action'  ] = prediction[ 'actions']          .data.cpu().numpy()
+        signal['decision'] = prediction['decision']          .data.cpu().numpy()
+        
+        return signal
 
 
     """ Plot generate"""
     def study(self,name,epoch):
+        # Parameters
+        stepView = self.setting.general.stepView
+
+        # Loss
+        signals = U.BigDict ( )
+
+        # ID list
+        imID = self.validDataset.generateIDs(True)
+        loader = DataLoader(Dataset(self.validDataset,imID),
+                                    batch_size  = self.setting.general.batch_size,
+                                    num_workers = self.init.num_workers,
+                                    pin_memory  = True)
+
         # Check paths
         self._checkFoldersToSave(name)
         paths = U.modelList(self._modelPath)
@@ -700,23 +714,9 @@ class ImitationModel(object):
         checkpoint = torch.load(paths[epoch-1])
         self.model.load_state_dict(checkpoint['state_dict'])
 
-        # Parameters
-        n_samples = self.n_training
-        files = V.FilesForStudy100
-
-        # ID list
-        imID = self.trainDataset.generateIDs(True)
-        # IDs = self._generateIDlist(self.validDataset,n_samples,
-        #                            prioritized=False,sequence=False)
-        loader = DataLoader(Dataset(self.validDataset,imID),
-                                    batch_size  = self.setting.general.batch_size,
-                                    num_workers = self.init.num_workers,
-                                    pin_memory  = True)
-        signals = U.BigDict ( )
-
         # Model to evaluation
         self.model.eval()
-        print('Evaluating model')
+        print('Running study')
         with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
             for sample in loader:
                 # Batch

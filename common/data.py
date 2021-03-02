@@ -362,7 +362,7 @@ class CARLA100Dataset(object):
         self.files = FileTree(setting,train) # = fileindex
 
         # TODO Only for CARLA 100 (big dataset)
-        self.slidingWindow = setting.general.sequence_len
+        self.slidingWindow = setting.general.slidingWindow
         self.sequence_len  = setting.general.sequence_len
 
         # Objects
@@ -508,4 +508,4 @@ class GeneralDataset(Dataset):
             return data,idx,self.weights[_idx]
         else:
             return data,idx
-                        
+            

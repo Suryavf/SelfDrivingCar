@@ -433,9 +433,10 @@ class CatDecoder(nn.Module):
     """ Constructor """
     def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
                         LowLevelDim=128, HighLevelDim=512, 
-                        n_hidden=1024, n_state=64,n_task=3):
+                        n_hidden=1024, n_state=64,n_task=3,
+                        study=False):
         super(CatDecoder, self).__init__()
-        self.study = False
+        self.study = study
 
         # Parameters
         self.H =     n_hidden       # output LSTM   1024   2048
