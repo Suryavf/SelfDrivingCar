@@ -29,6 +29,8 @@ class Main():
         self.model.execute()
     def train(self):
         self.model.execute()
+    def study(self,name,epoch):
+        self.model.study(name,epoch)
     def plot(self,name):
         self.model.plot(name)
     def play(self):
@@ -98,6 +100,8 @@ if __name__ == "__main__":
     # Execute mode
     if   args.mode == "train":
         main.train()
+    elif args.mode == "study":
+        main.study(args.name,args.n_epoch)
     elif args.mode == "play":
         main.play()
     elif args.mode == "continue":
