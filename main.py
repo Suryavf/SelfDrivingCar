@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--modelpath" ,type=str,help="Model file path")
     parser.add_argument("--init"      ,type=str,help="Init json path")
     parser.add_argument("--setting"   ,type=str,help="Setting json path")
-    parser.add_argument("--n_epoch"   ,type=int,help="Number of epoch for train")
+    parser.add_argument("--epoch"     ,type=int,help="Number of epoch for train")
     parser.add_argument("--batch_size",type=int,help="Batch size for train")
     parser.add_argument("--model"     ,type=str,help="End-to-End model: Basic, Multimodal, Codevilla18, Codevilla19, Kim2017")
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     if args.savedpath  is not None: setting.general.savedPath = args.savedpath
     
     # Train
-    if args.n_epoch    is not None: setting.train.n_epoch    = args.n_epoch
+    if args.n_epoch    is not None: setting.train.n_epoch    = args.epoch
     if args.batch_size is not None: setting.train.batch_size = args.batch_size
     
     if args.optimizer  is not None: setting.train.optimizer.type      = args.optimizer
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if   args.mode == "train":
         main.train()
     elif args.mode == "study":
-        main.study(args.name,args.n_epoch)
+        main.study(args.name,args.epoch)
     elif args.mode == "play":
         main.play()
     elif args.mode == "continue":

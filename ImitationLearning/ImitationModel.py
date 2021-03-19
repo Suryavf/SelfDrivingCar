@@ -696,6 +696,7 @@ class ImitationModel(object):
     def study(self,name,epoch):
         # Parameters
         stepView = self.setting.general.stepView
+        savedPath = self.setting.general.savedPath
         pathout = '/gdrive/My Drive/CoRL2017/Saved/Study'
         n = 1
 
@@ -735,7 +736,7 @@ class ImitationModel(object):
                     # Resume
                     signals = signals.resume()
 
-                    path = os.path.join(pathout,'resume'+str(n)+'.pk')
+                    path = os.path.join(savedPath,'Study','resume'+str(n)+'.pk')
                     with open(path, 'wb') as handle:
                         pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
