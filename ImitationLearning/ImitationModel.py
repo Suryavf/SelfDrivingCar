@@ -677,10 +677,11 @@ class ImitationModel(object):
             df.to_csv(self._modelPath + "/metrics.csv", index=False)  
     
 
-    def _storeSignals(self,prediction):
+    def _storeSignals(self,measure,prediction):
         signal = {}
 
         # To CPU
+        signal['image'   ] = measure["frame"].data.cpu().numpy()
         signal['alpha'   ] = prediction['attention']['alpha'].data.cpu().numpy()
         signal['beta'    ] = prediction['attention'][ 'beta'].data.cpu().numpy()
         signal['feature' ] = prediction['hidden']['features'].data.cpu().numpy()
@@ -695,7 +696,7 @@ class ImitationModel(object):
     def study(self,name,epoch):
         # Parameters
         stepView = self.setting.general.stepView
-        pathout = ''
+        pathout = '/gdrive/My Drive/CoRL2017/Saved/Study'
         n = 1
 
         # Loss
@@ -727,7 +728,7 @@ class ImitationModel(object):
 
                 # Model
                 dev_pred = self.model(dev_batch)
-                host_s   = self._storeSignals(dev_pred)
+                host_s   = self._storeSignals(dev_batch,dev_pred)
                 signals.update(host_s)
 
                 if i%1000 == 999:
