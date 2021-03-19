@@ -695,6 +695,8 @@ class ImitationModel(object):
     def study(self,name,epoch):
         # Parameters
         stepView = self.setting.general.stepView
+        pathout = ''
+        n = 1
 
         # Loss
         signals = U.BigDict ( )
@@ -718,7 +720,7 @@ class ImitationModel(object):
         self.model.eval()
         print('Running study')
         with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
-            for sample in loader:
+            for i, sample in enumerate(loader):
                 # Batch
                 batch,_ = sample
                 dev_batch = self._transfer2device(batch)
@@ -728,17 +730,27 @@ class ImitationModel(object):
                 host_s   = self._storeSignals(dev_pred)
                 signals.update(host_s)
 
+                if i%1000 == 999:
+                    # Resume
+                    signals = signals.resume()
+
+                    path = os.path.join(pathout,'resume'+str(n)+'.pk')
+                    with open(path, 'wb') as handle:
+                        pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                    signals = U.BigDict()
+                    n += 1 
+
                 pbar. update()
                 pbar.refresh()
             pbar.close()
             
-        # Resume
-        signals = signals.resume()
+        
         
         # Save resume
-        print('Save evaluation resume\n')
-        with open(os.path.join(self._modelPath,'resume.pk'), 'wb') as handle:
-            pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # print('Save evaluation resume\n')
+        # with open(os.path.join(self._modelPath,'resume.pk'), 'wb') as handle:
+        #     pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
             
         """
         # t-SNE
