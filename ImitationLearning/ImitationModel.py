@@ -62,9 +62,10 @@ class ImitationModel(object):
         self.device = self.init.device
 
         # Internal parameters
+        self.codename  = None
         self.samplesID = {}
         self._state    = {}
-        self. epoch    = 1
+        self. epoch    = 0
         
         # Model
         if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
@@ -101,17 +102,17 @@ class ImitationModel(object):
         self.lossEval  = None
         
         # Training data
+        self.trainDataset = None
+        self.validDataset = None
+        self.n_training   = None
+        self.n_validation = None
+
         self.framePerFile  = self.setting.general. framePerFile
         self.sequence_len  = self.setting.general. sequence_len 
         self.slidingWindow = self.setting.general.slidingWindow
 
         self.dataset  = self.setting.general.dataset
         self.CoRL2017 = (self.dataset == 'CoRL2017')
-
-        self.trainDataset = None
-        self.validDataset = None
-        self.n_training   = None
-        self.n_validation = None
 
         # Prioritized sampling
         self.samplesByTrainingFile   = self.framePerFile
@@ -190,14 +191,14 @@ class ImitationModel(object):
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
         self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
 
-    def to_continue(self,name):
+    def to_continue(self,name,epoch = None):
         # Check paths
         self._checkFoldersToSave(name)
         path = U.lastModel(self._modelPath)
 
-        # Next epoch
-        self.epoch = int(path.partition('/Model/model')[2].partition('.')[0])
-        self.epoch = self.epoch + 1
+        # Epoch value
+        if epoch is None: self.epoch = int(path.partition('/Model/model')[2].partition('.')[0])
+        else            : self.epoch = epoch
 
         # Load
         self.load(path)
@@ -247,7 +248,7 @@ class ImitationModel(object):
         else:
             txt = self.setting.train.loss.type
             raise NameError('ERROR 404: Loss no found ('+txt+')')
-        
+
         # Build dataset
         samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
         if self.CoRL2017:
@@ -622,7 +623,7 @@ class ImitationModel(object):
         self._Exploration()
 
         # Loop over the dataset multiple times
-        for epoch in range(self.epoch,n_epoch):
+        for epoch in range(self.epoch+1,n_epoch):
             print("\nEpoch",epoch,"-"*40)
             
             # Train
@@ -707,7 +708,7 @@ class ImitationModel(object):
 
 
     """ Run study"""
-    def runStudy(self,name,epoch):
+    def runStudy(self):
         # Parameters
         stepView = self.setting.general.stepView
         savedPath = self.setting.general.savedPath
@@ -725,6 +726,8 @@ class ImitationModel(object):
                                     pin_memory  = True)
 
         # Check paths
+        name  = self.codename
+        epoch = self.epoch
         self._checkFoldersToSave(name)
         paths = U.modelList(self._modelPath)
 

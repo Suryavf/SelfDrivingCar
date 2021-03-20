@@ -36,7 +36,8 @@ class Main():
 
     def study(self,name,epoch):
         self.model.build(study=True)
-        self.model.runStudy(name,epoch)
+        self.model.to_continue(name,epoch)
+        self.model.execute(study=True)
 
     def plot(self,name):
         self.model.build()
