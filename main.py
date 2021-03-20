@@ -16,7 +16,7 @@ class Main():
         # Define seed
         init.set_seed()
 
-        if setting.model in _imitationLearningList:
+        if setting.modestudyl in _imitationLearningList:
             self.model = ImitationModel(init,setting)
         else:
             raise NameError('ERROR 404: Model no found')
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     if args.savedpath  is not None: setting.general.savedPath = args.savedpath
     
     # Train
-    if args.n_epoch    is not None: setting.train.n_epoch    = args.epoch
+    if args.epoch      is not None: setting.train.n_epoch    = args.epoch
     if args.batch_size is not None: setting.train.batch_size = args.batch_size
     
     if args.optimizer  is not None: setting.train.optimizer.type      = args.optimizer
