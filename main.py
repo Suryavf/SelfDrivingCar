@@ -16,7 +16,7 @@ class Main():
         # Define seed
         init.set_seed()
 
-        if setting.modestudyl in _imitationLearningList:
+        if setting.model in _imitationLearningList:
             self.model = ImitationModel(init,setting)
         else:
             raise NameError('ERROR 404: Model no found')
