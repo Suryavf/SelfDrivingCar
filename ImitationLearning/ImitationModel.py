@@ -108,43 +108,17 @@ class ImitationModel(object):
         self.dataset  = self.setting.general.dataset
         self.CoRL2017 = (self.dataset == 'CoRL2017')
 
-        samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
-        if self.CoRL2017:
-            # Training data
-            trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
-            trainingFiles.sort()
-            self.trainDataset = CoRL2017Dataset(setting,trainingFiles,train= True)
-            self.n_training = len(trainingFiles)*samplesPerFile
+        self.trainDataset = None
+        self.validDataset = None
+        self.n_training   = None
+        self.n_validation = None
 
-            # Validation data
-            validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
-            validationFiles.sort()
-            self.validDataset = CoRL2017Dataset(setting,validationFiles,train=False)
-            self.n_validation = len(validationFiles)*self.framePerFile
-
-        else:
-            # Training data
-            self.trainDataset = CARLA100Dataset(setting,train=True)
-            self.n_training = int(len(self.trainDataset)/self.sequence_len)
-
-            # Validation data
-            self.validDataset = CARLA100Dataset(setting,train=False)
-            self.n_validation = int(len(self.validDataset)/self.sequence_len)
-        
         # Prioritized sampling
         self.samplesByTrainingFile   = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
         if self.setting.boolean.temporalModel:
             self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-        self.samplePriority = PrioritizedSamples( n_samples = self.n_training, 
-                                                  alpha = self.setting.sampling.alpha,
-                                                  beta  = self.setting.sampling. beta,
-                                                  betaLinear = self.setting.sampling.betaLinear,
-                                                  betaPhase  = self.setting.sampling.betaPhase,
-                                                  balance = self.setting.sampling.balance,
-                                                  c    = self.setting.sampling.c,
-                                                  fill = not self.CoRL2017)
-
+        self.samplePriority = None # object
 
 
     """ Check folders to save """
@@ -230,7 +204,7 @@ class ImitationModel(object):
 
 
     """ Building """
-    def build(self):
+    def build(self,study=False):
         self.model = self.model.float()
         self.model = self.model.to(self.device)
 
@@ -273,7 +247,44 @@ class ImitationModel(object):
         else:
             txt = self.setting.train.loss.type
             raise NameError('ERROR 404: Loss no found ('+txt+')')
-            
+        
+        # Build dataset
+        samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
+        if self.CoRL2017:
+            # Training data
+            if not study:
+                trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
+                trainingFiles.sort()
+                self.trainDataset = CoRL2017Dataset(self.setting,trainingFiles,train= True)
+                self.n_training = len(trainingFiles)*samplesPerFile
+
+            # Validation data
+            validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))
+            validationFiles.sort()
+            self.validDataset = CoRL2017Dataset(self.setting,validationFiles,train=False)
+            self.n_validation = len(validationFiles)*self.framePerFile
+
+        else:
+            # Training data
+            if not study:
+                self.trainDataset = CARLA100Dataset(self.setting,train=True)
+                self.n_training = int(len(self.trainDataset)/self.sequence_len)
+
+            # Validation data
+            self.validDataset = CARLA100Dataset(self.setting,train=False)
+            self.n_validation = int(len(self.validDataset)/self.sequence_len)
+
+        # Prioritized sampling
+        if not study:
+            self.samplePriority = PrioritizedSamples( n_samples = self.n_training, 
+                                                      alpha = self.setting.sampling.alpha,
+                                                      beta  = self.setting.sampling. beta,
+                                                      betaLinear = self.setting.sampling.betaLinear,
+                                                      betaPhase  = self.setting.sampling.betaPhase,
+                                                      balance = self.setting.sampling.balance,
+                                                      c    = self.setting.sampling.c,
+                                                      fill = not self.CoRL2017)
+        
 
     """ Generate ID list """
     def _samplingPrioritizedSamples(self,n_samples):
@@ -591,10 +602,13 @@ class ImitationModel(object):
     
 
     """ Train/Evaluation """
-    def execute(self):
+    def execute(self,study=False):
         # Parameters
         n_epoch = self.setting.general.n_epoch
         
+        # Study
+        if study: return self.runStudy()
+
         # Initialize
         if self.init.is_loadedModel:
             valuesToSave = U.loadValuesToSave( os.path.join(self._modelPath,"model.csv") )
@@ -692,8 +706,8 @@ class ImitationModel(object):
         return signal
 
 
-    """ Plot generate"""
-    def study(self,name,epoch):
+    """ Run study"""
+    def runStudy(self,name,epoch):
         # Parameters
         stepView = self.setting.general.stepView
         savedPath = self.setting.general.savedPath

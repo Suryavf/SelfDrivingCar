@@ -20,18 +20,26 @@ class Main():
             self.model = ImitationModel(init,setting)
         else:
             raise NameError('ERROR 404: Model no found')
-        self.model.build()
         
     def load(self,path):
+        self.model.build()
         self.model.load(path)
+
     def to_continue(self,name):
+        self.model.build()
         self.model.to_continue(name)
         self.model.execute()
+
     def train(self):
+        self.model.build()
         self.model.execute()
+
     def study(self,name,epoch):
-        self.model.study(name,epoch)
+        self.model.build(study=True)
+        self.model.runStudy(name,epoch)
+
     def plot(self,name):
+        self.model.build()
         self.model.plot(name)
     def play(self):
         pass
