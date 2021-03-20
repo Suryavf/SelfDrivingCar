@@ -179,7 +179,7 @@ class ImitationModel(object):
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
         self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
 
-    def to_continue(self,name,epoch = None):
+    def to_continue(self,name,epoch = None, study=False):
         # Check paths
         self._checkFoldersToSave(name)
         path = U.lastModel(self._modelPath)
@@ -189,7 +189,7 @@ class ImitationModel(object):
         else            : self.epoch = epoch
 
         # Load
-        self.load(path)
+        if not study: self.load(path)
 
 
     """ Building """
