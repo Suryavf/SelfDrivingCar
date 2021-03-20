@@ -67,19 +67,6 @@ class ImitationModel(object):
         self._state    = {}
         self. epoch    = 0
         
-        # Model
-        if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
-        elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
-        elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
-        elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
-        elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
-        elif self.setting.model == 'Experimental': self.model = exper. Experimental(setting)
-        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(setting)
-        elif self.setting.model == 'Approach'    : self.model = exper.     Approach(setting)
-        else:
-            txt = self.setting.model
-            print("ERROR: mode no found (" + txt + ")")
-        
         # Development settings
         self.save_priority_history  = False
         self.save_speed_action_plot = False
@@ -100,8 +87,9 @@ class ImitationModel(object):
         self.scheduler = None
         self.lossFunc  = None
         self.lossEval  = None
+        self.model     = None
         
-        # Training data
+        # Dataset
         self.trainDataset = None
         self.validDataset = None
         self.n_training   = None
@@ -206,6 +194,19 @@ class ImitationModel(object):
 
     """ Building """
     def build(self,study=False):
+        
+        # Model
+        if   self.setting.model == 'Basic'       : self.model =  imL.      BasicNet()
+        elif self.setting.model == 'Multimodal'  : self.model =  imL. MultimodalNet()
+        elif self.setting.model == 'Codevilla18' : self.model =  imL.Codevilla18Net()
+        elif self.setting.model == 'Codevilla19' : self.model =  imL.Codevilla19Net()
+        elif self.setting.model == 'Kim2017'     : self.model = attn.    Kim2017Net()
+        elif self.setting.model == 'Experimental': self.model = exper. Experimental(self.setting)
+        elif self.setting.model == 'ExpBranch'   : self.model = exper.    ExpBranch(self.setting)
+        elif self.setting.model == 'Approach'    : self.model = exper.     Approach(self.setting,study)
+        else:
+            txt = self.setting.model
+            print("ERROR: mode no found (" + txt + ")")
         self.model = self.model.float()
         self.model = self.model.to(self.device)
 
