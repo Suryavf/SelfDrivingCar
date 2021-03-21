@@ -1,6 +1,7 @@
 import os
 import glob
 
+import h5py
 import pickle
 from   tqdm import tqdm
 import pandas as pd
@@ -696,12 +697,11 @@ class ImitationModel(object):
 
     def _storeSignals(self,measure,prediction):
         signal = {}
-        
+
         # To CPU
         signal['image'   ] =    measure[  'frame'  ]         .data.cpu().numpy()
         signal['command' ] =    measure[ 'command' ]         .data.cpu().numpy()
         signal['r_action'] =    measure[ 'actions' ]         .data.cpu().numpy()
-        signal['image'   ] =    measure[  'frame'  ]         .data.cpu().numpy()
         signal['alpha'   ] = prediction['attention']['alpha'].data.cpu().numpy()
         signal['beta'    ] = prediction['attention'][ 'beta'].data.cpu().numpy()
         signal['state'   ] = prediction[  'state'  ]         .data.cpu().numpy()
@@ -718,7 +718,7 @@ class ImitationModel(object):
         n   = 1
 
         # Loss
-        signals = U.BigDict ( )
+        signal = U.BigDict ( )
 
         # ID list
         imID = self.validDataset.generateIDs(True)
@@ -750,16 +750,24 @@ class ImitationModel(object):
                 host_s   = self._storeSignals(dev_batch,dev_pred)
 
                 # Update
-                host_s['id'] = i
-                signals.update(host_s)
+                host_s['id'] = np.array([i])
+                signal.update(host_s)
 
                 if i%umb == (umb-1):
                     # Resume
-                    signals = signals.resume()
+                    signal = signal.resume()
 
-                    path = os.path.join(studyPath,'resume'+str(n)+'.sy')
-                    with open(path, 'wb') as handle:
-                        pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    outfile = os.path.join(studyPath,'resume'+str(n)+'.sy')
+                    with h5py.File(outfile,"w") as f:
+                        dset = f.create_dataset('id'      , data=         i        )
+                        dset = f.create_dataset('image'   , data=signal[   'image'])
+                        dset = f.create_dataset('command' , data=signal[ 'command'])
+                        dset = f.create_dataset('r_action', data=signal['r_action'])
+                        dset = f.create_dataset('alpha'   , data=signal[   'alpha'])
+                        dset = f.create_dataset('beta'    , data=signal[    'beta'])
+                        dset = f.create_dataset('state'   , data=signal[   'state'])
+                        dset = f.create_dataset('action'  , data=signal[  'action'])
+                        dset = f.create_dataset('decision', data=signal['decision'])
 
                     signals = U.BigDict()
                     n += 1 
