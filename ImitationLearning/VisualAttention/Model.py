@@ -139,7 +139,8 @@ class Approach(nn.Module):
         spaAttn = A.SpatialAttnNet(cube_dim,n_state,study)  # Spatial attention
         ftrAttn = A.FeatureAttnNet(   highDepth,n_hidden,   # Feature attention
                                     n_encodeCmd,n_state,
-                                                n_task)
+                                                n_task,
+                                                study)
         
         self.decoder = D.CatDecoder(HighEncoderNet = HighEncoder,
                                         SpatialNet = spaAttn,
@@ -184,7 +185,7 @@ class Approach(nn.Module):
     def forward(self,batch):
         # Visual encoder
         ηt = self.lowEncoder(batch['frame'])
-        st,ht,attn,b = self.decoder(ηt,batch['mask'])
+        st,ht,attn = self.decoder(ηt,batch['mask'])
         at,ds = self.policy(st)
         
         # Regularization
@@ -192,11 +193,12 @@ class Approach(nn.Module):
         else            : vt = None
         
         # State
-        if self.study: ht['state'] = st
+        if not self.study: st = None
 
         return {  'actions' :   at,
                  'decision' :   ds,
                    'hidden' :   ht,
+                    'state' :   st,
                     'speed' :   vt,
                 'attention' : attn}
                 

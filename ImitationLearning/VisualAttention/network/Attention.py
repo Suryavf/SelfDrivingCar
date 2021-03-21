@@ -1129,12 +1129,12 @@ class SpatialAttnNet(nn.Module):
 """
 class FeatureAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, n_encode, n_hidden, n_command, n_state, n_task):
+    def __init__(self, n_encode, n_hidden, n_command, n_state, n_task, study=False):
         super(FeatureAttnNet, self).__init__()
         self.n_features = 32
         self.D          = n_state
         self.sqrtDepth  = math.sqrt(self.D)
-        self.study      = False
+        self.study      = study
 
         self.h = n_task  # Multi-task
         self.M = self.D*int(self.n_features/2)
@@ -1185,8 +1185,8 @@ class FeatureAttnNet(nn.Module):
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
         S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
-        if self.study: return S, V, A
-        else         : return S, None, None
+        if self.study: return S, A
+        else         : return S, None
         
 
 class CommandNet(nn.Module):
