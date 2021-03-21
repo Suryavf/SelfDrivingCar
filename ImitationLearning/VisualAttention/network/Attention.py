@@ -1043,7 +1043,7 @@ class Atten14(nn.Module):
 # ------------------------------------------------------------
 class SpatialAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, cube_size,n_state):
+    def __init__(self, cube_size,n_state,study=False):
         super(SpatialAttnNet, self).__init__()
         # Parameters 
         self.high  = cube_size[0]
@@ -1051,7 +1051,7 @@ class SpatialAttnNet(nn.Module):
         self.D = cube_size[2]           #  depth
         self.L = self.high*self.width   #  h x w
         self.R = self.L*self.D          #  L x D
-        self.study = False
+        self.study = study
 
         # Deberian ser entrada
         self.S = n_state
