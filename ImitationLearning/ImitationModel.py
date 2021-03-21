@@ -142,6 +142,7 @@ class ImitationModel(object):
             U.checkdirectory(self._figureBrakeErrorPath)
 
         # Model path
+        self._codePath  = execPath
         self._modelPath = os.path.join(execPath,"Model")
         U.checkdirectory(self._modelPath)
 
@@ -711,9 +712,7 @@ class ImitationModel(object):
     """ Run study"""
     def runStudy(self):
         # Parameters
-        stepView = self.setting.general.stepView
         savedPath = self.setting.general.savedPath
-        pathout = '/gdrive/My Drive/CoRL2017/Saved/Study'
         n = 1
 
         # Loss
@@ -727,13 +726,12 @@ class ImitationModel(object):
                                     pin_memory  = True)
 
         # Check paths
-        name  = self.codename
-        epoch = self.epoch
-        self._checkFoldersToSave(name)
-        paths = U.modelList(self._modelPath)
+        studyPath = os.path.join(self._codePath ,'Study')
+        U.checkdirectory(studyPath)
 
         # Load
-        checkpoint = torch.load(paths[epoch-1])
+        pathModel = os.path.join(self._modelPath,"model" + str(self.epoch) + ".pth" )
+        checkpoint = torch.load(pathModel)
         self.model.load_state_dict(checkpoint['state_dict'])
 
         # Model to evaluation
@@ -750,11 +748,11 @@ class ImitationModel(object):
                 host_s   = self._storeSignals(dev_batch,dev_pred)
                 signals.update(host_s)
 
-                if i%1000 == 999:
+                if i%100 == 99:
                     # Resume
                     signals = signals.resume()
 
-                    path = os.path.join(savedPath,'Study','resume'+str(n)+'.pk')
+                    path = os.path.join(studyPath,'resume'+str(n)+'.pk')
                     with open(path, 'wb') as handle:
                         pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
