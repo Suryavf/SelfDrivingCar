@@ -72,16 +72,6 @@ class ImitationModel(object):
         self.save_priority_history  = False
         self.save_speed_action_plot = False
         self.speed_regularization   = self.setting.train.loss.type in ["WeightedReg","WeightedMultiTask"]
-
-        # Modules for model (build)
-        self.module = {}
-        if not self.init.is_loadedModel:
-            # Paths
-            self._checkFoldersToSave()
-
-            # Save settings
-            self.  init .save( os.path.join(self._modelPath,   "init.json") )
-            self.setting.save( os.path.join(self._modelPath,"setting.json") )
         
         # Objects
         self.optimizer = None
@@ -103,6 +93,16 @@ class ImitationModel(object):
         self.dataset  = self.setting.general.dataset
         self.CoRL2017 = (self.dataset == 'CoRL2017')
 
+        # Paths
+        self. _codePath  = None
+        self._modelPath  = None
+        self._trainPath  = None
+        self._validPath  = None
+        self._figurePath = None
+        self._figureSteerErrorPath = None
+        self._figureGasErrorPath   = None
+        self._figureBrakeErrorPath = None
+
         # Prioritized sampling
         self.samplesByTrainingFile   = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
@@ -114,15 +114,15 @@ class ImitationModel(object):
     """ Check folders to save """
     def _checkFoldersToSave(self, name = None):
         # Data Path
-        self. _validPath = self.setting.general.validPath
-        self. _trainPath = self.setting.general.trainPath
+        self._validPath = self.setting.general.validPath
+        self._trainPath = self.setting.general.trainPath
 
         # Root Path
         savedPath = self.setting.general.savedPath
         modelPath = os.path.join(savedPath,self.setting.model)
         if name is not None: self.codename = name
         else               : self.codename = U.nameDirectory()
-        execPath  = os.path.join(modelPath,self.codename )
+        execPath = os.path.join(modelPath,self.codename )
         U.checkdirectory(savedPath)
         U.checkdirectory(modelPath)
         U.checkdirectory( execPath)
@@ -180,6 +180,14 @@ class ImitationModel(object):
         self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
         self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
+        
+    def create_model(self):
+        # Paths
+        self._checkFoldersToSave()
+
+        # Save settings
+        self.  init .save( os.path.join(self._modelPath,   "init.json") )
+        self.setting.save( os.path.join(self._modelPath,"setting.json") )
 
     def to_continue(self,name,epoch = None, study=False):
         # Check paths
@@ -769,7 +777,7 @@ class ImitationModel(object):
                         dset = f.create_dataset('action'  , data=signal[  'action'])
                         dset = f.create_dataset('decision', data=signal['decision'])
 
-                    signals = U.BigDict()
+                    signal = U.BigDict()
                     n += 1 
 
                 pbar. update()

@@ -21,18 +21,20 @@ class Main():
         else:
             raise NameError('ERROR 404: Model no found')
         
-    def load(self,path):
+    def train(self):
         self.model.build()
-        self.model.load(path)
+        self.model.create_model()
+        self.model.execute()
 
     def to_continue(self,name):
         self.model.build()
         self.model.to_continue(name)
         self.model.execute()
 
-    def train(self):
+    def load(self,path):
         self.model.build()
-        self.model.execute()
+        self.model.create_model()
+        self.model.load(path)
 
     def study(self,name,epoch):
         self.model.build(                 study=True)
