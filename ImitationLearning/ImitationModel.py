@@ -696,15 +696,17 @@ class ImitationModel(object):
 
     def _storeSignals(self,measure,prediction):
         signal = {}
-
+        
         # To CPU
-        signal['image'   ] = measure["frame"].data.cpu().numpy()
+        signal['image'   ] =    measure[  'frame'  ]         .data.cpu().numpy()
+        signal['command' ] =    measure[ 'command' ]         .data.cpu().numpy()
+        signal['r_action'] =    measure[ 'actions' ]         .data.cpu().numpy()
+        signal['image'   ] =    measure[  'frame'  ]         .data.cpu().numpy()
         signal['alpha'   ] = prediction['attention']['alpha'].data.cpu().numpy()
         signal['beta'    ] = prediction['attention'][ 'beta'].data.cpu().numpy()
-        signal['feature' ] = prediction['hidden']['features'].data.cpu().numpy()
-        signal['state'   ] = prediction['hidden'][   'state'].data.cpu().numpy()
-        signal['action'  ] = prediction[ 'actions']          .data.cpu().numpy()
-        signal['decision'] = prediction['decision']          .data.cpu().numpy()
+        signal['state'   ] = prediction[  'state'  ]         .data.cpu().numpy()
+        signal['action'  ] = prediction[ 'actions' ]         .data.cpu().numpy()
+        signal['decision'] = prediction['decision' ]         .data.cpu().numpy()
         
         return signal
 
@@ -712,8 +714,8 @@ class ImitationModel(object):
     """ Run study"""
     def runStudy(self):
         # Parameters
-        savedPath = self.setting.general.savedPath
-        n = 1
+        umb = 20
+        n   = 1
 
         # Loss
         signals = U.BigDict ( )
@@ -746,13 +748,16 @@ class ImitationModel(object):
                 # Model
                 dev_pred = self.model(dev_batch)
                 host_s   = self._storeSignals(dev_batch,dev_pred)
+
+                # Update
+                host_s['id'] = i
                 signals.update(host_s)
 
-                if i%100 == 99:
+                if i%umb == (umb-1):
                     # Resume
                     signals = signals.resume()
 
-                    path = os.path.join(studyPath,'resume'+str(n)+'.pk')
+                    path = os.path.join(studyPath,'resume'+str(n)+'.sy')
                     with open(path, 'wb') as handle:
                         pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
