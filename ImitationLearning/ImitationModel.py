@@ -104,12 +104,12 @@ class ImitationModel(object):
         self._figureBrakeErrorPath = None
 
         # Prioritized sampling
-        self.samplesByTrainingFile   = self.framePerFile
+        temp = self.setting.boolean.temporalModel
+        if temp: self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
+        else   : self.samplesByTrainingFile   = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
-        if self.setting.boolean.temporalModel:
-            self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
         self.samplePriority = None # object
-
+        
 
     """ Check folders to save """
     def _checkFoldersToSave(self, name = None):
@@ -783,13 +783,6 @@ class ImitationModel(object):
                 pbar. update()
                 pbar.refresh()
             pbar.close()
-            
-        
-        
-        # Save resume
-        # print('Save evaluation resume\n')
-        # with open(os.path.join(self._modelPath,'resume.pk'), 'wb') as handle:
-        #     pickle.dump(signals, handle, protocol=pickle.HIGHEST_PROTOCOL)
             
         """
         # t-SNE
