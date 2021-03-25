@@ -11,7 +11,6 @@ n_head    = 2
 n_task    = 3
 n_sample  = 120*20
 
-"""
 # Getting data
 with h5py.File(filename, 'r') as h5_file:
     image = np.array(h5_file['image']) 
@@ -60,3 +59,4 @@ with h5py.File(filename, 'r') as h5_file:
 print(state.shape)
 print(beta.shape)
 
+"""

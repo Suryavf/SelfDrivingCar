@@ -1185,8 +1185,8 @@ class FeatureAttnNet(nn.Module):
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
         S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
-        if self.study: return S, A,   V
-        else         : return S, None,None
+        if self.study: return S,   A,   V
+        else         : return S,None,None
         
 
 class CommandNet(nn.Module):

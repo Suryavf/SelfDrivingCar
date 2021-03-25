@@ -705,16 +705,17 @@ class ImitationModel(object):
 
     def _storeSignals(self,measure,prediction):
         signal = {}
-
+        
         # To CPU
-        signal['image'   ] =    measure[  'frame'  ]         .data.cpu().numpy()
-        signal['command' ] =    measure[ 'command' ]         .data.cpu().numpy()
-        signal['r_action'] =    measure[ 'actions' ]         .data.cpu().numpy()
-        signal['alpha'   ] = prediction['attention']['alpha'].data.cpu().numpy()
-        signal['beta'    ] = prediction['attention'][ 'beta'].data.cpu().numpy()
-        signal['state'   ] = prediction[  'state'  ]         .data.cpu().numpy()
-        signal['action'  ] = prediction[ 'actions' ]         .data.cpu().numpy()
-        signal['decision'] = prediction['decision' ]         .data.cpu().numpy()
+        signal['image'   ] =    measure[  'frame'  ]           .data.cpu().numpy()
+        signal['command' ] =    measure[ 'command' ]           .data.cpu().numpy()
+        signal['r_action'] =    measure[ 'actions' ]           .data.cpu().numpy()
+        signal['alpha'   ] = prediction['attention'][ 'alpha' ].data.cpu().numpy()
+        signal['beta'    ] = prediction['attention'][  'beta' ].data.cpu().numpy()
+        signal['state'   ] = prediction[  'state'  ]           .data.cpu().numpy()
+        signal['action'  ] = prediction[  'action' ]           .data.cpu().numpy()
+        signal['feature' ] = prediction[  'signal' ]['feature'].data.cpu().numpy()
+        signal['decision'] = prediction['decision' ]           .data.cpu().numpy()
         
         return signal
 
