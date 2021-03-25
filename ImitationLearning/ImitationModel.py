@@ -106,7 +106,7 @@ class ImitationModel(object):
         # Prioritized sampling
         temp = self.setting.boolean.temporalModel
         if temp: self.samplesByTrainingFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
-        else   : self.samplesByTrainingFile   = self.framePerFile
+        else   : self.samplesByTrainingFile = self.framePerFile
         self.samplesByValidationFile = self.framePerFile
         self.samplePriority = None # object
         

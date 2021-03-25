@@ -1026,7 +1026,7 @@ class Atten14(nn.Module):
         xpl = self.wpL(hidden)  # [1,batch,a]*[a,b] = [1,batch,b]
         
         xp = self.ReLu( xpl+xpr )    # [1,batch,c]*[c,D] = [1,batch,D]
-        xp = xp.squeeze(0)                      # [1,batch,D] -> [batch,D]    
+        xp = xp.squeeze(0)           # [1,batch,D] -> [batch,D]    
 
         # Attention maps
         featurePig = self.avgPigeonholing(feature.transpose(1,2)).squeeze(2)
@@ -1076,7 +1076,7 @@ class SpatialAttnNet(nn.Module):
 
         self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()
-        self.Softmax = nn.Softmax(3)
+        self.Softmax = nn.Softmax(2)
 
     def norm4(self,x,dim=2):
         y = self.Tanh(x)**4
@@ -1185,8 +1185,8 @@ class FeatureAttnNet(nn.Module):
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
         S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
-        if self.study: return S, A
-        else         : return S, None
+        if self.study: return S, A,   V
+        else         : return S, None,None
         
 
 class CommandNet(nn.Module):

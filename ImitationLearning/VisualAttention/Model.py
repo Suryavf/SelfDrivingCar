@@ -128,7 +128,7 @@ class Approach(nn.Module):
         if   setting.general.dataset == "CoRL2017": n_task = 2
         elif setting.general.dataset == "CARLA100": n_task = 3
         else:print("ERROR: dataset no found (%s)"%self.setting.general.dataset)
-        use_decision = True if n_task == 3 else False
+        vel_manager = True if n_task == 3 else False
 
         cube_dim    = (12,24,lowDepth) 
         n_encodeCmd =  16   # Length of code command control
@@ -157,7 +157,7 @@ class Approach(nn.Module):
                                              study = study)
 
         # Policy
-        self.policy = C.MultiTaskPolicy(n_state,use_decision)
+        self.policy = C.MultiTaskPolicy(n_state,vel_manager)
 
         # Speed regularization
         self.SpeedReg = setting.train.loss.regularization
@@ -185,19 +185,21 @@ class Approach(nn.Module):
     def forward(self,batch):
         # Visual encoder
         ηt = self.lowEncoder(batch['frame'])
-        st,ht,attn = self.decoder(ηt,batch['mask'])
+        st,sig,attn = self.decoder(ηt,batch['mask'])
         at,ds = self.policy(st)
         
         # Regularization
-        if self.SpeedReg: vt = self.regularization(ht)
+        if self.SpeedReg: vt = self.regularization(sig['hidden'])
         else            : vt = None
         
         # State
-        if not self.study: st = None
+        if not self.study:   st = None
+        if not self.study:  sig = None
+        if not self.study: attn = None
 
         return {  'actions' :   at,
                  'decision' :   ds,
-                   'hidden' :   ht,
+                   'signal' :  sig,
                     'state' :   st,
                     'speed' :   vt,
                 'attention' : attn}
