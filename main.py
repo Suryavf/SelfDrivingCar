@@ -64,6 +64,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size",type=int,help="Batch size for train")
     parser.add_argument("--model"     ,type=str,help="End-to-End model: Basic, Multimodal, Codevilla18, Codevilla19, Kim2017")
 
+    parser.add_argument("--workers"   ,type=int,help="Number of CPU workers")
+
     parser.add_argument("--optimizer",type=str     ,help="Optimizer method: Adam, RAdam, Ranger, DiffGrad, DiffRGrad, DeepMemory.")
     parser.add_argument("--scheduler",type=str2bool,help="Use scheduler (boolean)")
 
@@ -78,7 +80,8 @@ if __name__ == "__main__":
     # Load setting
     if args.init    is not None: init   .load(args.   init)
     if args.setting is not None: setting.load(args.setting)
-    
+    if args.workers is not None: init.num_workers = args.worker
+
     # Model
     if args.model is not None: setting.model_( args.model )
     
