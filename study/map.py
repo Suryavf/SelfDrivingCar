@@ -17,10 +17,22 @@ with h5py.File(filename, 'r') as h5_file:
     alpha = np.array(h5_file['alpha']) 
 print('Load data done\n')
 
+"""
 # Histogram task
-#task = 0
-#plt.hist( alpha[:,:,:,:,task].reshape([n_sample*288*2]) ,bins=200)
-#plt.show()
+task = 0
+plt.subplot(3,1,1)
+plt.hist( alpha[:,:,:,:,0].reshape([n_sample*288*2]) ,bins=300)
+plt.xlim([0,1])
+
+plt.subplot(3,1,2)
+plt.hist( alpha[:,:,:,:,1].reshape([n_sample*288*2]) ,bins=300)
+plt.xlim([0,1])
+
+plt.subplot(3,1,3)
+plt.hist( alpha[:,:,:,:,2].reshape([n_sample*288*2]) ,bins=300)
+plt.xlim([0,1])
+plt.show()
+"""
 
 t = 0
 # Genera mapas de atencion en video
@@ -38,19 +50,19 @@ for attmap,sample in zip(alpha,image):
             att = attmap[h,:,:,n]
             att = cv.resize(att,None,fx=8,fy=8, interpolation = cv.INTER_CUBIC)
             att = cv.GaussianBlur(att,(9,9),0)
-            att = np.expand_dims(att,axis=0)    #  [1,H,W]
+            #att = np.expand_dims(att,axis=0)    #  [1,H,W]
 
             # Apply
-            sample = sample*att
-            heads.append( np.moveaxis(sample,0,2) )
+            sample = att #sample*att
+            heads.append( sample ) #np.moveaxis(sample,0,2) )
         tasks.append( cv.vconcat(heads) )
     plt.figure(1); plt.clf()
     plt.imshow(cv.hconcat(tasks))
     plt.title('Frame ' + str(t))
     plt.pause(0.1)
     t += 1
-"""
 
+"""
 # Getting data
 with h5py.File(filename, 'r') as h5_file:
     state = np.array(h5_file['state']) 

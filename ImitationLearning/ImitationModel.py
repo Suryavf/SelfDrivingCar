@@ -713,9 +713,8 @@ class ImitationModel(object):
         signal['beta'    ] = prediction['attention'][  'beta' ].data.cpu().numpy()
         signal['state'   ] = prediction[  'state'  ]           .data.cpu().numpy()
         signal['action'  ] = prediction[ 'actions' ]           .data.cpu().numpy()
-        signal['hidden'  ] = prediction[  'signal' ][ 'hidden'].data.cpu().numpy()
         signal['feature' ] = prediction[  'signal' ]['feature'].data.cpu().numpy()
-        signal['decision'] = prediction['decision' ]           .data.cpu().numpy()
+        signal['manager' ] = prediction[ 'manager' ]           .data.cpu().numpy()
         
         return signal
 
@@ -768,8 +767,16 @@ class ImitationModel(object):
 
                     outfile = os.path.join(studyPath,'resume'+str(n)+'.sy')
                     with h5py.File(outfile,"w") as f:
-                        dset = f.create_dataset('id', data=i)
-                        for key in signal: dset = f.create_dataset(key,data=signal[key])
+                        dset = f.create_dataset('id'      , data=         i        )
+                        dset = f.create_dataset('image'   , data=signal[   'image'])
+                        dset = f.create_dataset('command' , data=signal[ 'command'])
+                        dset = f.create_dataset('r_action', data=signal['r_action'])
+                        dset = f.create_dataset('alpha'   , data=signal[   'alpha'])
+                        dset = f.create_dataset('beta'    , data=signal[    'beta'])
+                        dset = f.create_dataset('state'   , data=signal[   'state'])
+                        dset = f.create_dataset('hidden'  , data=signal[  'hidden'])
+                        dset = f.create_dataset('action'  , data=signal[  'action'])
+                        dset = f.create_dataset('manager' , data=signal[ 'manager'])
                     signal = U.BigDict()
                     n += 1 
 

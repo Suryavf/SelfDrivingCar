@@ -186,7 +186,7 @@ class Approach(nn.Module):
         # Visual encoder
         ηt = self.lowEncoder(batch['frame'])
         st,sig,attn = self.decoder(ηt,batch['mask'])
-        at,ds = self.policy(st)
+        at,mg = self.policy(st)
         
         # Regularization
         if self.SpeedReg: vt = self.regularization(sig['hidden'])
@@ -198,7 +198,7 @@ class Approach(nn.Module):
         if not self.study: attn = None
 
         return {  'actions' :   at,
-                 'decision' :   ds,
+                  'manager' :   mg,
                    'signal' :  sig,
                     'state' :   st,
                     'speed' :   vt,
