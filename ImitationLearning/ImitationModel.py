@@ -775,8 +775,9 @@ class ImitationModel(object):
                         dset = f.create_dataset('alpha'   , data=signal[   'alpha'])
                         dset = f.create_dataset('beta'    , data=signal[    'beta'])
                         dset = f.create_dataset('state'   , data=signal[   'state'])
-                        dset = f.create_dataset('hidden'  , data=signal[  'hidden'])
                         dset = f.create_dataset('action'  , data=signal[  'action'])
+                        dset = f.create_dataset('hidden'  , data=signal[  'hidden'])
+                        dset = f.create_dataset('feature' , data=signal[ 'feature'])
                         dset = f.create_dataset('manager' , data=signal[ 'manager'])
                     signal = U.BigDict()
                     n += 1 
