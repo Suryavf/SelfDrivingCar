@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # Load setting
     if args.init    is not None: init   .load(args.   init)
     if args.setting is not None: setting.load(args.setting)
-    if args.workers is not None: init.num_workers = args.worker
+    if args.workers is not None: init.num_workers = args.workers
 
     # Model
     if args.model is not None: setting.model_( args.model )
