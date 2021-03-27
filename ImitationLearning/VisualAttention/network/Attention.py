@@ -1043,7 +1043,7 @@ class Atten14(nn.Module):
 # ------------------------------------------------------------
 class SpatialAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, cube_size,n_state,study=False):
+    def __init__(self, cube_size,n_head,n_state,study=False):
         super(SpatialAttnNet, self).__init__()
         # Parameters 
         self.high  = cube_size[0]
@@ -1056,7 +1056,7 @@ class SpatialAttnNet(nn.Module):
         # Deberian ser entrada
         self.S = n_state
 
-        self.h =  2
+        self.h = n_head
         self.d = int(self.D/self.h)
         self.hd = self.d*self.h
         self.sqrtd = self.d ** .5
@@ -1076,7 +1076,7 @@ class SpatialAttnNet(nn.Module):
 
         self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()
-        self.Softmax = nn.Softmax(3)
+        self.Softmax = nn.Softmax(2)
 
     def norm4(self,x,dim=2):
         y = self.Tanh(x)**4
@@ -1129,15 +1129,15 @@ class SpatialAttnNet(nn.Module):
 """
 class FeatureAttnNet(nn.Module):
     """ Constructor """
-    def __init__(self, n_encode, n_hidden, n_command, n_state, n_task, study=False):
+    def __init__(self, n_encode, n_hidden, n_command, n_state, n_feature, n_task, study=False):
         super(FeatureAttnNet, self).__init__()
-        self.n_features = 32
-        self.D          = n_state
-        self.sqrtDepth  = math.sqrt(self.D)
-        self.study      = study
+        self.n_feature = n_feature
+        self.D         = n_state
+        self.sqrtDepth = math.sqrt(self.D)
+        self.study     = study
 
         self.h = n_task  # Multi-task
-        self.M = self.D*int(self.n_features/2)
+        self.M = self.D*int(self.n_feature/2)
 
         # Feature 
         self.to_q  = nn.Linear(n_command, self.D*self.h, bias = False)

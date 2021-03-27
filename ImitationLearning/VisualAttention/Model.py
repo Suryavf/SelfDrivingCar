@@ -100,27 +100,29 @@ class Approach(nn.Module):
         encoder = setting.modules["Encoder"]
         if   encoder == 'ResNet34':
             # Encoder module
-            self.lowEncoder = models.resnet34(pretrained=True)
-            self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
-            HighEncoder     = E.HighResNet34() 
+            self. lowEncoder = models.resnet34(pretrained=True)
+            self. lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
+            self.highEncoder = E.HighResNet34() 
 
             # Parameters
-            n_hidden  = 1024
-            lowDepth  =  128
-            highDepth =  512
-            n_state   =   64
+            n_hidden  = 1024    # Hidden state of LSTM
+            lowDepth  =  128    # Depth of low encoder
+            highDepth =  512    # Depth of high encoder
+            n_state   =   64    # Depth of state
+            n_head    =    2    # Heads in spatial attention
 
         elif encoder == 'ResNet50': 
             # Encoder module
-            self.lowEncoder = models.resnet50(pretrained=True)
-            self.lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
-            HighEncoder     = E.HighResNet50() 
+            self. lowEncoder = models.resnet50(pretrained=True)
+            self. lowEncoder = nn.Sequential(*(list(self.lowEncoder.children())[:-4]))       
+            self.highEncoder = E.HighResNet50() 
 
             # Parameters
-            n_hidden  = 2048
-            lowDepth  =  512
-            highDepth = 2048
-            n_state   =  128
+            n_hidden  = 2048    # Hidden state of LSTM
+            lowDepth  =  512    # Depth of low encoder
+            highDepth = 2048    # Depth of high encoder
+            n_state   =  128    # Depth of state
+            n_head    =    8    # Heads in spatial attention
 
         else:
             print("ERROR: encoder no found (%s)"%encoder)
@@ -131,18 +133,20 @@ class Approach(nn.Module):
         vel_manager = True if n_task == 3 else False
 
         cube_dim    = (12,24,lowDepth) 
+        n_feature   =  32   # Number of features in feature attention
         n_encodeCmd =  16   # Length of code command control
         self.study  = study
         
         # Decoder
         cmdNet  = A.CommandNet(n_encodeCmd)                 # Command decoder
-        spaAttn = A.SpatialAttnNet(cube_dim,n_state,study)  # Spatial attention
+        spaAttn = A.SpatialAttnNet(cube_dim,n_head,n_state, # Spatial attention
+                                                    study)  
         ftrAttn = A.FeatureAttnNet(   highDepth,n_hidden,   # Feature attention
                                     n_encodeCmd,n_state,
-                                                n_task,
+                                      n_feature,n_task,
                                                 study)
         
-        self.decoder = D.CatDecoder(HighEncoderNet = HighEncoder,
+        self.decoder = D.CatDecoder(HighEncoderNet = self.highEncoder,
                                         SpatialNet = spaAttn,
                                         FeatureNet = ftrAttn,
                                         CommandNet = cmdNet,
@@ -180,6 +184,21 @@ class Approach(nn.Module):
         elif name == 'resnet50':
             return models.resnet50(pretrained=True), (512,2048)
         
+    def freezeBackbone(self):
+        for param in self. lowEncoder.parameters():
+            param.requires_grad = False
+        for param in self.highEncoder.parameters():
+            param.requires_grad = False
+        self. lowEncoder.eval()
+        self.highEncoder.eval()
+
+    def unfreeze(self):
+        for param in self. lowEncoder.parameters():
+            param.requires_grad = True
+        for param in self.highEncoder.parameters():
+            param.requires_grad = True
+        self. lowEncoder.train()
+        self.highEncoder.train()
 
     """ Forward """
     def forward(self,batch):
