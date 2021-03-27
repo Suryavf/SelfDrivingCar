@@ -1076,7 +1076,7 @@ class SpatialAttnNet(nn.Module):
 
         self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()
-        self.Softmax = nn.Softmax(2)
+        self.Softmax = nn.Softmax(3)
 
     def norm4(self,x,dim=2):
         y = self.Tanh(x)**4

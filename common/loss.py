@@ -136,7 +136,7 @@ class MultitaskLoss(object):
         # Cross entropy loss
         if self.use_decision:
             decision = self._getRawDecision(measure['actions'])
-            loss    += self.lambda_dec*self.NLLLoss(prediction['decision'],decision.long())
+            loss    += self.lambda_dec*self.NLLLoss(prediction['manager'],decision.long())
 
         # Speed regularization loss
         if self.regularization:
