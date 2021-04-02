@@ -1,15 +1,39 @@
+import os
+import glob
 import h5py
 import numpy as np
 import cv2 as cv
 from   matplotlib import pyplot as plt
 
 # Parameters
-filename  = '/media/victor/Documentos/resume1.sy'
+path      = '/media/victor/Documentos/'
 dimImage  = ( 96,192)
 dimEncode = ( 12, 24)
 n_head    = 2
 n_task    = 3
 n_sample  = 120*20
+def getint(name):
+    basename = name.partition('.')
+    _, num = basename[0].split('resume')
+    return int(num)
+filesname = glob.glob(os.path.join(path,'*.sy'))
+filesname.sort()
+
+# Big loop
+for f in filesname:
+    # Getting data
+    print('Load file',f)
+    with h5py.File(f, 'r') as h5_file:
+        image = np.array(h5_file['image']) 
+        alpha = np.array(h5_file['alpha']) 
+
+
+
+
+
+
+filename  = '/media/victor/Documentos/resume1.sy'
+
 
 # Getting data
 with h5py.File(filename, 'r') as h5_file:

@@ -13,7 +13,7 @@ class SumTree(object):
         if val is not None:
             for i in range(self.limit):
                 self.__setitem__(i,val)
-
+                
     def _update(self,idx):
         son1 = self._data[2*idx + 1]
         son2 = self._data[2*idx + 2]

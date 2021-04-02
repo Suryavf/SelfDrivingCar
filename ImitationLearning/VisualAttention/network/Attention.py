@@ -1193,8 +1193,10 @@ class CommandNet(nn.Module):
     """ Constructor """
     def __init__(self,n_encode=16):
         super(CommandNet, self).__init__()
-        self.Wc = nn.Linear( 4, n_encode, bias= True)
-        self.ReLU    = nn.ReLU()
+        self.Wc   = nn.Linear( 4, n_encode, bias= True)
+        self.ReLU = nn.ReLU()
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.Wc.weight)
 
     def forward(self,control):
         c = control*2-1
