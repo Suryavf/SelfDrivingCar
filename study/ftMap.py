@@ -2,17 +2,18 @@ import os
 import glob
 import h5py
 import numpy as np
-import cv2 as cv
 from   matplotlib import pyplot as plt
 
 # Figure list
 use_corr = True
+use_dist = True
 
 # Parameters
 path      = '/media/victor/Documentos/'
 pathout   = '/media/victor/Documentos/'
-n_feature = 32
-n_task    =  3
+n_feature =  32
+n_distr   = 200
+n_task    =   3
 def getint(name):
     basename = name.partition('.')
     _, num = basename[0].split('resume')
@@ -26,6 +27,10 @@ if use_corr:
     Sxx = np.zeros([n_task,1,n_feature])
     Sxy = np.zeros([n_task,n_feature,n_feature])
 
+# Initialize distribution
+if use_dist:
+    dist = np.zeros(n_task,n_feature,n_distr+1)
+    
 # Big loop
 for n,f in enumerate(filesname):
     # Getting data
@@ -51,11 +56,36 @@ for n,f in enumerate(filesname):
         cov  = Sxy_ - SxSy
         rxy  = cov/σxσy
 
+    # Distribution
+    if use_dist:
+        # Compute histogram
+        for t in range(n_task):
+            for k in range(n_feature):
+                dist[t,k] += np.histogram(beta[t,:,k],bins=n_distr,range=(0,1))
+
 if use_corr:
-    fig, axes = plt.subplots(nrows=1, ncols=3)
+    fig, axes = plt.subplots(nrows=1, ncols=n_task)
     fig.set_size_inches(15,5)
-    axes[0].matshow(rxy[0], cmap='coolwarm')
-    axes[1].matshow(rxy[1], cmap='coolwarm')
-    axes[2].matshow(rxy[2], cmap='coolwarm')
+    for t in range(n_task):
+        axes[t].matshow(rxy[t], cmap='coolwarm')
     plt.savefig(os.path.join(pathout,'betaCorr.svg'))
     
+
+if use_dist:
+    umb  = int(n_feature/2)
+    mode = dist.argmax(axis=2)*(1/n_distr)  # [task,feature]
+    
+    # Sort
+    argZ = mode[:,:umb].argsort(axis=1)
+    argF = mode[:,umb:].argsort(axis=1) + umb
+    arg  = np.concatenate([argZ,argF],axis=1)
+    
+    # Reorder
+    dist = dist[arg] # [n_task,n_feature,n_distr+1]
+
+    for t in range(n_task):
+        fig, axes = plt.subplots(nrows=1, ncols=2)
+        axes[0].matshow(mode[t].unsqueeze(1), cmap='coolwarm')
+        axes[1].matshow(dist[t]             , cmap='coolwarm')
+        plt.show()
+        
