@@ -3,6 +3,7 @@ import glob
 import h5py
 import numpy as np
 from   matplotlib import pyplot as plt
+from   matplotlib.colors import LogNorm
 
 # Figure list
 use_corr = True
@@ -29,7 +30,7 @@ if use_corr:
 
 # Initialize distribution
 if use_dist:
-    dist = np.zeros(n_task,n_feature,n_distr+1)
+    dist = np.zeros([n_task,n_feature,n_distr+1])
     
 # Big loop
 for n,f in enumerate(filesname):
@@ -61,31 +62,73 @@ for n,f in enumerate(filesname):
         # Compute histogram
         for t in range(n_task):
             for k in range(n_feature):
-                dist[t,k] += np.histogram(beta[t,:,k],bins=n_distr,range=(0,1))
-
-if use_corr:
-    fig, axes = plt.subplots(nrows=1, ncols=n_task)
-    fig.set_size_inches(15,5)
-    for t in range(n_task):
-        axes[t].matshow(rxy[t], cmap='coolwarm')
-    plt.savefig(os.path.join(pathout,'betaCorr.svg'))
-    
+                hist,_ = np.histogram(beta[t,:,k],bins=n_distr,range=(0,1))
+                dist[t,k] += hist
+                
 
 if use_dist:
-    umb  = int(n_feature/2)
+    # Parameters
+    umb      = int(n_feature/2)
+    max_hist = dist.max()
+
+    # Mode
     mode = dist.argmax(axis=2)*(1/n_distr)  # [task,feature]
     
     # Sort
-    argZ = mode[:,:umb].argsort(axis=1)
-    argF = mode[:,umb:].argsort(axis=1) + umb
-    arg  = np.concatenate([argZ,argF],axis=1)
-    
-    # Reorder
-    dist = dist[arg] # [n_task,n_feature,n_distr+1]
-
+    arg = list()
     for t in range(n_task):
-        fig, axes = plt.subplots(nrows=1, ncols=2)
-        axes[0].matshow(mode[t].unsqueeze(1), cmap='coolwarm')
-        axes[1].matshow(dist[t]             , cmap='coolwarm')
-        plt.show()
+        argZ =  np.argsort(mode[t,:umb],kind='stable')
+        argF =  np.argsort(mode[t,umb:],kind='stable') + umb
+        arg.append( np.concatenate([argZ,argF],axis=0) )
+        arg = np.concatenate([arg])
+
+    # Loop task
+    for t in range(n_task):
+        # Select data
+        com = mode[t,arg[t]].reshape(n_feature,1)
+        his = dist[t,arg[t]] + 1
+
+        # Plot initialize
+        fig = plt.figure(constrained_layout=False, figsize=(16,8))
+        s = fig.add_gridspec(1, 2, width_ratios = [1,20])
+        ax1 = fig.add_subplot(s[0,0])
+        ax2 = fig.add_subplot(s[0,1])
         
+        # Mode comparative
+        ax1.matshow(com, cmap='coolwarm',vmin=0,vmax=mode.max(),
+                    extent=(0,1,0,n_feature),origin='lower')
+        for i in range(n_feature): ax1.hlines(i,0,1, lw=0.5,ls=':')
+        ax1.hlines(16,0,1)
+        ax1.axis('off')
+        
+        # Histogram
+        ax2.matshow(his, cmap='coolwarm', vmin=1, vmax=max_hist, norm=LogNorm(),
+                    extent=(0,1000,0,n_feature),origin='lower')
+        for i in range(n_feature): ax2.hlines(i,0,1000, lw=0.5,ls=':')
+        ax2.hlines(umb,0,1000)
+        ax2.set_aspect('auto')
+        ax2.axis('off')
+        
+        # Save
+        plt.savefig('betaHist_task%i.svg'%(t+1),quality=900)
+else:
+    arg = np.array(range(n_feature))
+    arg = [arg for _ in range(n_task)]
+    arg = np.concatenate([arg])    
+
+
+if use_corr:
+    fig, axes = plt.subplots(nrows=1, ncols=3)
+    fig.set_size_inches(45,15)
+    umb = int(n_feature/2)
+    
+    for t in range(n_task):
+        axes[t].matshow(rxy[t,arg[t]][:,arg[t]], cmap='coolwarm',vmin=-1,vmax=1,
+                        extent=(0,n_feature,0,n_feature))
+        axes[t].axis('off')
+        for i in range(n_feature): axes[t].hlines(i,0,n_feature, lw=0.5,ls=':')
+        axes[t].hlines(umb,0,n_feature)
+        for i in range(n_feature): axes[t].vlines(i,0,n_feature, lw=0.5,ls=':')
+        axes[t].vlines(umb,0,n_feature)
+    plt.savefig('betaCorr.svg',quality=900)
+
