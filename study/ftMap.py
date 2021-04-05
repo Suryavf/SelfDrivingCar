@@ -77,10 +77,12 @@ if use_dist:
     # Sort
     arg = list()
     for t in range(n_task):
-        argZ =  np.argsort(mode[t,:umb],kind='stable')
-        argF =  np.argsort(mode[t,umb:],kind='stable') + umb
+        argZ = np.argsort(mode[t,:umb],kind='stable')
+        argF = np.argsort(mode[t,umb:],kind='stable') + umb
+        argZ = argZ[::-1]
+        argF = argF[::-1]
         arg.append( np.concatenate([argZ,argF],axis=0) )
-        arg = np.concatenate([arg])
+    arg = np.concatenate([arg])
 
     # Loop task
     for t in range(n_task):
@@ -95,15 +97,15 @@ if use_dist:
         ax2 = fig.add_subplot(s[0,1])
         
         # Mode comparative
-        ax1.matshow(com, cmap='coolwarm',vmin=0,vmax=mode.max(),
-                    extent=(0,1,0,n_feature),origin='lower')
+        ax1.matshow(com, cmap='coolwarm',vmin=0,vmax=com.max(),
+                    extent=(0,1,0,n_feature))
         for i in range(n_feature): ax1.hlines(i,0,1, lw=0.5,ls=':')
         ax1.hlines(16,0,1)
         ax1.axis('off')
         
         # Histogram
         ax2.matshow(his, cmap='coolwarm', vmin=1, vmax=max_hist, norm=LogNorm(),
-                    extent=(0,1000,0,n_feature),origin='lower')
+                    extent=(0,1000,0,n_feature))
         for i in range(n_feature): ax2.hlines(i,0,1000, lw=0.5,ls=':')
         ax2.hlines(umb,0,1000)
         ax2.set_aspect('auto')
@@ -112,6 +114,7 @@ if use_dist:
         # Save
         plt.savefig('betaHist_task%i.svg'%(t+1),quality=900)
 else:
+    # No testing
     arg = np.array(range(n_feature))
     arg = [arg for _ in range(n_task)]
     arg = np.concatenate([arg])    
@@ -131,4 +134,4 @@ if use_corr:
         for i in range(n_feature): axes[t].vlines(i,0,n_feature, lw=0.5,ls=':')
         axes[t].vlines(umb,0,n_feature)
     plt.savefig('betaCorr.svg',quality=900)
-
+    
