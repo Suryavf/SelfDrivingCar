@@ -6,8 +6,9 @@ from   matplotlib import pyplot as plt
 from   matplotlib.colors import LogNorm
 
 # Figure list
-use_corr = True
-use_dist = True
+use_corr = True # Beta correlation
+use_dist = True # Beta distribution
+use_fSim = True # Feature similarity
 
 # Parameters
 path      = '/media/victor/Documentos/'
@@ -22,26 +23,34 @@ def getint(name):
 filesname = glob.glob(os.path.join(path,'*.sy'))
 filesname.sort(key=getint)
 
-# Initialize correlation
+# Initialize beta correlation
 if use_corr:
     Sx  = np.zeros([n_task,1,n_feature])
     Sxx = np.zeros([n_task,1,n_feature])
     Sxy = np.zeros([n_task,n_feature,n_feature])
 
-# Initialize distribution
+# Initialize beta distribution
 if use_dist:
     dist = np.zeros([n_task,n_feature,n_distr+1])
     
+# Initialize feature similarity
+if use_fSim:
+    sumFtSim = np.zeros([n_task,n_feature,n_feature])
+
 # Big loop
 for n,f in enumerate(filesname):
     # Getting data
     print('Load file',f)
     with h5py.File(f, 'r') as h5_file:
-        beta = np.array(h5_file['beta'])
-        beta = beta.squeeze()
-        beta = beta.transpose(1,0,2)    # [task,batch,feature]
+        if use_corr or use_dist:
+            beta = np.array(h5_file['beta'])
+            beta = beta.squeeze()
+            beta = beta.transpose(1,0,2)    # [task,batch,feature]
+        if use_fSim:
+            feature = np.array(h5_file['feature'])
+            feature = feature.squeeze()     # [batch,task,depth,feature]
 
-    # Correlation
+    # Beta correlation
     if use_corr:
         Sx  +=  beta    .mean(axis=1,keepdims=True)
         Sxx += (beta**2).mean(axis=1,keepdims=True)
@@ -57,7 +66,7 @@ for n,f in enumerate(filesname):
         cov  = Sxy_ - SxSy
         rxy  = cov/σxσy
 
-    # Distribution
+    # Beta distribution
     if use_dist:
         # Compute histogram
         for t in range(n_task):
@@ -65,6 +74,16 @@ for n,f in enumerate(filesname):
                 hist,_ = np.histogram(beta[t,:,k],bins=n_distr,range=(0,1))
                 dist[t,k] += hist
                 
+    # Feature similarity
+    if use_fSim:
+        # Compute direction
+        mod = np.linalg.norm(feature, ord=2, axis=2, keepdims=True)
+        direc = feature/mod     # [batch,task,depth,feature]
+        
+        # Compute similarity
+        sumFtSim += np.matmul(direc.transpose(0,1,3,2),direc).mean(axis=0)
+        ftSim = sumFtSim/(n+1)  # [task,n_feat,n_feat]
+
 
 if use_dist:
     # Parameters
