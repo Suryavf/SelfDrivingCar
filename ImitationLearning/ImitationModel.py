@@ -723,14 +723,15 @@ class ImitationModel(object):
     """ Run study"""
     def runStudy(self):
         # Parameters
-        umb = 20
-        n   = 1
-
+        n    =  0    # Last file
+        umb  = 20    # Interations per file
+        bias = n*umb*self.setting.general.batch_size
+        
         # Loss
         signal = U.BigDict ( )
 
         # ID list
-        imID = self.validDataset.generateIDs(True)
+        imID = self.validDataset.generateIDs(eval=True,init=bias)
         loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers,
@@ -744,7 +745,7 @@ class ImitationModel(object):
         pathModel = os.path.join(self._modelPath,"model" + str(self.epoch) + ".pth" )
         checkpoint = torch.load(pathModel)
         self.model.load_state_dict(checkpoint['state_dict'])
-
+        
         # Model to evaluation
         self.model.eval()
         print('Running study')
@@ -765,10 +766,10 @@ class ImitationModel(object):
                 if i%umb == (umb-1):
                     # Resume
                     signal = signal.resume()
-
+                    n += 1 # New file
                     outfile = os.path.join(studyPath,'resume'+str(n)+'.sy')
                     with h5py.File(outfile,"w") as f:
-                        dset = f.create_dataset('id'      , data=         i        )
+                        dset = f.create_dataset('id'      , data=      i+bias      )
                         dset = f.create_dataset('image'   , data=signal[   'image'])
                         dset = f.create_dataset('command' , data=signal[ 'command'])
                         dset = f.create_dataset('r_action', data=signal['r_action'])
@@ -780,8 +781,6 @@ class ImitationModel(object):
                         dset = f.create_dataset('feature' , data=signal[ 'feature'])
                         dset = f.create_dataset('manager' , data=signal[ 'manager'])
                     signal = U.BigDict()
-                    n += 1 
-
                 pbar. update()
                 pbar.refresh()
             pbar.close()

@@ -122,12 +122,12 @@ class CoRL2017Dataset(object):
         self.transform = transforms.Compose(trans)
 
     # Por ahora solo sequence
-    def generateIDs(self,eval=False):
+    def generateIDs(self,eval=False,init=0):
         n_samples = len(self.files)*self.samplesPerFile
         if eval:
             # All samples of image
-            imageID = np.array( range(n_samples) )
-
+            imageID = np.array( range(init,n_samples) )
+            
             # Don't worry, be happy
             return imageID.astype(int)
 
@@ -135,7 +135,7 @@ class CoRL2017Dataset(object):
             # Temporal
             # IDs = [file 1][file 2]....
             # len([file 1]) = sequence_len* int( (framePerFile-sequence_len)/slidingWindow + 1 ) 
-            sampleID = np.array( range(n_samples) )
+            sampleID = np.array( range(init,n_samples) )
             imageID  = self.sampleID2imageID(sampleID)
 
             return sampleID.astype(int),imageID.astype(int)
@@ -364,7 +364,7 @@ class CARLA100Dataset(object):
         # TODO Only for CARLA 100 (big dataset)
         self.slidingWindow = setting.general.slidingWindow
         self.sequence_len  = setting.general.sequence_len
-
+        
         # Objects
         self.transform = None
         
