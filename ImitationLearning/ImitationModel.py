@@ -781,6 +781,8 @@ class ImitationModel(object):
                         dset = f.create_dataset('feature' , data=signal[ 'feature'])
                         dset = f.create_dataset('manager' , data=signal[ 'manager'])
                     signal = U.BigDict()
+                    pbar.set_description( 'File %i' % n )
+                    pbar.refresh()
                 pbar. update()
                 pbar.refresh()
             pbar.close()

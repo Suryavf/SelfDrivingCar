@@ -403,12 +403,13 @@ class CARLA100Dataset(object):
         self.transform = transforms.Compose(trans)
 
     # Por ahora solo sequence
-    def generateIDs(self,eval=False):
+    def generateIDs(self,eval=False,init=0):
         n_samples = len(self.files)
         if eval:
-            imageID = np.array( range(n_samples) )
+            imageID = np.array( range(init,n_samples) )
             return imageID.astype(int)
         else:
+            # TODO NO esta implementado init
             sampleID = np.array( range(int(n_samples/self.slidingWindow))  )
             imageID  = np.array( range(n_samples) )
             return sampleID.astype(int),imageID.astype(int)
