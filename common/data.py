@@ -235,6 +235,10 @@ class FileTree(object):
         data = self.getFileIdx(path) # pd.read_csv(os.path.join(path,index))
         n_files = len(data)
 
+
+        data.to_csv('data.csv')
+
+
         self.n_files = n_files
         self.n_leaf  = int(2**np.ceil(np.log2(n_files)))
         self.n_nodes = 2*self.n_leaf - 1
