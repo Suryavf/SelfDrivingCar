@@ -429,6 +429,31 @@ class TVADecoder(nn.Module):
 #
 #
 # ------------------------------------------------------------------------------------------------
+class GatingMechanism(torch.nn.Module):
+    def __init__(self, d_input, bg=0.1):
+        super(GatingMechanism, self).__init__()
+        self.Wr = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.Ur = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.Wg = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.Ug = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.bg = bg
+
+        self.sigmoid = torch.nn.Sigmoid()
+        self.tanh = torch.nn.Tanh()
+
+    def forward(self, x, y):
+        # print('x:',x.shape)
+        # print('y:',y.shape)
+        
+        r = self.sigmoid(self.Wr(y) + self.Ur(x))
+        z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
+        h = self.tanh(self.Wg(y) + self.Ug(torch.mul(r, x)))
+        g = torch.mul(1 - z, x) + torch.mul(z, h)
+        return g
+        
+
 class CatDecoder(nn.Module):
     """ Constructor """
     def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
@@ -451,6 +476,8 @@ class CatDecoder(nn.Module):
         self.FeatureAttn =     FeatureNet
         self. CmdDecoder =     CommandNet
 
+        self.GRU = GatingMechanism(LowLevelDim)
+        
         # Output
         self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
         self.lstm = nn.LSTM(  input_size = self.R,
@@ -544,8 +571,8 @@ class CatDecoder(nn.Module):
 
             # Spatial Attention
             xt, αt = self.SpatialAttn(ηt,st)
-            xt = self.normSpa(xt)
-            xt = self.ReLU(ηt + xt)
+            #xt = self.normSpa(xt)
+            xt = self.GRU(ηt,xt)# self.ReLU(ηt + xt)
             
             # High-level encoder
             zt = self.HighEncoder(xt)

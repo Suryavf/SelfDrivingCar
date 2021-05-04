@@ -4,22 +4,26 @@ import torch.nn as nn
 class Gating(nn.Module):
     def __init__(self, d_input, bg=0.1):
         super(Gating, self).__init__()
-        self.Wr = nn.Linear(d_input, d_input)
-        self.Ur = nn.Linear(d_input, d_input)
-        self.Wz = nn.Linear(d_input, d_input)
-        self.Uz = nn.Linear(d_input, d_input)
-        self.Wg = nn.Linear(d_input, d_input)
-        self.Ug = nn.Linear(d_input, d_input)
+        self.Wr = nn.Linear(2*d_input, d_input, bias=False)
+        self.Wz = nn.Linear(2*d_input, d_input, bias=False)
+        self.Wh = nn.Linear(2*d_input, d_input, bias=False)
         self.bg = bg
 
-        self.sigmoid = nn.Sigmoid()
-        self.tanh    = nn.Tanh()
+        self.Sigmoid = nn.Sigmoid()
+        self.Tanh    = nn.Tanh()
 
+    """ Forward 
+          - x,y [batch,L,D]
+    """
     def forward(self, x, y):
-        r = self.sigmoid(self.Wr(y) + self.Ur(x))
-        z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
-        h = self.tanh(self.Wg(y) + self.Ug(torch.mul(r, x)))
+        # Concatenate
+        xy = torch.cat([x,y],dim=1)
 
+        r = self.Sigmoid( self.Wr(xy)           )
+        z = self.Sigmoid( self.Wz(xy) - self.bg )
+
+        h = torch.cat([y,r*x],dim=1)
+        h = self.Tanh( h )
         g = (1-z)*x + z*h
         return g
         
