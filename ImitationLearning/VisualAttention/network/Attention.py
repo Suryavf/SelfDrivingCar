@@ -1064,7 +1064,7 @@ class SpatialAttnNet(nn.Module):
         # Spatial 
         self.to_q = nn.Conv2d(self.D, self.hd, 1, bias = False)
         self.to_v = nn.Conv2d(self.D, self.hd, 1, bias = False)
-        self.to_k = nn.Linear(self.S, self.hd, bias = False)
+        self.to_k = nn.Linear(self.S, self.hd,    bias = False)
 
         self.fc = nn.Linear(self.hd, self.D)
 
@@ -1074,8 +1074,10 @@ class SpatialAttnNet(nn.Module):
         torch.nn.init.xavier_uniform_(self.to_v.weight)
         torch.nn.init.xavier_uniform_(self. fc .weight)
 
-        self.normSpa = nn.LayerNorm(self.D)
-        self.normFtr = nn.LayerNorm(self.S)
+        self.normSpa = nn.LayerNorm([self.D,self.high,self.width])
+        self.normFtr = nn.LayerNorm( self.S )
+        # self.normSpa = nn.LayerNorm(self.D)
+        # self.normFtr = nn.LayerNorm(self.S)
 
         self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()

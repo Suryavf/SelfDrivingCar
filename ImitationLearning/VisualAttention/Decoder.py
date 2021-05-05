@@ -441,7 +441,7 @@ class GatingMechanism(torch.nn.Module):
         self.bg = bg
 
         self.sigmoid = torch.nn.Sigmoid()
-        self.tanh = torch.nn.Tanh()
+        self.tanh    = torch.nn.Tanh()
 
     def forward(self, x, y):
         # print('x:',x.shape)

@@ -1,7 +1,7 @@
 {
     "model": "Approach",
     "modules": {
-        "Encoder"  : "ResNet50",
+        "Encoder"  : "ResNet34",
         "Decoder"  : "TVADecoder",
         "Attention": "Atten11",
         "Control"  : "SeqModule"
