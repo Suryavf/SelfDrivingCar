@@ -1074,7 +1074,7 @@ class SpatialAttnNet(nn.Module):
         torch.nn.init.xavier_uniform_(self.to_v.weight)
         torch.nn.init.xavier_uniform_(self. fc .weight)
 
-        self.normSpa = nn.LayerNorm([self.D,self.high,self.width])
+        self.normSpa = nn.GroupNorm( 1,self.D )
         self.normFtr = nn.LayerNorm( self.S )
         # self.normSpa = nn.LayerNorm(self.D)
         # self.normFtr = nn.LayerNorm(self.S)
@@ -1189,8 +1189,8 @@ class FeatureAttnNet(nn.Module):
         # Attention 
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
         #mV = torch.abs(V).mean(2).unsqueeze(3)         # [batch,h,n,1]
-        mV = torch.norm(V, p=1, dim=2).unsqueeze(3)
-        A  = self.Softmax(mV*QK/self.D)         # [batch,h,n,1]
+        mV = torch.norm(V, p=1, dim=2).unsqueeze(3)/self.D
+        A  = self.Softmax(mV*QK/self.sqrtDepth)         # [batch,h,n,1]
 
         # Apply
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]

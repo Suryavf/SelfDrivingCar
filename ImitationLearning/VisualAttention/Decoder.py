@@ -452,6 +452,27 @@ class GatingMechanism(torch.nn.Module):
         h = self.tanh(self.Wg(y) + self.Ug(torch.mul(r, x)))
         g = torch.mul(1 - z, x) + torch.mul(z, h)
         return g
+
+
+class GatingMechanism2(torch.nn.Module):
+    def __init__(self, d_input, bg=0.1):
+        super(GatingMechanism2, self).__init__()
+        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=True , stride=1)
+        self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
+        self.bg = bg
+
+        self.sigmoid = torch.nn.Sigmoid()
+        self.tanh    = torch.nn.Tanh()
+
+    def init_bias(self):
+        with torch.no_grad():
+            self.Wz.bias.fill_(-2)  # Manually setting this bias to allow starting with markov process
+            # Note -2 is the setting used in the paper stable transformers
+
+    def forward(self, x, y):
+        z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
+        g = torch.mul(1 - z, x) + torch.mul(z, y)
+        return g    
         
 
 class CatDecoder(nn.Module):
