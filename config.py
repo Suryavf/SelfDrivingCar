@@ -374,19 +374,21 @@ class _Loss_settings(object):
 
     def load(self,data):
         if "type" in data:
-            self.type          = data[         "type"]
+            self.type           = data[          "type"]
+        if "regularization" in data:
+            self.regularization = data["regularization"]
         if "lambda_gas" in data:
-            self.lambda_gas    = data[   "lambda_gas"]
+            self.lambda_gas     = data[    "lambda_gas"]
         if "lambda_steer" in data:
-            self.lambda_steer  = data[ "lambda_steer"]
+            self.lambda_steer   = data[  "lambda_steer"]
         if "lambda_brake" in data:
-            self.lambda_brake  = data[ "lambda_brake"]
+            self.lambda_brake   = data[  "lambda_brake"]
         if "lambda_desc" in data:
-            self.lambda_brake  = data[  "lambda_desc"]
+            self.lambda_brake   = data[   "lambda_desc"]
         if "lambda_speed" in data:
-            self.lambda_speed  = data[ "lambda_speed"]
+            self.lambda_speed   = data[  "lambda_speed"]
         if "lambda_action" in data:
-            self.lambda_action = data["lambda_action"]
+            self.lambda_action  = data[ "lambda_action"]
 
     def print(self):
         if self.type is "Weighted":
@@ -414,13 +416,14 @@ class _Loss_settings(object):
 
     def save(self):
         return {
-            "type"          : self.         type,
-            "lambda_gas"    : self.   lambda_gas,
-            "lambda_steer"  : self. lambda_steer,
-            "lambda_brake"  : self. lambda_brake,
-            "lambda_desc"   : self.  lambda_desc,
-            "lambda_speed"  : self. lambda_speed,
-            "lambda_action" : self.lambda_action
+            "type"          : self.          type,
+            "regularization": self.regularization,
+            "lambda_gas"    : self.    lambda_gas,
+            "lambda_steer"  : self.  lambda_steer,
+            "lambda_brake"  : self.  lambda_brake,
+            "lambda_desc"   : self.   lambda_desc,
+            "lambda_speed"  : self.  lambda_speed,
+            "lambda_action" : self. lambda_action
         }
 
 
