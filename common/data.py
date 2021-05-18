@@ -110,6 +110,8 @@ class CoRL2017Dataset(object):
             self.slidingWindow  = setting.general.slidingWindow
             self.samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 )
         else:
+            self.sequence_len   = 1
+            self.slidingWindow  = 1
             self.samplesPerFile = self.framePerFile
 
 

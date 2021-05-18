@@ -1075,9 +1075,7 @@ class SpatialAttnNet(nn.Module):
         torch.nn.init.xavier_uniform_(self. fc .weight)
 
         self.normSpa = nn.GroupNorm( 1,self.D )
-        self.normFtr = nn.LayerNorm( self.S )
-        # self.normSpa = nn.LayerNorm(self.D)
-        # self.normFtr = nn.LayerNorm(self.S)
+        self.normFtr = nn.LayerNorm(   self.S )
 
         self.Tanh    = nn.Tanh()
         self.ReLu    = nn.ReLU()
@@ -1155,6 +1153,8 @@ class FeatureAttnNet(nn.Module):
         self.to_vz = nn.Linear( n_encode, self.M*self.h, bias = False)
         self.to_vh = nn.Linear( n_hidden, self.M*self.h, bias = False)
         
+        self.normF = nn.LayerNorm( n_encode )
+        self.normH = nn.LayerNorm( n_hidden )
         self.Softmax = nn.Softmax(2)
         
         # Initialization
@@ -1176,6 +1176,9 @@ class FeatureAttnNet(nn.Module):
         # d: size of state (depth)
         # n: number of features Fn
 
+        feature = self.normF(feature)
+        hidden  = self.normH( hidden)
+
         # Query, key, value
         Q = self.to_q(command)              # [batch,hd]
         Kz,Kh = self.to_kz(feature),self.to_kh( hidden)
@@ -1188,8 +1191,7 @@ class FeatureAttnNet(nn.Module):
         
         # Attention 
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
-        #mV = torch.abs(V).mean(2).unsqueeze(3)         # [batch,h,n,1]
-        mV = torch.norm(V, p=1, dim=2).unsqueeze(3)/self.D
+        mV = torch.norm(V,p=1,dim=2).unsqueeze(3)/self.D# [batch,h,n,1]
         A  = self.Softmax(mV*QK/self.sqrtDepth)         # [batch,h,n,1]
 
         # Apply

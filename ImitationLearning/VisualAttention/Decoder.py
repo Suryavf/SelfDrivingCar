@@ -429,9 +429,9 @@ class TVADecoder(nn.Module):
 #
 #
 # ------------------------------------------------------------------------------------------------
-class GatingMechanism(torch.nn.Module):
+class GRUGate(torch.nn.Module):
     def __init__(self, d_input, bg=0.1):
-        super(GatingMechanism, self).__init__()
+        super(GRUGate, self).__init__()
         self.Wr = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
         self.Ur = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
         self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
@@ -444,9 +444,6 @@ class GatingMechanism(torch.nn.Module):
         self.tanh    = torch.nn.Tanh()
 
     def forward(self, x, y):
-        # print('x:',x.shape)
-        # print('y:',y.shape)
-        
         r = self.sigmoid(self.Wr(y) + self.Ur(x))
         z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
         h = self.tanh(self.Wg(y) + self.Ug(torch.mul(r, x)))
@@ -454,9 +451,9 @@ class GatingMechanism(torch.nn.Module):
         return g
 
 
-class GatingMechanism2(torch.nn.Module):
+class Gate(torch.nn.Module):
     def __init__(self, d_input, bg=0.1):
-        super(GatingMechanism2, self).__init__()
+        super(Gate, self).__init__()
         self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=True , stride=1)
         self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
         self.bg = bg
@@ -497,7 +494,7 @@ class CatDecoder(nn.Module):
         self.FeatureAttn =     FeatureNet
         self. CmdDecoder =     CommandNet
 
-        self.GRU = GatingMechanism(LowLevelDim)
+        self.GRU = GRUGate(LowLevelDim)
         
         # Output
         self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
@@ -592,8 +589,7 @@ class CatDecoder(nn.Module):
 
             # Spatial Attention
             xt, αt = self.SpatialAttn(ηt,st)
-            #xt = self.normSpa(xt)
-            xt = self.GRU(ηt,xt)# self.ReLU(ηt + xt)
+            xt = self.GRU(ηt,xt)
             
             # High-level encoder
             zt = self.HighEncoder(xt)
