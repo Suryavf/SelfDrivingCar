@@ -443,6 +443,15 @@ class GRUGate(torch.nn.Module):
         self.sigmoid = torch.nn.Sigmoid()
         self.tanh    = torch.nn.Tanh()
 
+        # Initialization
+        # self.Wz.bias.data.fill_(-2)
+        torch.nn.init.xavier_uniform_(self.Wr.weight)
+        torch.nn.init.xavier_uniform_(self.Ur.weight)
+        torch.nn.init.xavier_uniform_(self.Wz.weight)
+        torch.nn.init.xavier_uniform_(self.Uz.weight)
+        torch.nn.init.xavier_uniform_(self.Wg.weight)
+        torch.nn.init.xavier_uniform_(self.Ug.weight)
+        
     def forward(self, x, y):
         r = self.sigmoid(self.Wr(y) + self.Ur(x))
         z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
@@ -454,12 +463,17 @@ class GRUGate(torch.nn.Module):
 class Gate(torch.nn.Module):
     def __init__(self, d_input, bg=0.1):
         super(Gate, self).__init__()
-        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=True , stride=1)
+        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
         self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
         self.bg = bg
 
         self.sigmoid = torch.nn.Sigmoid()
         self.tanh    = torch.nn.Tanh()
+
+        # Initialization
+        # self.Wz.bias.data.fill_(-2)
+        torch.nn.init.xavier_uniform_(self.Wz.weight)
+        torch.nn.init.xavier_uniform_(self.Uz.weight)
 
     def init_bias(self):
         with torch.no_grad():
