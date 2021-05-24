@@ -1147,6 +1147,7 @@ class FeatureAttnNet(nn.Module):
         self.M = self.D*int(self.n_feature/2)
 
         # Feature 
+        self.to_q  = nn.Linear(n_command, self.D*self.h, bias = False)
         self.to_kz = nn.Linear( n_encode, self.M*self.h, bias = False)
         self.to_kh = nn.Linear( n_hidden, self.M*self.h, bias = False)
         self.to_vz = nn.Linear( n_encode, self.M*self.h, bias = False)
@@ -1157,6 +1158,7 @@ class FeatureAttnNet(nn.Module):
         self.Softmax = nn.Softmax(2)
         
         # Initialization
+        torch.nn.init.xavier_uniform_(self.to_q .weight)
         torch.nn.init.xavier_uniform_(self.to_kz.weight)
         torch.nn.init.xavier_uniform_(self.to_kh.weight)
         torch.nn.init.xavier_uniform_(self.to_vz.weight)
@@ -1177,6 +1179,7 @@ class FeatureAttnNet(nn.Module):
         hidden  = self.normH( hidden)
 
         # Query, key, value
+        Q = self.to_q(command)              # [batch,hd]
         Kz,Kh = self.to_kz(feature),self.to_kh( hidden)
         K = torch.cat([Kz,Kh],dim=1)        # [batch,hdn]
         Vz,Vh = self.to_vz(feature), self.to_vh(hidden)
@@ -1220,15 +1223,14 @@ class FeatureAttnNet2(nn.Module):
 
         # Feature 
         self.wz = nn.Linear( n_encode, self.M, bias = False)
-        self.wh = nn.Linear( n_encode, self.M, bias = False)
+        self.wh = nn.Linear( n_hidden, self.M, bias = False)
 
-        self.to_q = nn.Linear(self.D, self.n_feature*self.D*self.h, bias = False)
-        self.to_k = nn.Linear(self.D, self.n_feature*self.D*self.h, bias = False)
-        self.to_v = nn.Linear(self.D, self.n_feature*self.D*self.h, bias = False)
+        self.to_q = nn.Linear(n_command, self.D*self.h, bias = False)
+        self.to_k = nn.Linear(  self.D , self.D*self.h, bias = False)
+        self.to_v = nn.Linear(  self.D , self.D*self.h, bias = False)
         
         self.Lnorm   = nn.LayerNorm( n_feature*n_state )
         self.Softmax = nn.Softmax(2)
-        self.GeLu    = nn.GELU()
         
         # Initialization
         torch.nn.init.xavier_uniform_(self. wz .weight)
@@ -1249,8 +1251,8 @@ class FeatureAttnNet2(nn.Module):
         # d: size of state (depth)
         # n: number of features Fn
 
-        z = self.GeLu(self.wz(feature)) # [batch,dn/2]
-        h = self.GeLu(self.wh( hidden)) # [batch,dn/2]
+        z = F.gelu(self.wz(feature)) # [batch,dn/2]
+        h = F.gelu(self.wh( hidden)) # [batch,dn/2]
         # z,h = map(lambda x: x.reshape(batch,-1,self.D),[z,h])
         y = torch.cat([z,h],dim=1)      # [batch,dn]
         y = self.Lnorm(y)               # [batch,dn]
@@ -1258,8 +1260,8 @@ class FeatureAttnNet2(nn.Module):
 
         # Query, key, value
         Q = self.to_q(command)              # [batch,hd]
-        K = self.to_k(y).transpose(0,2,1)   # [batch,n,hd] -> [batch,hd,n]
-        V = self.to_v(y).transpose(0,2,1)   # [batch,n,hd] -> [batch,hd,n]
+        K = self.to_k(y).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+        V = self.to_v(y).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
 
         Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # K,V -> [batch,h,d,n]
                                                                             #  Q  -> [batch,h,d,1]
