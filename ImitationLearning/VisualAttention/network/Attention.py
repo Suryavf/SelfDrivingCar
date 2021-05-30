@@ -1229,7 +1229,7 @@ class FeatureAttnNet2(nn.Module):
         self.to_k = nn.Linear(  self.D , self.D*self.h, bias = False)
         self.to_v = nn.Linear(  self.D , self.D*self.h, bias = False)
         
-        self.Lnorm   = nn.LayerNorm( n_feature*n_state )
+        self.Lnorm   = nn.LayerNorm( n_state )
         self.Softmax = nn.Softmax(2)
         
         # Initialization
@@ -1255,8 +1255,8 @@ class FeatureAttnNet2(nn.Module):
         h = F.gelu(self.wh( hidden)) # [batch,dn/2]
         # z,h = map(lambda x: x.reshape(batch,-1,self.D),[z,h])
         y = torch.cat([z,h],dim=1)      # [batch,dn]
-        y = self.Lnorm(y)               # [batch,dn]
         y = y.reshape(batch,-1,self.D)  # [batch,n,d]
+        y = self.Lnorm(y)               # [batch,n,d]
 
         # Query, key, value
         Q = self.to_q(command)              # [batch,hd]
@@ -1268,14 +1268,15 @@ class FeatureAttnNet2(nn.Module):
         
         # Attention 
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
-        mV = torch.norm(V,p=1,dim=2).unsqueeze(3)/self.D# [batch,h,n,1]
+        mV = torch.norm(y,p=1,dim=2)/self.D             # [batch,n]
+        mV = mV.unsqueeze(2).unsqueeze(1)               # [batch,1,n,1]
         A  = self.Softmax(mV*QK/self.sqrtDepth)         # [batch,h,n,1]
 
         # Apply
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
         S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
-        if self.study: return S,   A,   V
+        if self.study: return S,   A,   y
         else         : return S,None,None
 
 
