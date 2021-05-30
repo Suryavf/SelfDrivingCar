@@ -141,7 +141,7 @@ class Approach(nn.Module):
         cmdNet  = A.CommandNet(n_encodeCmd)                 # Command decoder
         spaAttn = A.SpatialAttnNet(cube_dim,n_head,n_state, # Spatial attention
                                                     study)  
-        ftrAttn = A.FeatureAttnNet(   highDepth,n_hidden,   # Feature attention
+        ftrAttn = A.FeatureAttnNet2(  highDepth,n_hidden,   # Feature attention
                                     n_encodeCmd,n_state,
                                       n_feature,n_task,
                                                 study)
