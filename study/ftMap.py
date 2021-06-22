@@ -28,7 +28,7 @@ if use_corr:
     Sx  = np.zeros([n_task,1,n_feature])
     Sxx = np.zeros([n_task,1,n_feature])
     Sxy = np.zeros([n_task,n_feature,n_feature])
-
+    
 # Initialize beta distribution
 if use_dist:
     dist = np.zeros([n_task,n_feature,n_distr+1])

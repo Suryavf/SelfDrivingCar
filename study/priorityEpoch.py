@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 import common.prioritized
-
-
+"""
+Evolucion de priority en train
+==============================
+"""
 dir_ = '/home/victor/Descargas/prior'
 priorityFiles = glob.glob(os.path.join(dir_,'*.pck'))
 priorityFiles.sort()
