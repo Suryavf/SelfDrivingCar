@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.pck
 
+# Out files
+*.svg
+
 # C extensions
 *.so
 
