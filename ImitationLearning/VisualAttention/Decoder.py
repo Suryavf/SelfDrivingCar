@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from IPython.core.debugger import set_trace
 
+import ImitationLearning.VisualAttention.network.Gate as G
+
 """ Basic Decoder Module
     --------------------
     Ref: Kim, J., & Canny, J. (2017). "Interpretable learning for self-driving 
@@ -429,63 +431,6 @@ class TVADecoder(nn.Module):
 #
 #
 # ------------------------------------------------------------------------------------------------
-class GRUGate(torch.nn.Module):
-    def __init__(self, d_input, bg=0.1):
-        super(GRUGate, self).__init__()
-        self.Wr = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Ur = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Wg = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Ug = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.bg = bg
-
-        self.sigmoid = torch.nn.Sigmoid()
-        self.tanh    = torch.nn.Tanh()
-
-        # Initialization
-        # self.Wz.bias.data.fill_(-2)
-        torch.nn.init.xavier_uniform_(self.Wr.weight)
-        torch.nn.init.xavier_uniform_(self.Ur.weight)
-        torch.nn.init.xavier_uniform_(self.Wz.weight)
-        torch.nn.init.xavier_uniform_(self.Uz.weight)
-        torch.nn.init.xavier_uniform_(self.Wg.weight)
-        torch.nn.init.xavier_uniform_(self.Ug.weight)
-        
-    def forward(self, x, y):
-        r = self.sigmoid(self.Wr(y) + self.Ur(x))
-        z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
-        h = self.tanh(self.Wg(y) + self.Ug(torch.mul(r, x)))
-        g = torch.mul(1 - z, x) + torch.mul(z, h)
-        return g
-
-
-class Gate(torch.nn.Module):
-    def __init__(self, d_input, bg=0.1):
-        super(Gate, self).__init__()
-        self.Wz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.Uz = torch.nn.Conv2d(d_input, d_input, kernel_size = 1, bias=False, stride=1)
-        self.bg = bg
-
-        self.sigmoid = torch.nn.Sigmoid()
-        self.tanh    = torch.nn.Tanh()
-
-        # Initialization
-        # self.Wz.bias.data.fill_(-2)
-        torch.nn.init.xavier_uniform_(self.Wz.weight)
-        torch.nn.init.xavier_uniform_(self.Uz.weight)
-
-    def init_bias(self):
-        with torch.no_grad():
-            self.Wz.bias.fill_(-2)  # Manually setting this bias to allow starting with markov process
-            # Note -2 is the setting used in the paper stable transformers
-
-    def forward(self, x, y):
-        z = self.sigmoid(self.Wz(y) + self.Uz(x) - self.bg)
-        g = torch.mul(1 - z, x) + torch.mul(z, y)
-        return g    
-        
-
 class CatDecoder(nn.Module):
     """ Constructor """
     def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
@@ -508,7 +453,7 @@ class CatDecoder(nn.Module):
         self.FeatureAttn =     FeatureNet
         self. CmdDecoder =     CommandNet
 
-        self.GRU = GRUGate(LowLevelDim)
+        self.Gate = G.GRUGate(LowLevelDim)
         
         # Output
         self.dimReduction = nn.Conv2d(HighLevelDim,self.R, kernel_size=1, bias=False)
@@ -603,7 +548,7 @@ class CatDecoder(nn.Module):
 
             # Spatial Attention
             xt, αt = self.SpatialAttn(ηt,st)
-            xt = self.GRU(ηt,xt)
+            xt = self.Gate(ηt,xt)
             
             # High-level encoder
             zt = self.HighEncoder(xt)
