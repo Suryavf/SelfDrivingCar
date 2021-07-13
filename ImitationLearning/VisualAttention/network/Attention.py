@@ -1142,6 +1142,7 @@ class FeatureAttnNet(nn.Module):
         self.D         = n_state
         self.sqrtDepth = math.sqrt(self.D)
         self.study     = study
+        self.magF      = False
 
         self.h = n_task  # Multi-task
         self.M = self.D*int(self.n_feature/2)
@@ -1192,8 +1193,12 @@ class FeatureAttnNet(nn.Module):
         
         # Attention 
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
-        mV = torch.norm(y,p=1,dim=2)/self.D             # [batch,n]
-        mV = mV.unsqueeze(2).unsqueeze(1)               # [batch,1,n,1]
+        if self.magF:
+            mV = torch.norm(y,p=1,dim=2)/self.D         # [batch,n]
+            mV = mV.unsqueeze(2).unsqueeze(1)           # [batch,1,n,1]
+        else:
+            mV = torch.norm(V,p=1,dim=2)/self.D         # [batch,h,n]
+            mV = mV.unsqueeze(3)                        # [batch,h,n,1]
         A  = self.Softmax(mV*QK/self.sqrtDepth)         # [batch,h,n,1]
 
         # Apply
