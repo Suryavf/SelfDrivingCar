@@ -1078,15 +1078,15 @@ class SpatialAttnNet(nn.Module):
         self.normFtr = nn.LayerNorm(   self.S )
 
         self.Tanh    = nn.Tanh()
+        self.Sigmoid = nn.Sigmoid()
         self.ReLu    = nn.ReLU()
         self.Softmax = nn.Softmax(2)
-
-    def norm4(self,x,dim=2):
-        y = self.Tanh(x)**4
-        y = y.mean(dim=dim,keepdim=True) + 10**-12
-        y = torch.sqrt(y)
-        y = torch.sqrt(y)
+    
+    def norm(self,x,p=1):
+        x = self.self.Sigmoid(x)
+        y = torch.norm(x,p=p,dim=2,keepdim=True)
         return x/y
+        
 
     """ Forward 
           - eta [batch,channel,high,width]
@@ -1094,6 +1094,10 @@ class SpatialAttnNet(nn.Module):
     """
     def forward(self,ηt,Ft0):
         # Batch norm
+        # L: high x weight
+        # d: visual depth
+        # h: numero of heads
+        # n: number of tasks
         ηt  = self.normSpa(ηt )
         Ft0 = self.normFtr(Ft0)
 
