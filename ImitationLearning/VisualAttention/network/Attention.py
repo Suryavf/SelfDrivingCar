@@ -1083,7 +1083,7 @@ class SpatialAttnNet(nn.Module):
         self.Softmax = nn.Softmax(2)
     
     def norm(self,x,p=1):
-        x = self.self.Sigmoid(x)
+        x = self.Sigmoid(x)
         y = torch.norm(x,p=p,dim=2,keepdim=True)
         return x/y
         
