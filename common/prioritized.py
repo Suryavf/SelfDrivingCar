@@ -1,3 +1,5 @@
+import os
+import h5py
 import pickle
 import numpy as np
 from   common.graph import SumTree
@@ -32,33 +34,95 @@ class PrioritizedSamples(object):
         # Upper Confidence Bound applied to trees (UCT)
         self.balance = balance
         if balance: 
-            self.c = c
+            self.    exploParm = c
             self.sampleCounter = np.zeros( self.n_samples )
             self. totalCounter = 0
-            self.UTC = SumTree( self.n_nodes,val=_fill,limit=n_samples )
+            self.UCT = SumTree( self.n_nodes,val=_fill,limit=n_samples )
 
     """ Save """
-    def save(self,path='priority.pck'):
-        p = dict()
-        p['priority'] = self.priority
-        if self.balance: 
-            p['sampleCounter'] = self.sampleCounter
-            p[ 'totalCounter'] = self.totalCounter
-            p[          'UTC'] = self.UTC
+    def save(self,path='priority.ptz'):
         # Save
-        with open(path, 'wb') as handle:
-            pickle.dump(p, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with h5py.File(path,"w") as f:
+            # General
+            dset = f.create_dataset( 'n_samples', data=self. n_samples)
+            dset = f.create_dataset(     'alpha', data=self.     alpha)
+            dset = f.create_dataset(      'beta', data=self.      beta)
+            dset = f.create_dataset(    'n_leaf', data=self.    n_leaf)
+            dset = f.create_dataset(   'n_nodes', data=self.   n_nodes)
+            dset = f.create_dataset('betaLinear', data=self.betaLinear)
+            dset = f.create_dataset(   'balance', data=self.   balance)
+
+            # Priority tree
+            dset = f.create_dataset('PS.n_nodes', data=self.priority.n_nodes)
+            dset = f.create_dataset('PS.n_leaf' , data=self.priority. n_leaf)
+            dset = f.create_dataset('PS.limit'  , data=self.priority.  limit)
+            dset = f.create_dataset('PS.data'   , data=self.priority.  _data)
+
+            if self.betaLinear: 
+                dset = f.create_dataset('beta_m', data=self.beta_m)
+                dset = f.create_dataset('beta_b', data=self.beta_b)
+                dset = f.create_dataset('n_iter', data=self.n_iter)
+
+            if self.balance: 
+                dset = f.create_dataset(    'exploParm', data=self.    exploParm)
+                dset = f.create_dataset('sampleCounter', data=self.sampleCounter)
+                dset = f.create_dataset( 'totalCounter', data=self. totalCounter)
+                
+                # UCT
+                dset = f.create_dataset('UCT.n_nodes', data=self.UCT.n_nodes)
+                dset = f.create_dataset('UCT.n_leaf' , data=self.UCT. n_leaf)
+                dset = f.create_dataset('UCT.limit'  , data=self.UCT.  limit)
+                dset = f.create_dataset('UCT.data'   , data=self.UCT.  _data)
 
     """ Load """
-    def load(self,path='priority.pck'):
-        with open(path, 'rb') as handle:
-            p = pickle.load(handle)
-        self.priority = p['priority']
-        if self.balance: 
-            self.sampleCounter = p['sampleCounter']
-            self.totalCounter  = p[ 'totalCounter']
-            self.UTC           = p          ['UTC']
+    def load(self,path='priority.ptz'):
+        _, extn = os.path.splitext(path)
+        
+        # Pickle file
+        if extn == ".pck":
+            with open(path, 'rb') as handle:
+                p = pickle.load(handle)
 
+            self.priority = p['priority']
+            if self.balance: 
+                self.sampleCounter = p['sampleCounter']
+                self.totalCounter  = p[ 'totalCounter']
+                self.UCT           = p          ['UCT']
+
+        # H5py
+        else:
+            with h5py.File(path, 'r') as h5file:
+                self.n_samples  = h5file[ 'n_samples'].value
+                self.alpha      = h5file[     'alpha'].value
+                self.beta       = h5file[      'beta'].value
+                self.n_leaf     = h5file[    'n_leaf'].value
+                self.n_nodes    = h5file[   'n_nodes'].value
+                self.betaLinear = h5file['betaLinear'].value
+                self.balance    = h5file[   'balance'].value
+
+                # Priority tree
+                self.priority.n_nodes = h5file['PS.n_nodes'].value
+                self.priority. n_leaf = h5file['PS.n_leaf' ].value
+                self.priority.  limit = h5file['PS.limit'  ].value
+                self.priority.  _data = np.array(h5file['PS.data'])
+                
+                if self.betaLinear: 
+                    self.beta_m = h5file['beta_m'].value
+                    self.beta_b = h5file['beta_b'].value
+                    self.n_iter = h5file['n_iter'].value
+                    
+                if self.balance: 
+                    self.exploParm     = h5file[   'exploParm'].value
+                    self.totalCounter  = h5file['totalCounter'].value
+                    self.sampleCounter = np.array(h5file['sampleCounter'])
+                    
+                    # UCT
+                    self.UCT.n_nodes = h5file['UCT.n_nodes'].value
+                    self.UCT.n_leaf  = h5file['UCT.n_leaf' ].value
+                    self.UCT.limit   = h5file['UCT.limit'  ].value
+                    self.UCT._data   = np.array(h5file['UCT.data'])
+                    
+        
     """ Step """
     def step(self):
         if self.betaLinear: 
@@ -70,8 +134,8 @@ class PrioritizedSamples(object):
         if self.balance:
             for idx in range(self.n_samples):
                 p = self.priority[idx]/self.priority.sum()
-                u = self.c*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
-                self.UTC[idx] = p+u
+                u = self.exploParm*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
+                self.UCT[idx] = p+u
                 
 
     """ Functions """
@@ -85,14 +149,14 @@ class PrioritizedSamples(object):
             self. totalCounter     +=1
 
             p = self.priority[idx]/self.priority.sum()
-            u = self.c*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
+            u = self.exploParm*np.sqrt( np.log(self.totalCounter) / ( 1 + self.sampleCounter[idx]) )
 
-            self.UTC[idx] = p+u
+            self.UCT[idx] = p+u
 
     
     """ Get sample """
     def sample(self):
-        if self.balance: tree = self.UTC
+        if self.balance: tree = self.UCT
         else           : tree = self.priority
 
         # Roulette

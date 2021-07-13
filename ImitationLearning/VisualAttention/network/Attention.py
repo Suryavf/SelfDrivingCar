@@ -1181,7 +1181,7 @@ class FeatureAttnNet(nn.Module):
         y = torch.cat([z,h],dim=1)      # [batch,dn]
         y = y.reshape(batch,-1,self.D)  # [batch,n,d]
         y = self.Lnorm(y)               # [batch,n,d]
-
+        
         # Query, key, value
         Q = self.to_q(command)              # [batch,hd]
         K = self.to_k(y).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
