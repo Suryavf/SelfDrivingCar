@@ -493,7 +493,7 @@ class Bottleneck(nn.Module):
 
         self.conv1 = nn.Conv2d(inplanes, width, kernel_size =     1, 
                                                 bias        = False)
-        self.bn1 = nn.GroupNorm( 1,width)
+        self.bn1 = nn.BatchNorm2d(width)
 
         self.conv2 = nn.Conv2d(width, width, kernel_size =        3, 
                                              stride      =   stride, 
@@ -501,11 +501,11 @@ class Bottleneck(nn.Module):
                                              groups      =   groups, 
                                              bias        =    False, 
                                              dilation    = dilation)
-        self.bn2 = nn.GroupNorm( 1,width)
+        self.bn2 = nn.BatchNorm2d(width)
         
         self.conv3 = nn.Conv2d(width, planes*self.expansion, kernel_size =     1, 
                                                              bias        = False)
-        self.bn3 = nn.GroupNorm( 1,planes * self.expansion)
+        self.bn3 = nn.BatchNorm2d(planes * self.expansion)
 
         self.relu = nn.ReLU(inplace=True)
         self.stride = stride
@@ -515,7 +515,7 @@ class Bottleneck(nn.Module):
                                                                 kernel_size =      1, 
                                                                 stride      = stride, 
                                                                 bias        = False),
-                                            nn.GroupNorm( 1,planes * self.expansion))
+                                            nn.BatchNorm2d(planes * self.expansion))
         else:
             self.downsample = None
         
@@ -525,11 +525,11 @@ class Bottleneck(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = F.gelu(out)
+        out = self.relu(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = F.gelu(out)
+        out = self.relu(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -538,7 +538,7 @@ class Bottleneck(nn.Module):
             identity = self.downsample(x)
         
         out += identity
-        out = F.gelu(out)
+        out = self.relu(out)
 
         return out
 
