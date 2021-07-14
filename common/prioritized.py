@@ -40,7 +40,7 @@ class PrioritizedSamples(object):
             self.UCT = SumTree( self.n_nodes,val=_fill,limit=n_samples )
 
     """ Save """
-    def save(self,path='priority.ptz'):
+    def save(self,path='priority.ps'):
         # Save
         with h5py.File(path,"w") as f:
             # General
@@ -64,9 +64,9 @@ class PrioritizedSamples(object):
                 dset = f.create_dataset('n_iter', data=self.n_iter)
 
             if self.balance: 
-                dset = f.create_dataset(    'exploParm', data=self.    exploParm)
+                dset = f.create_dataset('exploParm'    , data=self.    exploParm)
                 dset = f.create_dataset('sampleCounter', data=self.sampleCounter)
-                dset = f.create_dataset( 'totalCounter', data=self. totalCounter)
+                dset = f.create_dataset('totalCounter' , data=self. totalCounter)
                 
                 # UCT
                 dset = f.create_dataset('UCT.n_nodes', data=self.UCT.n_nodes)
@@ -75,7 +75,7 @@ class PrioritizedSamples(object):
                 dset = f.create_dataset('UCT.data'   , data=self.UCT.  _data)
 
     """ Load """
-    def load(self,path='priority.ptz'):
+    def load(self,path='priority.ps'):
         _, extn = os.path.splitext(path)
         
         # Pickle file
@@ -92,34 +92,34 @@ class PrioritizedSamples(object):
         # H5py
         else:
             with h5py.File(path, 'r') as h5file:
-                self.n_samples  = h5file[ 'n_samples'].value
-                self.alpha      = h5file[     'alpha'].value
-                self.beta       = h5file[      'beta'].value
-                self.n_leaf     = h5file[    'n_leaf'].value
-                self.n_nodes    = h5file[   'n_nodes'].value
-                self.betaLinear = h5file['betaLinear'].value
-                self.balance    = h5file[   'balance'].value
+                self.n_samples  = h5file[ 'n_samples'][()]
+                self.alpha      = h5file[     'alpha'][()]
+                self.beta       = h5file[      'beta'][()]
+                self.n_leaf     = h5file[    'n_leaf'][()]
+                self.n_nodes    = h5file[   'n_nodes'][()]
+                self.betaLinear = h5file['betaLinear'][()]
+                self.balance    = h5file[   'balance'][()]
 
                 # Priority tree
-                self.priority.n_nodes = h5file['PS.n_nodes'].value
-                self.priority. n_leaf = h5file['PS.n_leaf' ].value
-                self.priority.  limit = h5file['PS.limit'  ].value
+                self.priority.n_nodes = h5file['PS.n_nodes'][()]
+                self.priority. n_leaf = h5file['PS.n_leaf' ][()]
+                self.priority.  limit = h5file['PS.limit'  ][()]
                 self.priority.  _data = np.array(h5file['PS.data'])
                 
                 if self.betaLinear: 
-                    self.beta_m = h5file['beta_m'].value
-                    self.beta_b = h5file['beta_b'].value
-                    self.n_iter = h5file['n_iter'].value
+                    self.beta_m = h5file['beta_m'][()]
+                    self.beta_b = h5file['beta_b'][()]
+                    self.n_iter = h5file['n_iter'][()]
                     
                 if self.balance: 
-                    self.exploParm     = h5file[   'exploParm'].value
-                    self.totalCounter  = h5file['totalCounter'].value
+                    self.exploParm     = h5file[   'exploParm'][()]
+                    self.totalCounter  = h5file['totalCounter'][()]
                     self.sampleCounter = np.array(h5file['sampleCounter'])
                     
                     # UCT
-                    self.UCT.n_nodes = h5file['UCT.n_nodes'].value
-                    self.UCT.n_leaf  = h5file['UCT.n_leaf' ].value
-                    self.UCT.limit   = h5file['UCT.limit'  ].value
+                    self.UCT.n_nodes = h5file['UCT.n_nodes'][()]
+                    self.UCT.n_leaf  = h5file['UCT.n_leaf' ][()]
+                    self.UCT.limit   = h5file['UCT.limit'  ][()]
                     self.UCT._data   = np.array(h5file['UCT.data'])
                     
         

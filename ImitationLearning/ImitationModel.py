@@ -166,9 +166,9 @@ class ImitationModel(object):
 
         # Priority save
         if self.save_priority_history:
-            pathPri = os.path.join( self._modelPath, "priority" + str(epoch) + ".pck" )
+            pathPri = os.path.join( self._modelPath, "priority" + str(epoch) + ".ps" )
         else: 
-            pathPri = os.path.join( self._modelPath, "priority.pck" )
+            pathPri = os.path.join( self._modelPath, "priority.ps" )
         self.samplePriority.save(pathPri)
 
 
@@ -179,7 +179,7 @@ class ImitationModel(object):
         self.model    .load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint[ 'optimizer'])
         self.scheduler.load_state_dict(checkpoint[ 'scheduler'])
-        self.samplePriority.load(os.path.join(self._modelPath,"priority.pck"))
+        self.samplePriority.load(os.path.join(self._modelPath,"priority.ps"))
         
     def create_model(self):
         # Paths
@@ -456,7 +456,7 @@ class ImitationModel(object):
             pbar.close()
 
         if self.save_priority_history:
-            pathPri = os.path.join( self._modelPath, "priority_init.pck" )
+            pathPri = os.path.join( self._modelPath, "priority_init.ps" )
             self.samplePriority.save(pathPri)
             
 
