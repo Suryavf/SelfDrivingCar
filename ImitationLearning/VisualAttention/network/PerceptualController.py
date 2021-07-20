@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 class CommandNet(nn.Module):
@@ -19,9 +20,9 @@ class CommandVelocityNet(nn.Module):
     """ Constructor """
     def __init__(self,n_encode=16):
         super(CommandVelocityNet, self).__init__()
-        self.Wc   = nn.Linear(    4   , n_encode, bias= True)
-        self.Wv   = nn.Linear(    1   , n_encode, bias=False)
-        self.Wp   = nn.Linear(n_encode, n_encode, bias= True)
+        self.Wc   = nn.Linear(     4    , n_encode, bias=True)
+        self.Wv   = nn.Linear(     1    , n_encode, bias=True)
+        self.Wp   = nn.Linear(2*n_encode, n_encode, bias=True)
         self.ReLU = nn.ReLU()
         # Initialization
         nn.init.xavier_uniform_(self.Wc.weight)
@@ -32,6 +33,8 @@ class CommandVelocityNet(nn.Module):
         c = control*2-1
         c = self.ReLU( self.Wc(c) )
         v = self.ReLU( self.Wv(velocity) )
-        p = self.wp(c+v)
+
+        p = torch.cat([c,v],dim=1)
+        p = self.Wp(p)
         return self.ReLU(p)
         
