@@ -433,7 +433,7 @@ class TVADecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------
 class CatDecoder(nn.Module):
     """ Constructor """
-    def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet, CommandNet, 
+    def __init__(self,  HighEncoderNet, SpatialNet, FeatureNet,# CommandNet, 
                         LowLevelDim=128, HighLevelDim=512, 
                         n_hidden=1024, n_state=64,n_task=3,
                         study=False):
@@ -451,7 +451,7 @@ class CatDecoder(nn.Module):
         self.HighEncoder = HighEncoderNet
         self.SpatialAttn =     SpatialNet
         self.FeatureAttn =     FeatureNet
-        self. CmdDecoder =     CommandNet
+        # self. CmdDecoder =     CommandNet
 
         self.Gate = G.GRUGate(LowLevelDim)
         
@@ -504,7 +504,7 @@ class CatDecoder(nn.Module):
     """ Forward 
           - eta [batch,channel,high,width]
     """
-    def forward(self,feature,command):
+    def forward(self,feature,cmd):
         # Parameters
         sequence_len = self.sequence_len
         if self.training: batch_size = int(feature.shape[0]/sequence_len)
@@ -523,7 +523,7 @@ class CatDecoder(nn.Module):
         ht,ct = self.initializeLSTM(xt)
 
         # Command decoder
-        cmd = self.CmdDecoder(command)
+        # cmd = self.CmdDecoder(command)
         if self.training: cmd = cmd.view(batch_size,sequence_len,-1).transpose(0,1) # [sequence,batch,4]
 
         # Prediction container

@@ -4,9 +4,10 @@ import common.directory as V
 import ImitationLearning.VisualAttention.Decoder as D
 import ImitationLearning.VisualAttention.Encoder as E
 
-import ImitationLearning.VisualAttention.network.Attention      as A
-import ImitationLearning.VisualAttention.network.Control        as C
-import ImitationLearning.VisualAttention.network.Regularization as R
+import ImitationLearning.VisualAttention.network.Attention            as A
+import ImitationLearning.VisualAttention.network.Control              as C
+import ImitationLearning.VisualAttention.network.Regularization       as R
+import ImitationLearning.VisualAttention.network.PerceptualController as P
 
 # Modules
 def getModule(moduleList):
@@ -137,19 +138,21 @@ class Approach(nn.Module):
         n_encodeCmd =  16   # Length of code command control
         self.study  = study
         
+        
+        # Perceptual controller
+        self.perControl = P.CommandVelocityNet(n_encodeCmd) # Command decoder
+        
         # Decoder
-        cmdNet  = A.CommandNet(n_encodeCmd)                 # Command decoder
         spaAttn = A.SpatialAttnNet(cube_dim,n_head,n_state, # Spatial attention
                                                     study)  
         ftrAttn = A.FeatureAttnNet(  highDepth,n_hidden,   # Feature attention
                                     n_encodeCmd,n_state,
                                       n_feature,n_task,
                                                 study)
-        
         self.decoder = D.CatDecoder(HighEncoderNet = self.highEncoder,
                                         SpatialNet = spaAttn,
                                         FeatureNet = ftrAttn,
-                                        CommandNet = cmdNet,
+                                        # CommandNet = cmdNet,
                                     
                                        LowLevelDim =  lowDepth,
                                       HighLevelDim = highDepth,
@@ -204,7 +207,9 @@ class Approach(nn.Module):
     def forward(self,batch):
         # Visual encoder
         ηt = self.lowEncoder(batch['frame'])
-        st,sig,attn = self.decoder(ηt,batch['mask'])
+        ct = self.perControl(batch['mask'],batch['speed'])
+
+        st,sig,attn = self.decoder(ηt,ct)
         at,mg = self.policy(st)
         
         # Regularization
