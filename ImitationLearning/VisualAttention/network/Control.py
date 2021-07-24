@@ -327,6 +327,7 @@ class DenseNet(nn.Module):
         
         z = F.relu(self.w3(z))
         return self.w4(z)
+        
 
 class MultiTaskPolicy(nn.Module):
     def __init__(self, n_depth,vel_manager=False):
@@ -349,6 +350,44 @@ class MultiTaskPolicy(nn.Module):
         # Execute
         st = self.    steering(state[:,0,:])
         at = self.acceleration(state[:,1,:])
+        
+        if self.manager:
+            # Velocity manager
+            dc = self.switch(state[:,2,:])
+            manager = self.LogSoftmax(dc)
+            mask    = self.   Softmax(dc)
+            # Masked
+            at = at*mask[:,1:]
+        else:
+            manager = None
+
+        return torch.cat([st,at],dim=1),manager
+        
+
+class MultiTaskPolicy2(nn.Module):
+    def __init__(self, n_depth,n_cmd,vel_manager=False):
+        super(MultiTaskPolicy2, self).__init__()
+        self.manager = vel_manager
+
+        # Nets
+        self.steering     = DenseNet(n_depth+n_depth,1)
+        self.acceleration = DenseNet(n_depth+n_depth,2)
+        
+        if self.manager:
+            self.  switch = DenseNet(n_depth+n_depth,3)
+            self.LogSoftmax = nn.LogSoftmax(dim=1)
+            self.   Softmax = nn.   Softmax(dim=1)
+
+    """ Forward 
+          - state [batch,n_task,depth]
+    """
+    def forward(self,state,ct):
+        # Execute
+        st = torch.cat([state[:,0,:],ct],dim=1)
+        st = self.steering(st)
+
+        at = torch.cat([state[:,1,:],ct],dim=1)
+        at = self.acceleration(at)
         
         if self.manager:
             # Velocity manager

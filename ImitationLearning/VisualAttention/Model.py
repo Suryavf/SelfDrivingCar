@@ -164,7 +164,7 @@ class Approach(nn.Module):
                                              study = study)
 
         # Policy
-        self.policy = C.MultiTaskPolicy(n_state,vel_manager)
+        self.policy = C.MultiTaskPolicy2(n_state,n_encodeCmd,vel_manager)
 
         # Speed regularization
         self.SpeedReg = setting.train.loss.regularization
@@ -210,7 +210,7 @@ class Approach(nn.Module):
         ct = self.perControl(batch['mask'],batch['speed'])
 
         st,sig,attn = self.decoder(ηt,ct)
-        at,mg = self.policy(st)
+        at,mg = self.policy(st,ct)
         
         # Regularization
         if self.SpeedReg: vt = self.regularization(sig['hidden'])
