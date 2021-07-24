@@ -370,11 +370,11 @@ class MultiTaskPolicy2(nn.Module):
         self.manager = vel_manager
 
         # Nets
-        self.steering     = DenseNet(n_depth+n_depth,1)
-        self.acceleration = DenseNet(n_depth+n_depth,2)
+        self.steering     = DenseNet(n_depth+n_cmd,1)
+        self.acceleration = DenseNet(n_depth+n_cmd,2)
         
         if self.manager:
-            self.  switch = DenseNet(n_depth+n_depth,3)
+            self.  switch = DenseNet(n_depth+n_cmd,3)
             self.LogSoftmax = nn.LogSoftmax(dim=1)
             self.   Softmax = nn.   Softmax(dim=1)
 
