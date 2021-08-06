@@ -372,21 +372,31 @@ class MultiTaskPolicy2(nn.Module):
         # Nets
         self.steering     = DenseNet(n_depth+n_cmd,1)
         self.acceleration = DenseNet(n_depth+n_cmd,2)
+        self.ws   = nn.Linear(n_cmd,n_cmd)
+        self.wa   = nn.Linear(n_cmd,n_cmd)
+        self.ReLU = nn.ReLU()  
         
         if self.manager:
             self.  switch = DenseNet(n_depth+n_cmd,3)
             self.LogSoftmax = nn.LogSoftmax(dim=1)
             self.   Softmax = nn.   Softmax(dim=1)
 
+        # Initialization
+        torch.nn.init.xavier_uniform_(self.ws.weight)
+        torch.nn.init.xavier_uniform_(self.wa.weight)
+        
+
     """ Forward 
           - state [batch,n_task,depth]
     """
     def forward(self,state,ct):
         # Execute
-        st = torch.cat([state[:,0,:],ct],dim=1)
+        st = self.ReLU(self.ws(ct))
+        st = torch.cat([state[:,0,:],st],dim=1)
         st = self.steering(st)
 
-        at = torch.cat([state[:,1,:],ct],dim=1)
+        at = self.ReLU(self.wa(ct))
+        at = torch.cat([state[:,1,:],at],dim=1)
         at = self.acceleration(at)
         
         if self.manager:
