@@ -33,12 +33,13 @@
         },
         "loss": {
             "type": "WeightedMultiTask",
-            "lambda_gas"  : 0.45,
-            "lambda_steer": 0.45,
-            "lambda_brake": 0.10,
-            "lambda_desc" : 0.33333,
-            "lambda_speed" : 0.05,
-            "lambda_action": 0.95
+            "regularization": true,
+            "lambda_gas"    : 0.45,
+            "lambda_steer"  : 0.45,
+            "lambda_brake"  : 0.10,
+            "lambda_desc"   : 0.33333,
+            "lambda_speed"  : 0.05,
+            "lambda_action" : 0.95
         }
     }
 }

@@ -94,6 +94,7 @@ class MultitaskLoss(object):
         # Parameters
         self.device = init.device
         self.regularization = setting.train.loss.regularization
+        self.use_decision   = False
         
         # Loss weight
         self.weightLoss = np.array([setting.train.loss.lambda_steer, 
@@ -111,10 +112,7 @@ class MultitaskLoss(object):
         self.weightLoss = torch.from_numpy(self.weightLoss).float().cuda(self.device)
 
         # Decision weight
-        if  setting.general.dataset == "CoRL2017":
-            self.use_decision = False
-        else:
-            self.use_decision = True
+        if self.use_decision:
             self.lambda_dec   = setting.train.loss.lambda_desc
             self.NLLLoss      = nn.NLLLoss()
             self.decisionWeight = np.array( [0.,1.,2.] )
@@ -126,7 +124,7 @@ class MultitaskLoss(object):
         decision = decision.matmul(self.decisionWeight) # [0,1,2]
         
         # Check
-        return torch.where(decision>2,0.,decision) 
+        return torch.where(decision>torch.tensor(2.).cuda(), torch.tensor(0.).cuda(), decision)
 
     def eval(self,measure,prediction,weight=None):
         # Action loss

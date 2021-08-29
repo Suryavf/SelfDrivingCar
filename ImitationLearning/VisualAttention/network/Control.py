@@ -380,7 +380,7 @@ class MultiTaskPolicy2(nn.Module):
             self.  switch = DenseNet(n_depth+n_cmd,3)
             self.LogSoftmax = nn.LogSoftmax(dim=1)
             self.   Softmax = nn.   Softmax(dim=1)
-
+            
         # Initialization
         torch.nn.init.xavier_uniform_(self.ws.weight)
         torch.nn.init.xavier_uniform_(self.wa.weight)
@@ -395,13 +395,14 @@ class MultiTaskPolicy2(nn.Module):
         st = torch.cat([state[:,0,:],st],dim=1)
         st = self.steering(st)
 
-        at = self.ReLU(self.wa(ct))
-        at = torch.cat([state[:,1,:],at],dim=1)
+        ct = self.ReLU(self.wa(ct))
+        at = torch.cat([state[:,1,:],ct],dim=1)
         at = self.acceleration(at)
         
         if self.manager:
             # Velocity manager
-            dc = self.switch(state[:,2,:])
+            dc = torch.cat([state[:,2,:],ct],dim=1)
+            dc = self.switch(dc)
             manager = self.LogSoftmax(dc)
             mask    = self.   Softmax(dc)
             # Masked

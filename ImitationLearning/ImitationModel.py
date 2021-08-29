@@ -192,12 +192,14 @@ class ImitationModel(object):
     def to_continue(self,name,epoch = None, study=False):
         # Check paths
         self._checkFoldersToSave(name)
-        path = U.lastModel(self._modelPath)
 
         # Epoch value
-        if epoch is None: self.epoch = int(path.partition('/Model/model')[2].partition('.')[0])
-        else            : self.epoch = epoch
-
+        if epoch is None: 
+            path = U.lastModel(self._modelPath)
+            self.epoch = int(path.partition('/Model/model')[2].partition('.')[0])
+        else: 
+            self.epoch = epoch
+            path = os.path.join(self._modelPath,"model"+str(epoch)+".pth")
         # Load
         if not study: self.load(path)
 
@@ -261,14 +263,13 @@ class ImitationModel(object):
             raise NameError('ERROR 404: Loss no found ('+txt+')')
 
         # Build dataset
-        samplesPerFile = int( (self.framePerFile - self.sequence_len)/self.slidingWindow + 1 ) 
         if self.CoRL2017:
             # Training data
             if not study:
                 trainingFiles = glob.glob(os.path.join(self.setting.general.trainPath,'*.h5'))
                 trainingFiles.sort()
                 self.trainDataset = CoRL2017Dataset(self.setting,trainingFiles,train= True)
-                self.n_training = len(trainingFiles)*samplesPerFile
+                self.n_training = len(trainingFiles)*self.samplesByTrainingFile
 
             # Validation data
             validationFiles = glob.glob(os.path.join(self.setting.general.validPath,'*.h5'))

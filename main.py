@@ -26,9 +26,9 @@ class Main():
         self.model.create_model()
         self.model.execute()
 
-    def to_continue(self,name):
+    def to_continue(self,name,epoch=None):
         self.model.build()
-        self.model.to_continue(name)
+        self.model.to_continue(name,epoch)
         self.model.execute()
 
     def load(self,path):
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         main.play()
     elif args.mode == "continue":
         if args.name is not None:
-            main.to_continue(args.name)
+            main.to_continue(args.name,args.epoch)
         else:
             NameError('Undefined model. Please define with --name"')
     elif args.mode == "plot":
