@@ -129,7 +129,7 @@ class Approach(nn.Module):
             print("ERROR: encoder no found (%s)"%encoder)
         
         if   setting.general.dataset == "CoRL2017": n_task = 2
-        elif setting.general.dataset == "CARLA100": n_task = 3
+        elif setting.general.dataset == "CARLA100": n_task = 2
         else:print("ERROR: dataset no found (%s)"%self.setting.general.dataset)
         vel_manager = True if n_task == 3 else False
 

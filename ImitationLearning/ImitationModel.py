@@ -1,6 +1,7 @@
 import os
 import glob
 
+import time
 import h5py
 import pickle
 from   tqdm import tqdm
@@ -789,16 +790,24 @@ class ImitationModel(object):
                 pbar.refresh()
             pbar.close()
             
-        """
-        # t-SNE
-        print("Execute t-SNE")
-        for key in signals:
-            print('Embedding '+ key)
-            embedded = TSNE().fit_transform(signals[key]) # [n,2]
-            path = os.path.join(self._modelPath,key+'.tsne')
-            print('Save '+path+'\n')
+    """ Benchmark
+        Ref: https://github.com/dotchen/LearningByCheating/blob/release-0.9.6/benchmark_agent.py
+    """
+    def benchmark(self,suite):
+        port = 2000
+        totalTime = 0.0
 
-            with open(path, 'wb') as handle:
-                pickle.dump(embedded, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        """
-                        
+        for suite_name in get_suites(suite):
+            tick = time.time()
+            benchmark_dir = ''
+
+            with make_suite(suite_name, port=port, big_cam=big_cam) as env:
+                run_benchmark(agent_maker, env, benchmark_dir, seed, autopilot, resume, max_run=max_run, show=show)
+
+            elapsed = time.time() - tick
+            totalTime += elapsed
+
+            print('%s: %.3f hours.' % (suite_name, elapsed / 3600))
+
+        print('Total time: %.3f hours.' % (totalTime / 3600))
+        
