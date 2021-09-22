@@ -391,12 +391,12 @@ class _Loss_settings(object):
             self.lambda_action  = data[ "lambda_action"]
 
     def print(self):
-        if self.type is "Weighted":
+        if self.type == "Weighted":
             print("\t"*3,"Lambda steer:\t" , self.lambda_steer )
             print("\t"*3,"Lambda gas:\t"   , self.lambda_gas   )
             print("\t"*3,"Lambda brake:\t" , self.lambda_brake )
             print("")
-        elif self.type is "WeightedReg":
+        elif self.type == "WeightedReg":
             print("\t"*3,"Lambda steer:\t" , self.lambda_steer )
             print("\t"*3,"Lambda gas:\t"   , self.lambda_gas   )
             print("\t"*3,"Lambda brake:\t" , self.lambda_brake )
@@ -404,7 +404,7 @@ class _Loss_settings(object):
             print("\t"*3,"Lambda action:\t", self.lambda_action)
             print("\t"*3,"Lambda speed:\t" , self.lambda_speed )
             print("")
-        elif self.type is "WeightedMultiTask":
+        elif self.type == "WeightedMultiTask":
             print("\t"*3,"Lambda steer:\t"   , self.lambda_steer )
             print("\t"*3,"Lambda gas:\t"     , self.lambda_gas   )
             print("\t"*3,"Lambda brake:\t"   , self.lambda_brake )
