@@ -384,7 +384,7 @@ class _Loss_settings(object):
         if "lambda_brake" in data:
             self.lambda_brake   = data[  "lambda_brake"]
         if "lambda_desc" in data:
-            self.lambda_brake   = data[   "lambda_desc"]
+            self.lambda_desc    = data[   "lambda_desc"]
         if "lambda_speed" in data:
             self.lambda_speed   = data[  "lambda_speed"]
         if "lambda_action" in data:
