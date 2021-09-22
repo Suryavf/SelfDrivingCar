@@ -25,6 +25,9 @@ import ImitationLearning.VisualAttention.Encoder           as E
 import ImitationLearning.VisualAttention.network.Attention as A
 import ImitationLearning.VisualAttention.network.Control   as C
 
+from   benchmark import make_suite, get_suites, ALL_SUITES
+from   benchmark.run_benchmark import run_benchmark 
+
 import common.directory as V
 import common.  figures as F
 import common.    utils as U
@@ -70,7 +73,7 @@ class ImitationModel(object):
         self. epoch    = 0
         
         # Development settings
-        self.save_priority_history  = False
+        self.save_priority_history  = True
         self.save_speed_action_plot = False
         self.speed_regularization   = self.setting.train.loss.type in ["WeightedReg","WeightedMultiTask"]
         
@@ -666,12 +669,12 @@ class ImitationModel(object):
             df.to_csv(self._modelPath + "/model.csv", index=False)
 
             # Save checkpoint
-            if epoch%2 == 0:
-                self._state_add (     'epoch',                    epoch  )
-                self._state_add ('state_dict',self.    model.state_dict())
-                self._state_add ( 'scheduler',self.scheduler.state_dict())
-                self._state_add ( 'optimizer',self.optimizer.state_dict())
-                self._state_save(epoch)
+            # if epoch%2 == 0:
+            self._state_add (     'epoch',                    epoch  )
+            self._state_add ('state_dict',self.    model.state_dict())
+            self._state_add ( 'scheduler',self.scheduler.state_dict())
+            self._state_add ( 'optimizer',self.optimizer.state_dict())
+            self._state_save(epoch)
 
 
     """ Plot generate"""

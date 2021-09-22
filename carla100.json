@@ -17,9 +17,9 @@
     "general": {
         "stepView":   1,
         "dataset"  : "CARLA100",
-        "trainPath": "./data/h5file/C100train/",
-        "validPath": "./data/h5file/C100val/",
-        "savedPath": "/opt/MrCat/Saved/"
+        "trainPath": "./data/C100train/",
+        "validPath": "./data/C100val/",
+        "savedPath": "./Saved/"
     },
     "train": {
         "scheduler": {
@@ -34,10 +34,10 @@
         },
         "loss": {
             "type": "WeightedMultiTask",
-            "lambda_gas"  : 0.33333,
-            "lambda_steer": 0.26667,
-            "lambda_brake": 0.06667,
-            "lambda_desc" : 0.33333,
+            "lambda_gas"   : 0.45,
+            "lambda_steer" : 0.45,
+            "lambda_brake" : 0.10,
+            "lambda_desc"  : 0.0,
             "lambda_speed" : 0.05,
             "lambda_action": 0.95
         }
