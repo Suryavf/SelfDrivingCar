@@ -728,16 +728,11 @@ class ImitationModel(object):
 
     """ Run study"""
     def runStudy(self):
-        # Parameters
-        n    =  0    # Last file
-        umb  = 20    # Interations per file
-        bias = n*umb*self.setting.general.batch_size
-        
         # Loss
         signal = U.BigDict ( )
 
         # ID list
-        imID = self.validDataset.generateIDs(eval=True,init=bias)
+        imID = self.validDataset.generateIDs(eval=True,init=0)
         loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers,
