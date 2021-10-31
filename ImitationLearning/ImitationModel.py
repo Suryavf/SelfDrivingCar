@@ -25,9 +25,6 @@ import ImitationLearning.VisualAttention.Encoder           as E
 import ImitationLearning.VisualAttention.network.Attention as A
 import ImitationLearning.VisualAttention.network.Control   as C
 
-from   benchmark import make_suite, get_suites, ALL_SUITES
-from   benchmark.run_benchmark import run_benchmark 
-
 import common.directory as V
 import common.  figures as F
 import common.    utils as U
@@ -728,15 +725,21 @@ class ImitationModel(object):
 
     """ Run study"""
     def runStudy(self):
+        # Parameters
+        n    =  0    # Last file
+        umb  = 20    # Interations per file
+        bias = n*umb*self.setting.general.batch_size
+
         # Loss
         signal = U.BigDict ( )
 
         # ID list
-        imID = self.validDataset.generateIDs(eval=True,init=0)
+        imID = self.validDataset.generateIDs(eval=True,init=bias)
         loader = DataLoader(Dataset(self.validDataset,imID),
                                     batch_size  = self.setting.general.batch_size,
                                     num_workers = self.init.num_workers,
                                     pin_memory  = True)
+        n_frames = len(imID)
 
         # Check paths
         studyPath = os.path.join(self._codePath ,'Study')
@@ -764,7 +767,7 @@ class ImitationModel(object):
                 host_s['id'] = np.array([i])
                 signal.update(host_s)
 
-                if i%umb == (umb-1):
+                if ( i%umb == (umb-1) ) or (i == (n_frames-1)):
                     # Resume
                     signal = signal.resume()
                     n += 1 # New file
@@ -792,6 +795,10 @@ class ImitationModel(object):
         Ref: https://github.com/dotchen/LearningByCheating/blob/release-0.9.6/benchmark_agent.py
     """
     def benchmark(self,suite):
+        # Imports
+        from   benchmark import make_suite, get_suites, ALL_SUITES
+        from   benchmark.run_benchmark import run_benchmark 
+
         port = 2000
         totalTime = 0.0
 
@@ -808,4 +815,3 @@ class ImitationModel(object):
             print('%s: %.3f hours.' % (suite_name, elapsed / 3600))
 
         print('Total time: %.3f hours.' % (totalTime / 3600))
-        
