@@ -718,7 +718,6 @@ class ImitationModel(object):
         signal['action'  ] = prediction[ 'actions' ]           .data.cpu().numpy()
         signal['hidden'  ] = prediction[  'signal' ][ 'hidden'].data.cpu().numpy()
         signal['feature' ] = prediction[  'signal' ]['feature'].data.cpu().numpy()
-        signal['manager' ] = prediction[ 'manager' ]           .data.cpu().numpy()
         
         return signal
 
@@ -783,7 +782,6 @@ class ImitationModel(object):
                         dset = f.create_dataset('action'  , data=signal[  'action'])
                         dset = f.create_dataset('hidden'  , data=signal[  'hidden'])
                         dset = f.create_dataset('feature' , data=signal[ 'feature'])
-                        dset = f.create_dataset('manager' , data=signal[ 'manager'])
                     signal = U.BigDict()
                     pbar.set_description( 'File %i' % n )
                     pbar.refresh()
