@@ -1147,7 +1147,7 @@ class FeatureAttnNet(nn.Module):
         self.sqrtDepth = math.sqrt(self.D)
         self.study     = study
         self.disentg   = True
-        self.magF      = False
+        self.magType   = 'F'  # F V x
 
         self.h = n_task  # Multi-task
         self.M = self.D*int(self.n_feature/2)
@@ -1157,6 +1157,7 @@ class FeatureAttnNet(nn.Module):
 
         # Use disentangle features 
         if self.disentg:
+            self.computeKV = self._executeDisentangleRuntine
             self. wz  = nn.Linear( n_encode, self.M, bias = False)
             self. wh  = nn.Linear( n_hidden, self.M, bias = False)
             self.to_q = nn.Linear(n_command, self.D*self.h, bias = False)
@@ -1172,7 +1173,7 @@ class FeatureAttnNet(nn.Module):
         
         # Use tangle features
         else:
-            # Feature 
+            self.computeKV = self._executeTangleRuntine
             self.to_q  = nn.Linear(n_command,     self.D*self.h   , bias = False)
             self.to_kz = nn.Linear( n_encode, int(self.D*self.h/2), bias = False)
             self.to_kh = nn.Linear( n_hidden, int(self.D*self.h/2), bias = False)
@@ -1180,7 +1181,7 @@ class FeatureAttnNet(nn.Module):
             self.to_vh = nn.Linear( n_hidden, int(self.D*self.h/2), bias = False)
 
             # There isn't F, only V
-            self.magF = False
+            self.magType = 'V'
 
             # Initialization
             nn.init.xavier_uniform_(self.to_q .weight)
@@ -1189,7 +1190,74 @@ class FeatureAttnNet(nn.Module):
             nn.init.xavier_uniform_(self.to_vz.weight)
             nn.init.xavier_uniform_(self.to_vh.weight)
 
+        # Compute magnitude of sensory evidence
+        if   self.magType == 'F': self.mag = self._computeMagnitudeF
+        elif self.magType == 'V': self.mag = self._computeMagnitudeV
+        elif self.magType == 'x': self.mag = self._computeBogo
+        else:                     self.mag = self._computeMagnitudeV
+        self.magF = (self.magType == 'F')
+
+
+    """ Computer magnitude (1-norm) of feature Fi
+          - feature [batch,n_features,depth]
+    """
+    def _computeMagnitudeF(self,Fi):
+        mF = torch.norm(Fi,p=1,dim=2)/self.D  # [batch,n]    
+        mF = mF.unsqueeze(2).unsqueeze(1)     # [batch,1,n,1]
+        return mF
+    """ Computer magnitude (1-norm) of value V
+          - Value [batch,n_task,depth,n_features]
+    """
+    def _computeMagnitudeV(self,V):
+        mV = torch.norm(V,p=1,dim=2)/self.D         # [batch,h,n]
+        mV = mV.unsqueeze(3)                        # [batch,h,n,1]
+        return mV
+    """ Do anything
+    """
+    def _computeBogo(self,x):
+        return 1
+
+
+    """ Getting key and value from disentagle features
+          - feature [batch,  channel]
+          - hidden  [batch,n_hidden ]
+    """
+    def _executeDisentangleRuntine(self,feature,hidden):
+        batch = feature.shape[0]
+        # h: number of tasks
+        # d: size of state (depth)
+        # n: number of features Fn
+
+        z  = F.gelu(self.wz(feature)) # [batch,dn/2]
+        h  = F.gelu(self.wh( hidden)) # [batch,dn/2]
+        Fi = torch.cat([z,h],dim=1)      # [batch,dn]
+        Fi = Fi.reshape(batch,-1,self.D)  # [batch,n,d]
+        Fi = self.Lnorm(Fi)               # [batch,n,d]
+
+        # Key, value
+        K = self.to_k(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+        V = self.to_v(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+
+        return K,V,Fi
+
+    """ Getting key and value from tangle features
+          - feature [batch,  channel]
+          - hidden  [batch,n_hidden ]
+    """
+    def _executeTangleRuntine(self,feature,hidden):
+        # h: number of tasks
+        # d: size of state (depth)
+        # n: number of features Fn
+
+        Kz, Kh = self.to_kz(feature), self.to_kh(hidden)    # [batch,hd/2,n]
+        Vz, Vh = self.to_vz(feature), self.to_vh(hidden)    # [batch,hd/2,n]
         
+        # Key, value
+        K = torch.cat([Kz,Kh],dim=1)    # [batch,hd,n]
+        V = torch.cat([Vz,Vh],dim=1)    # [batch,hd,n]
+
+        return K,V,V
+
 
     """ Forward 
           - feature [batch,  channel]
@@ -1201,48 +1269,26 @@ class FeatureAttnNet(nn.Module):
         # h: number of tasks
         # d: size of state (depth)
         # n: number of features Fn
-
-        # Use disentangle features
-        if self.disentg:
-            z  = F.gelu(self.wz(feature)) # [batch,dn/2]
-            h  = F.gelu(self.wh( hidden)) # [batch,dn/2]
-            Fi = torch.cat([z,h],dim=1)      # [batch,dn]
-            Fi = Fi.reshape(batch,-1,self.D)  # [batch,n,d]
-            Fi = self.Lnorm(Fi)               # [batch,n,d]
-
-            # Key, value
-            K = self.to_k(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
-            V = self.to_v(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
-
-        # Use tangle features
-        else:
-            Kz, Kh = self.to_kz(feature), self.to_kh(hidden)    # [batch,hd/2,n]
-            Vz, Vh = self.to_vz(feature), self.to_vh(hidden)    # [batch,hd/2,n]
             
-            # Key, value
-            K = torch.cat([Kz,Kh],dim=1)    # [batch,hd,n]
-            V = torch.cat([Vz,Vh],dim=1)    # [batch,hd,n]
-            
-        # Query
-        Q = self.to_q(command)              # [batch,hd]
+        # Key, Query, Value
+        K,V,Fi = self.computeKV(feature,hidden)     # [batch,hd,n]
+        Q      = self.to_q(command)                 # [batch,hd]
         Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # K,V -> [batch,h,d,n]
                                                                             #  Q  -> [batch,h,d,1]
         
-        # Attention 
+        # Magnitude of sensory evidence
+        if self.magF: mag = self.mag(Fi)
+        else        : mag = self.mag( V)
+
+        # Attention
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
-        if self.magF:
-            mV = torch.norm(Fi,p=1,dim=2)/self.D         # [batch,n]
-            mV = mV.unsqueeze(2).unsqueeze(1)           # [batch,1,n,1]
-        else:
-            mV = torch.norm(V,p=1,dim=2)/self.D         # [batch,h,n]
-            mV = mV.unsqueeze(3)                        # [batch,h,n,1]
-        A  = self.Softmax(mV*QK/self.sqrtDepth)         # [batch,h,n,1]
+        A  = self.Softmax(mag*QK/self.sqrtDepth)        # [batch,h,n,1]
 
         # Apply
         S = torch.einsum('bhnm,bhdn->bhdm', (A,V))      # [batch,h,d,1]
         S = S.view(batch,self.h,-1)                     # [batch,h,d]
 
-        if self.study: return S,   A,   y
+        if self.study: return S,   A,  Fi
         else         : return S,None,None
 
 
