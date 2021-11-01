@@ -752,6 +752,7 @@ class ImitationModel(object):
         # Model to evaluation
         self.model.eval()
         print('Running study')
+        maxItr = len(loader)
         with torch.no_grad(), tqdm(total=len(loader),leave=False) as pbar:
             for i, sample in enumerate(loader):
                 # Batch
@@ -766,7 +767,7 @@ class ImitationModel(object):
                 host_s['id'] = np.array([i])
                 signal.update(host_s)
 
-                if ( i%umb == (umb-1) ) or (i == (n_frames-1)):
+                if ( i%umb == (umb-1) ) or (i == (maxItr-1)):
                     # Resume
                     signal = signal.resume()
                     n += 1 # New file

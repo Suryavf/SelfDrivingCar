@@ -1146,29 +1146,50 @@ class FeatureAttnNet(nn.Module):
         self.D         = n_state
         self.sqrtDepth = math.sqrt(self.D)
         self.study     = study
+        self.disentg   = True
         self.magF      = False
 
         self.h = n_task  # Multi-task
         self.M = self.D*int(self.n_feature/2)
 
-        # Feature 
-        self.wz = nn.Linear( n_encode, self.M, bias = False)
-        self.wh = nn.Linear( n_hidden, self.M, bias = False)
-
-        self.to_q = nn.Linear(n_command, self.D*self.h, bias = False)
-        self.to_k = nn.Linear(  self.D , self.D*self.h, bias = False)
-        self.to_v = nn.Linear(  self.D , self.D*self.h, bias = False)
-        
         self.Lnorm   = nn.LayerNorm( n_state )
         self.Softmax = nn.Softmax(2)
+
+        # Use disentangle features 
+        if self.disentg:
+            self. wz  = nn.Linear( n_encode, self.M, bias = False)
+            self. wh  = nn.Linear( n_hidden, self.M, bias = False)
+            self.to_q = nn.Linear(n_command, self.D*self.h, bias = False)
+            self.to_k = nn.Linear(  self.D , self.D*self.h, bias = False)
+            self.to_v = nn.Linear(  self.D , self.D*self.h, bias = False)
+            
+            # Initialization
+            nn.init.xavier_uniform_(self. wz .weight)
+            nn.init.xavier_uniform_(self. wh .weight)
+            nn.init.xavier_uniform_(self.to_q.weight)
+            nn.init.xavier_uniform_(self.to_k.weight)
+            nn.init.xavier_uniform_(self.to_v.weight)
         
-        # Initialization
-        torch.nn.init.xavier_uniform_(self. wz .weight)
-        torch.nn.init.xavier_uniform_(self. wh .weight)
-        torch.nn.init.xavier_uniform_(self.to_q.weight)
-        torch.nn.init.xavier_uniform_(self.to_k.weight)
-        torch.nn.init.xavier_uniform_(self.to_v.weight)
-    
+        # Use tangle features
+        else:
+            # Feature 
+            self.to_q  = nn.Linear(n_command,     self.D*self.h   , bias = False)
+            self.to_kz = nn.Linear( n_encode, int(self.D*self.h/2), bias = False)
+            self.to_kh = nn.Linear( n_hidden, int(self.D*self.h/2), bias = False)
+            self.to_vz = nn.Linear( n_encode, int(self.D*self.h/2), bias = False)
+            self.to_vh = nn.Linear( n_hidden, int(self.D*self.h/2), bias = False)
+
+            # There isn't F, only V
+            self.magF = False
+
+            # Initialization
+            nn.init.xavier_uniform_(self.to_q .weight)
+            nn.init.xavier_uniform_(self.to_kz.weight)
+            nn.init.xavier_uniform_(self.to_kh.weight)
+            nn.init.xavier_uniform_(self.to_vz.weight)
+            nn.init.xavier_uniform_(self.to_vh.weight)
+
+        
 
     """ Forward 
           - feature [batch,  channel]
@@ -1181,24 +1202,36 @@ class FeatureAttnNet(nn.Module):
         # d: size of state (depth)
         # n: number of features Fn
 
-        z = F.gelu(self.wz(feature)) # [batch,dn/2]
-        h = F.gelu(self.wh( hidden)) # [batch,dn/2]
-        y = torch.cat([z,h],dim=1)      # [batch,dn]
-        y = y.reshape(batch,-1,self.D)  # [batch,n,d]
-        y = self.Lnorm(y)               # [batch,n,d]
-        
-        # Query, key, value
-        Q = self.to_q(command)              # [batch,hd]
-        K = self.to_k(y).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
-        V = self.to_v(y).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+        # Use disentangle features
+        if self.disentg:
+            z  = F.gelu(self.wz(feature)) # [batch,dn/2]
+            h  = F.gelu(self.wh( hidden)) # [batch,dn/2]
+            Fi = torch.cat([z,h],dim=1)      # [batch,dn]
+            Fi = Fi.reshape(batch,-1,self.D)  # [batch,n,d]
+            Fi = self.Lnorm(Fi)               # [batch,n,d]
 
+            # Key, value
+            K = self.to_k(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+            V = self.to_v(Fi).transpose(2,1)     # [batch,n,hd] -> [batch,hd,n]
+
+        # Use tangle features
+        else:
+            Kz, Kh = self.to_kz(feature), self.to_kh(hidden)    # [batch,hd/2,n]
+            Vz, Vh = self.to_vz(feature), self.to_vh(hidden)    # [batch,hd/2,n]
+            
+            # Key, value
+            K = torch.cat([Kz,Kh],dim=1)    # [batch,hd,n]
+            V = torch.cat([Vz,Vh],dim=1)    # [batch,hd,n]
+            
+        # Query
+        Q = self.to_q(command)              # [batch,hd]
         Q,K,V = map(lambda x: x.reshape(batch,self.h,self.D,-1),[Q,K,V])    # K,V -> [batch,h,d,n]
                                                                             #  Q  -> [batch,h,d,1]
         
         # Attention 
         QK = torch.einsum('bhdn,bhdm->bhmn', (Q,K))     # [batch,h,n,1]
         if self.magF:
-            mV = torch.norm(y,p=1,dim=2)/self.D         # [batch,n]
+            mV = torch.norm(Fi,p=1,dim=2)/self.D         # [batch,n]
             mV = mV.unsqueeze(2).unsqueeze(1)           # [batch,1,n,1]
         else:
             mV = torch.norm(V,p=1,dim=2)/self.D         # [batch,h,n]
