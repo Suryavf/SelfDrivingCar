@@ -5,6 +5,7 @@ import numpy  as np
 import pandas as pd
 import cv2 as cv
 import matplotlib
+import seaborn as sns
 from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 # from scipy.integrate import interp2d
@@ -163,7 +164,10 @@ def getRawData(train,type=None):
     else    : pathraw =  pathEval_rdat
     with open(pathraw, 'rb') as f:
         raw = np.load(f)
-    
+    if train:
+        n   = raw.shape[0]
+        raw = raw.reshape([ n,20,13  ])
+
     #   0   1   2    3   4  5  6  7             8             9      10     11   12
     # [st,thr,brk, vel, c1,c2,c3,c4, interOppLane,interSidewalk, cOther,cPedes,cCar]
     if   type == 'actions':
@@ -178,9 +182,24 @@ def getRawData(train,type=None):
     elif type == 'interception':
         if train: return raw[:,:,8:10]
         else    : return raw[ : ,8:10]
+    elif type == 'interceptionOppLane':
+        if train: return raw[:,:,8]
+        else    : return raw[ : ,8]
+    elif type == 'interceptionSidewalk':
+        if train: return raw[:,:,9]
+        else    : return raw[ : ,9]
     elif type == 'collision':
         if train: return raw[:,:,10:]
         else    : return raw[ : ,10:]
+    elif type == 'collisionOther':
+        if train: return raw[:,:,10]
+        else    : return raw[ : ,10]
+    elif type == 'collisionPederatian':
+        if train: return raw[:,:,11]
+        else    : return raw[ : ,11]
+    elif type == 'collisionCar':
+        if train: return raw[:,:,12]
+        else    : return raw[ : ,12]
     elif type == 'steering':
         if train: return raw[:,:,0]
         else    : return raw[ : ,0]
@@ -303,7 +322,7 @@ def BigViewKim2017DistributionComp(train=True):
     plt.imsave('train.png',canvas)
     
 
-def viewKim2017DistributionComp(train=True):
+def viewKim2017DistributionComp(train=True,onecanvas=True):
     #         PS        PS+BC    PS+BC+UCT
     #'2009081241','2105092139','2009230924'
     model = 'Kim2017'
@@ -333,21 +352,18 @@ def viewKim2017DistributionComp(train=True):
     n1,n2 = n[:-1],n[1:]
 
     edge = 10
-    if train:
-        n    = 500
-        n_up = 1
-    else:
-        n    = 250
-        n_up = 2
+    if train: n,n_up = 500,1
+    else    : n,n_up = 250,2
     n_ln = n if ref_global else n_up*n
 
-    if ref_global: canvas = np.zeros([4*edge + 3*n   , (n_time+1)*edge + n_time*n     ])
-    else         : canvas = np.zeros([4*edge + 3*n_ln, (n_time+1)*edge + n_time*n_ln,3],dtype=np.uint8)
-    background = np.zeros([4*edge + 3*n, (n_time+1)*edge + n_time*n ],dtype=np.uint8) # 680, 1440   2720, 5760
-    
-    countP1 = []
-    countP2 = []
-    countP3 = []
+    if onecanvas:
+        if ref_global: canvas = np.zeros([4*edge + 3*n   , (n_time+1)*edge + n_time*n     ])
+        else         : canvas = np.zeros([4*edge + 3*n_ln, (n_time+1)*edge + n_time*n_ln,3],dtype=np.uint8)
+        background = np.zeros([4*edge + 3*n, (n_time+1)*edge + n_time*n ],dtype=np.uint8) # 680, 1440   2720, 5760
+    else:
+        # Save maps
+        P1,P2,P3 = [],[],[]
+    countP1,countP2,countP3 = [], [], []
 
     idx = 0
     tsne,xlim,ylim = get_t_SNE(train)
@@ -355,41 +371,64 @@ def viewKim2017DistributionComp(train=True):
     for a,b in zip(n1,n2):
         #b= 10
         # No bias correcion without compensation
-        x1,x2 = edge                ,         edge+n_ln 
-        y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
         map = viewSubSetData(ps1,a,b,num=n,n_up=n_up,train=train,show=False,post=not ref_global)
-        canvas    [x1:x2,y1:y2] = map
-        background[x1:x2,y1:y2] = mask
-        countP1.append(map.sum())
+        if onecanvas:
+            x1,x2 = edge                ,         edge+n_ln 
+            y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
+            canvas    [x1:x2,y1:y2] = map
+            background[x1:x2,y1:y2] = mask
+        else: P1.append(map)
+        countP1.append(map.sum())   # For metrics
 
         # Gradual bias correcion without compensation
-        x1,x2 = edge+     edge+n_ln ,     2 *(edge+n_ln)
-        y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
         map = viewSubSetData(ps2,a,b,num=n,n_up=n_up,train=train,show=False,post=not ref_global)
-        canvas    [x1:x2,y1:y2] = map
-        background[x1:x2,y1:y2] = mask
-        countP2.append(map.sum())
+        if onecanvas:
+            x1,x2 = edge+     edge+n_ln ,     2 *(edge+n_ln)
+            y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
+            canvas    [x1:x2,y1:y2] = map
+            background[x1:x2,y1:y2] = mask
+        else: P2.append(map)
+        countP2.append(map.sum())   # For metrics
 
         # Full bias correcion without compensation
-        x1,x2 = edge+  2*(edge+n_ln),     3 *(edge+n_ln)
-        y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
         map = viewSubSetData(ps3,a,b,num=n,n_up=n_up,train=train,show=False,post=not ref_global)
-        canvas    [x1:x2,y1:y2] = map
-        background[x1:x2,y1:y2] = mask
-        countP3.append(map.sum())
+        if onecanvas:
+            x1,x2 = edge+  2*(edge+n_ln),     3 *(edge+n_ln)
+            y1,y2 = edge+idx*(edge+n_ln),(idx+1)*(edge+n_ln)
+            canvas    [x1:x2,y1:y2] = map
+            background[x1:x2,y1:y2] = mask
+        else: P3.append(map)
+        countP3.append(map.sum())   # For metrics
         idx += 1
 
     if ref_global:
-        p = canvas.flatten()
-        p = np.percentile(p[p>0],99) 
-        
-        canvas = 255*canvas/p
-        canvas = cv.resize(canvas,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
-        canvas = np.clip(canvas,0,255)
-        canvas = cv.applyColorMap( canvas.astype(np.uint8), cv.COLORMAP_TURBO) # COLORMAP_INFERNO COLORMAP_HOT COLORMAP_TURBO COLORMAP_JET COLORMAP_VIRIDIS
+        if onecanvas:
+            p = canvas.flatten()
+            p = np.percentile(p[p>0],99) 
 
-        background = cv.resize(background,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+            canvas = 255*canvas/p
+            canvas = cv.resize(canvas,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+            canvas = np.clip(canvas,0,255)
+            canvas = cv.applyColorMap( canvas.astype(np.uint8), cv.COLORMAP_TURBO) # COLORMAP_INFERNO COLORMAP_HOT COLORMAP_TURBO COLORMAP_JET COLORMAP_VIRIDIS
 
+            background = cv.resize(background,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+        else:
+            p = np.hstack([np.hstack(P1),np.hstack(P2),np.hstack(P3)]).flatten()
+            p = np.percentile(p[p>0],99)
+            for i in range(len(P1)):
+                P1[i] = cv.resize(255*P1[i]/p,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+                P1[i] = np.clip(P1[i],0,255).astype(np.uint8)
+                P1[i] = cv.applyColorMap( P1[i], cv.COLORMAP_TURBO)
+
+                P2[i] = cv.resize(255*P2[i]/p,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+                P2[i] = np.clip(P2[i],0,255).astype(np.uint8)
+                P2[i] = cv.applyColorMap( P2[i], cv.COLORMAP_TURBO)
+
+                P3[i] = cv.resize(255*P3[i]/p,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+                P3[i] = np.clip(P3[i],0,255).astype(np.uint8)
+                P3[i] = cv.applyColorMap( P3[i], cv.COLORMAP_TURBO)
+
+    # Print metrics
     countP1 = np.array(countP1)
     countP2 = np.array(countP2)
     countP3 = np.array(countP3)
@@ -399,22 +438,42 @@ def viewKim2017DistributionComp(train=True):
     print( 100*countP2/countP2.sum() )
     print( 100*countP3/countP3.sum() )
 
-    canvas = cv.cvtColor(canvas, cv.COLOR_BGR2RGB)
-    canvas = canvas*np.expand_dims(background,axis=2)
-    canvas[canvas==0] = 5
-    plt.imsave('eval.png',canvas)
+    # Save
+    if onecanvas:
+        canvas = cv.cvtColor(canvas, cv.COLOR_BGR2RGB)
+        canvas = canvas*np.expand_dims(background,axis=2)
+        canvas[canvas==0] = 5
+        plt.imsave('eval.png',canvas)
+    else: 
+        mask = mask.astype(np.uint8)
+        mask = cv.resize(mask,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+        for i in range(len(P1)):
+            P1[i] = cv.cvtColor(P1[i], cv.COLOR_BGR2RGB)*np.expand_dims(mask,axis=2)
+            P2[i] = cv.cvtColor(P2[i], cv.COLOR_BGR2RGB)*np.expand_dims(mask,axis=2)
+            P3[i] = cv.cvtColor(P3[i], cv.COLOR_BGR2RGB)*np.expand_dims(mask,axis=2)
+
+            P1[i][ P1[i]==0 ] = 5
+            P2[i][ P2[i]==0 ] = 5
+            P3[i][ P3[i]==0 ] = 5
+            
+            plt.imsave('out/NBC%i.png'%(i+1),P1[i])
+            plt.imsave('out/GBC%i.png'%(i+1),P2[i])
+            plt.imsave('out/FBC%i.png'%(i+1),P3[i])
 
 
 # ----------------------------------
 def viewKim2017Distribution(train=True):
     # Parameters
-    n    = 250
-    n_up = 2
+    if train: n,n_up = 600,1
+    else    : n,n_up = 300,2
     
     # Get t-SNE and Mask
     tsne,xlim,ylim = get_t_SNE(train)
     mask = getMask(tsne,xlim,ylim,n)
     mask = mask.astype(np.uint8)
+    mask = cv.resize(mask,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    mask = np.expand_dims(mask,axis=2)
+
     xr = (xlim[1]-xlim[0])/n
     yr = (ylim[1]-ylim[0])/n
 
@@ -425,9 +484,8 @@ def viewKim2017Distribution(train=True):
     map = plot_hist2D_tSNE(tsne,None,xlim,ylim,num=n,n_up=n_up,show=False,post=False)
 
     # Normalization
-    p = map.flatten()
-    p = np.percentile(p[p>0],99) 
-    map = 255*map/map.max()
+    print("Density max", map.max())
+    map = 255*map/106 #map.max()
 
     # Coloring
     map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
@@ -435,8 +493,7 @@ def viewKim2017Distribution(train=True):
     map = cv.applyColorMap( map.astype(np.uint8), cv.COLORMAP_TURBO)
 
     # Masking
-    mask = cv.resize(mask,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
-    map = map*np.expand_dims(mask,axis=2)
+    map = map*mask
     map[map==0] = 5
     
     # Save
@@ -456,22 +513,340 @@ def viewKim2017Distribution(train=True):
     dat = getRawData(train,'command')
     
     # Map
-    map = np.zeros([n,n,3])
+    map  = np.zeros([n,n,3])
+    hist = np.zeros([n,n,1])
     for k in range(len(tsne)):
         val = tsne[k]
         nx = int( (val[0]-xlim[0])/xr )
         ny = int( (val[1]-ylim[0])/yr )
         
-        dat[k]  # [20,4]
+        # Get color for command
+        cmd = dat[k]  # [20,4]
+        # print(cmd)
+        if not train: cmd = cmd.reshape([1,4])
+        c = np.matmul( cmd,color )
+        if train: c = c.sum(0)#.flatten()
+        else    : c = c[0]
         
-        map[nx,ny]+=1
+        map[nx,ny] += c
+        
+        # Update count
+        hist[nx,ny]+=1
+    hist = hist + 1 # Anti NaNs
+    if train: map = map/(hist*20) 
+    else    : map = map/ hist
+
+    map = map.astype(np.uint8)
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+
+    # Save
+    plt.imsave('command.png',map)
+
+
+
+    # VELOCITY
+    # --------------------------------------------------------------------------------
+    dat = getRawData(train,'velocity')
+
+    # Map
+    map  = np.zeros([n,n])
+    hist = np.zeros([n,n])
+    for k in range(len(tsne)):
+        val = tsne[k]
+        nx = int( (val[0]-xlim[0])/xr )
+        ny = int( (val[1]-ylim[0])/yr )
+        
+        # Get color for command
+        if train: map[nx,ny] += dat[k].mean()
+        else    : map[nx,ny] += dat[k]
+
+        # Update count
+        hist[nx,ny]+=1
+    hist = hist + 1 # Anti NaNs
+    map = map/hist
+    print('Velocity max:',map.max())
+    map = 255*map
+
+    # Coloring
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+    map = cv.applyColorMap( map.astype(np.uint8), cv.COLORMAP_TURBO)
+
+    # Masking
+    map = map*mask
+    map[map==0] = 5
+    
+    # Save
+    map = cv.cvtColor(map, cv.COLOR_BGR2RGB)
+    plt.imsave('velocity.png',map)
+
+
+
 
     # FAIL: interception, collision
     # --------------------------------------------------------------------------------
-    getRawData(train,'interception')
-    getRawData(train,'collision')
+    #                     R   G   B
+    color = np.array([ [  0,255,  0],   # Interception  
+                       [255,  0,  0] ]) # Collision     
+    inter = getRawData(train,'interception')
+    colls = getRawData(train,'collision')
+    inter = inter.sum(-1,keepdims=True)   # All cases
+    colls = colls.sum(-1,keepdims=True)
+    
+    # Threshold
+    inter = inter>0.05
+    colls = colls>0
+    if train:
+        inter = inter.mean(1)    # Mean in sequence
+        colls = colls.mean(1)
+    fail = np.hstack([inter,colls])
+    
+    # Only for fails
+    if train: n,n_up = 150,4
+    else    : n,n_up = 150,4
+    xr = (xlim[1]-xlim[0])/n
+    yr = (ylim[1]-ylim[0])/n
+
+    # Map
+    map  = np.zeros([n,n,3])
+    hist = np.zeros([n,n,1])
+    for k in range(len(tsne)):
+        val = tsne[k]
+        nx = int( (val[0]-xlim[0])/xr )
+        ny = int( (val[1]-ylim[0])/yr )
+        
+        # Get color for command
+        val = fail[k]  # [2,]
+        c = np.matmul( val,color )
+        map[nx,ny] += c
+        
+        # Update count
+        if val.sum()>0:
+            hist[nx,ny]+=1
+    hist = hist + 1 
+    map = map/hist
+    map = map.astype(np.uint8)
+    map[map==0] = 20
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+
+    # Masking
+    map = map*mask
+    map[map==0] = 5
+
+    # Save
+    plt.imsave('fail.png',map)
+
+
+    # Steering angle
+    # --------------------------------------------------------------------------------
+    dat = getRawData(train,'steering')
+    dat = (dat+1)/2
+
+    # Map
+    map  = np.zeros([n,n])
+    hist = np.zeros([n,n])
+    for k in range(len(tsne)):
+        val = tsne[k]
+        nx = int( (val[0]-xlim[0])/xr )
+        ny = int( (val[1]-ylim[0])/yr )
+        
+        # Get color for command
+        if train: map[nx,ny] += dat[k].mean()
+        else    : map[nx,ny] += dat[k]
+
+        # Update count
+        hist[nx,ny]+=1
+    hist = hist + 1 # Anti NaNs
+    map = map/hist
+    print('Steering max:',map.max())
+    map = 255*map
+
+    # Coloring
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+    map = cv.applyColorMap( map.astype(np.uint8), cv.COLORMAP_TURBO)
+
+    # Masking
+    map = map*mask
+    map[map==0] = 5
+    
+    # Save
+    map = cv.cvtColor(map, cv.COLOR_BGR2RGB)
+    plt.imsave('steering.png',map)
 
 
 
-# viewKim2017DistributionComp(True)
-viewKim2017Distribution(True)
+    # Throttle 
+    # --------------------------------------------------------------------------------
+    dat = getRawData(train,'throttle')
+
+    # Map
+    map  = np.zeros([n,n])
+    hist = np.zeros([n,n])
+    for k in range(len(tsne)):
+        val = tsne[k]
+        nx = int( (val[0]-xlim[0])/xr )
+        ny = int( (val[1]-ylim[0])/yr )
+        
+        # Get color for command
+        if train: map[nx,ny] += dat[k].mean()
+        else    : map[nx,ny] += dat[k]
+
+        # Update count
+        hist[nx,ny]+=1
+    hist = hist + 1 # Anti NaNs
+    map = map/hist
+    print('Throttle max:',map.max())
+    map = 255*map
+
+    # Coloring
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+    map = cv.applyColorMap( map.astype(np.uint8), cv.COLORMAP_TURBO)
+
+    # Masking
+    map = map*mask
+    map[map==0] = 5
+    
+    # Save
+    map = cv.cvtColor(map, cv.COLOR_BGR2RGB)
+    plt.imsave('throttle.png',map)
+    
+
+
+    # Brake 
+    # --------------------------------------------------------------------------------
+    dat = getRawData(train,'brake')  # brake collisionPederatian collisionCar collisionOther interceptionOppLane interceptionSidewalk
+
+    # Map
+    map  = np.zeros([n,n])
+    hist = np.zeros([n,n])
+    for k in range(len(tsne)):
+        val = tsne[k]
+        nx = int( (val[0]-xlim[0])/xr )
+        ny = int( (val[1]-ylim[0])/yr )
+        
+        # Get color for command
+        if train: map[nx,ny] += dat[k].mean()
+        else    : map[nx,ny] += dat[k]
+
+        # Update count
+        hist[nx,ny]+=1
+    hist = hist + 1 # Anti NaNs
+    map = map/hist
+    print('Brake max:',map.max())
+    map = 255*map
+
+    # Coloring
+    map = cv.resize(map,None,fx=n_up,fy=n_up, interpolation = cv.INTER_CUBIC)
+    map = np.clip(map,0,255)
+    map = cv.applyColorMap( map.astype(np.uint8), cv.COLORMAP_TURBO)
+
+    # Masking
+    map = map*mask
+    map[map==0] = 5
+    
+    # Save
+    map = cv.cvtColor(map, cv.COLOR_BGR2RGB)
+    plt.imsave('brake.png',map)
+
+
+
+# ----------------------------------
+def viewKim2017Cases(train=True):
+    #         PS        PS+BC    PS+BC+UCT
+    #'2009081241','2105092139','2009230924'
+    model = 'Kim2017'
+    namefile = 'priority.ps' if train else 'eval.er'
+    
+    # No bias correcion without compensation
+    ps1 = getData(os.path.join('../aux/runs',model,'2009081241',namefile),train).flatten()
+    
+    # Gradual bias correcion without compensation
+    ps2 = getData(os.path.join('../aux/runs',model,'2105092139',namefile),train).flatten()
+    
+    # Full bias correcion without compensation
+    ps3 = getData(os.path.join('../aux/runs',model,'2009230924',namefile),train).flatten()
+
+    ps1 = np.log10(ps1)
+    ps2 = np.log10(ps2)
+    ps3 = np.log10(ps3)
+
+    str = getRawData(train,'steering')
+    thr = getRawData(train,'throttle')
+    brk = getRawData(train,'brake')
+    vel = getRawData(train,'velocity')
+
+    cmd = getRawData(train,'command')
+    ntr = getRawData(train,'interception')
+    col = getRawData(train,'collision')
+
+    # Case 1: collision 
+    # --------------------------------------------------------------------------------
+    cnd = col.sum(1).sum(1)>1
+    print('Case 1',cnd.sum())
+    #sns.set_style('whitegrid')
+    sns.set(rc={'figure.figsize':(10,2)})
+    sns.kdeplot( ps1[cnd],label='PS'       ,bw_adjust=0.3)
+    sns.kdeplot( ps2[cnd],label='PS+BC'    ,bw_adjust=0.3)
+    sns.kdeplot( ps3[cnd],label='PS+BC+UCT',bw_adjust=0.3)
+    plt.legend()
+    plt.title('Collision')
+    plt.xlim([-4,0])
+    plt.grid()
+    plt.show()
+    
+    # Case 2: stop condition 
+    # --------------------------------------------------------------------------------
+    c1 = vel.mean(1)<1/90 
+    c2 = thr.mean(1)>0.8
+    cnd = c1*c2
+    print('Case 2',cnd.sum())
+    sns.kdeplot( ps1[cnd],label='PS'       ,bw_adjust=0.3)
+    sns.kdeplot( ps2[cnd],label='PS+BC'    ,bw_adjust=0.3)
+    sns.kdeplot( ps3[cnd],label='PS+BC+UCT',bw_adjust=0.3)
+    plt.legend()
+    plt.title('Stop condition')
+    plt.xlim([-4,0])
+    plt.show()
+
+    # Case 3: easy condition
+    # --------------------------------------------------------------------------------
+    c1 = vel.mean(1)> 0.17
+    c2 = vel.mean(1)< 0.25
+    c3 = str.mean(1)< 0.1
+    c4 = str.mean(1)>-0.1
+    c5 = thr.mean(1)<0.51
+    c6 = brk.mean(1)<0.01
+    c7 = col.sum(1).sum(1)<0.1
+    c8 = ntr.sum(1).sum(1)<0.1
+    cnd = c1*c2*c3*c4*c5*c6*c7*c8
+    print('Case 3',cnd.sum())
+    sns.kdeplot( ps1[cnd],label='PS'       ,bw_adjust=0.3)
+    sns.kdeplot( ps2[cnd],label='PS+BC'    ,bw_adjust=0.3)
+    sns.kdeplot( ps3[cnd],label='PS+BC+UCT',bw_adjust=0.3)
+    plt.legend()
+    plt.title('Easy condition')
+    plt.xlim([-4,0])
+    plt.show()
+
+    # Case 4: hard steering
+    # --------------------------------------------------------------------------------
+    c1 = str.mean(1)> 0.4
+    c2 = str.mean(1)<-0.4
+    cnd = c1 + c2
+    print('Case 4',cnd.sum())
+    sns.kdeplot( ps1[cnd],label='PS'       ,bw_adjust=0.3)
+    sns.kdeplot( ps2[cnd],label='PS+BC'    ,bw_adjust=0.3)
+    sns.kdeplot( ps3[cnd],label='PS+BC+UCT',bw_adjust=0.3)
+    plt.legend()
+    plt.title('Hard steering')
+    plt.xlim([-4,0])
+    plt.show()
+    
+
+#viewKim2017DistributionComp(False,False)
+#viewKim2017Distribution(True)
+viewKim2017Cases(True)
