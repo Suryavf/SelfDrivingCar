@@ -534,8 +534,8 @@ class CatDecoder(nn.Module):
         else            : st = torch.cuda.FloatTensor(         1,self.n_task,self.S).uniform_()
         
         # Study
-        if self.study: α,β,F = list(),list(),list()
-        else         : α,β,F =   None,  None,  None
+        if self.study: α,β,F,x,η = list(),list(),list(),list(),list()
+        else         : α,β,F,x,η =   None,  None,  None,  None,  None
 
         # Sequence loop
         n_range  = self.sequence_len if self.training else batch_size
@@ -594,5 +594,5 @@ class CatDecoder(nn.Module):
             β = torch.stack(β, dim=0)
             F = torch.stack(F, dim=0)
         
-        return st_, {'hidden': ht_, 'feature': F}, {'alpha': α, 'beta': β}
+        return st_, {'hidden': ht_, 'feature': F, 'sensory': x, 'focused': η}, {'alpha': α, 'beta': β}
         

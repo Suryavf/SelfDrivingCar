@@ -718,6 +718,8 @@ class ImitationModel(object):
         signal['action'  ] = prediction[ 'actions' ]           .data.cpu().numpy()
         signal['hidden'  ] = prediction[  'signal' ][ 'hidden'].data.cpu().numpy()
         signal['feature' ] = prediction[  'signal' ]['feature'].data.cpu().numpy()
+        signal['sensory' ] = prediction[  'signal' ]['sensory'].data.cpu().numpy()
+        signal['focused' ] = prediction[  'signal' ]['focused'].data.cpu().numpy()
         
         return signal
 
