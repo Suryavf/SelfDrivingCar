@@ -579,6 +579,8 @@ class CatDecoder(nn.Module):
             if self.study:
                 α.append(αt)
                 β.append(βt)
+                η.append(ηt)
+                x.append(xt)
                 F.append(Ft)
 
         # Concatenate
@@ -592,7 +594,9 @@ class CatDecoder(nn.Module):
         if self.study:
             α = torch.stack(α, dim=0)
             β = torch.stack(β, dim=0)
+            η = torch.stack(η, dim=0)
+            x = torch.stack(x, dim=0)
             F = torch.stack(F, dim=0)
         
-        return st_, {'hidden': ht_, 'feature': F, 'sensory': x, 'focused': η}, {'alpha': α, 'beta': β}
+        return st_, {'hidden': ht_, 'feature': F, 'sensory': η, 'focused': x}, {'alpha': α, 'beta': β}
         
