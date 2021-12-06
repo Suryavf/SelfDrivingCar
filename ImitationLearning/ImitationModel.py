@@ -785,6 +785,8 @@ class ImitationModel(object):
                         dset = f.create_dataset('action'  , data=signal[  'action'])
                         dset = f.create_dataset('hidden'  , data=signal[  'hidden'])
                         dset = f.create_dataset('feature' , data=signal[ 'feature'])
+                        dset = f.create_dataset('sensory' , data=signal[ 'sensory'])
+                        dset = f.create_dataset('focused' , data=signal[ 'focused'])
                     signal = U.BigDict()
                     pbar.set_description( 'File %i' % n )
                     pbar.refresh()
